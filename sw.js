@@ -1,4 +1,4 @@
-const CACHE = 'cleartext-v1';
+const CACHE = 'cleartext-v2';
 const ASSETS = ['./', './index.html'];
 
 self.addEventListener('install', e => {
