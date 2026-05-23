@@ -494,27 +494,25 @@ body {
     <div class="ct-logo ct-logo--splash">
       <svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
         <defs>
-          <linearGradient id="sg" x1="0" y1="0" x2="80" y2="80" gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stop-color="#065f46" stop-opacity="0.6"/>
-            <stop offset="100%" stop-color="#1e40af" stop-opacity="0.5"/>
-          </linearGradient>
-          <linearGradient id="st" x1="0" y1="0" x2="80" y2="80" gradientUnits="userSpaceOnUse">
+          <linearGradient id="ns" x1="0" y1="0" x2="80" y2="80" gradientUnits="userSpaceOnUse">
             <stop offset="0%" stop-color="#34d399"/>
             <stop offset="100%" stop-color="#60a5fa"/>
           </linearGradient>
-          <filter id="glow">
-            <feGaussianBlur stdDeviation="2" result="blur"/>
-            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-          </filter>
         </defs>
-        <rect width="80" height="80" rx="22" fill="url(#sg)"/>
-        <rect width="80" height="80" rx="22" fill="none" stroke="url(#st)" stroke-width="1.5" stroke-opacity="0.5"/>
-        <g filter="url(#glow)">
-          <path d="M18 32C18 26 22 22 28 22H33" stroke="url(#st)" stroke-width="4.5" stroke-linecap="round" fill="none"/>
-          <path d="M18 32V48C18 54 22 58 28 58H33" stroke="url(#st)" stroke-width="4.5" stroke-linecap="round" fill="none"/>
-          <line x1="41" y1="22" x2="62" y2="22" stroke="url(#st)" stroke-width="4.5" stroke-linecap="round"/>
-          <line x1="51.5" y1="22" x2="51.5" y2="58" stroke="url(#st)" stroke-width="4.5" stroke-linecap="round"/>
-        </g>
+        <rect width="80" height="80" rx="22" fill="#0b1120"/>
+        <circle cx="40" cy="40" r="6"   fill="url(#ns)"/>
+        <circle cx="40" cy="16"  r="4.5" fill="url(#ns)" opacity=".75"/>
+        <circle cx="62" cy="28"  r="4.5" fill="url(#ns)" opacity=".75"/>
+        <circle cx="62" cy="52"  r="4.5" fill="url(#ns)" opacity=".75"/>
+        <circle cx="40" cy="64"  r="4.5" fill="url(#ns)" opacity=".75"/>
+        <circle cx="18" cy="52"  r="4.5" fill="url(#ns)" opacity=".75"/>
+        <circle cx="18" cy="28"  r="4.5" fill="url(#ns)" opacity=".75"/>
+        <line x1="40" y1="40" x2="40"  y2="16"  stroke="url(#ns)" stroke-width="1.4" stroke-opacity=".45"/>
+        <line x1="40" y1="40" x2="62"  y2="28"  stroke="url(#ns)" stroke-width="1.4" stroke-opacity=".45"/>
+        <line x1="40" y1="40" x2="62"  y2="52"  stroke="url(#ns)" stroke-width="1.4" stroke-opacity=".45"/>
+        <line x1="40" y1="40" x2="40"  y2="64"  stroke="url(#ns)" stroke-width="1.4" stroke-opacity=".45"/>
+        <line x1="40" y1="40" x2="18"  y2="52"  stroke="url(#ns)" stroke-width="1.4" stroke-opacity=".45"/>
+        <line x1="40" y1="40" x2="18"  y2="28"  stroke="url(#ns)" stroke-width="1.4" stroke-opacity=".45"/>
       </svg>
     </div>
     <div class="no-api-title" style="color:var(--text)">ClearText AI</div>
@@ -532,27 +530,26 @@ body {
     <div class="ct-logo ct-logo--admin">
       <svg width="68" height="68" viewBox="0 0 68 68" fill="none" xmlns="http://www.w3.org/2000/svg">
         <defs>
-          <linearGradient id="ag" x1="0" y1="0" x2="68" y2="68" gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stop-color="#60a5fa" stop-opacity="0.3"/>
-            <stop offset="100%" stop-color="#8b5cf6" stop-opacity="0.25"/>
-          </linearGradient>
-          <linearGradient id="at" x1="0" y1="0" x2="68" y2="68" gradientUnits="userSpaceOnUse">
+          <linearGradient id="na" x1="0" y1="0" x2="68" y2="68" gradientUnits="userSpaceOnUse">
             <stop offset="0%" stop-color="#60a5fa"/>
             <stop offset="100%" stop-color="#8b5cf6"/>
           </linearGradient>
-          <filter id="aglow">
-            <feGaussianBlur stdDeviation="1.5" result="blur"/>
-            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-          </filter>
         </defs>
-        <rect width="68" height="68" rx="20" fill="url(#ag)"/>
-        <rect width="68" height="68" rx="20" fill="none" stroke="url(#at)" stroke-width="1.2" stroke-opacity="0.5"/>
-        <g filter="url(#aglow)">
-          <path d="M14 27C14 22 18 18 24 18H29" stroke="url(#at)" stroke-width="4" stroke-linecap="round" fill="none"/>
-          <path d="M14 27V41C14 46 18 50 24 50H29" stroke="url(#at)" stroke-width="4" stroke-linecap="round" fill="none"/>
-          <line x1="36" y1="18" x2="54" y2="18" stroke="url(#at)" stroke-width="4" stroke-linecap="round"/>
-          <line x1="45" y1="18" x2="45" y2="50" stroke="url(#at)" stroke-width="4" stroke-linecap="round"/>
-        </g>
+        <rect width="68" height="68" rx="20" fill="#0b1120"/>
+        <rect width="68" height="68" rx="20" fill="none" stroke="url(#na)" stroke-width="1" stroke-opacity=".3"/>
+        <circle cx="34" cy="34" r="5.5" fill="url(#na)"/>
+        <circle cx="34" cy="13"  r="4"   fill="url(#na)" opacity=".75"/>
+        <circle cx="52.5" cy="23.5" r="4" fill="url(#na)" opacity=".75"/>
+        <circle cx="52.5" cy="44.5" r="4" fill="url(#na)" opacity=".75"/>
+        <circle cx="34" cy="55"  r="4"   fill="url(#na)" opacity=".75"/>
+        <circle cx="15.5" cy="44.5" r="4" fill="url(#na)" opacity=".75"/>
+        <circle cx="15.5" cy="23.5" r="4" fill="url(#na)" opacity=".75"/>
+        <line x1="34" y1="34" x2="34"   y2="13"   stroke="url(#na)" stroke-width="1.2" stroke-opacity=".45"/>
+        <line x1="34" y1="34" x2="52.5" y2="23.5" stroke="url(#na)" stroke-width="1.2" stroke-opacity=".45"/>
+        <line x1="34" y1="34" x2="52.5" y2="44.5" stroke="url(#na)" stroke-width="1.2" stroke-opacity=".45"/>
+        <line x1="34" y1="34" x2="34"   y2="55"   stroke="url(#na)" stroke-width="1.2" stroke-opacity=".45"/>
+        <line x1="34" y1="34" x2="15.5" y2="44.5" stroke="url(#na)" stroke-width="1.2" stroke-opacity=".45"/>
+        <line x1="34" y1="34" x2="15.5" y2="23.5" stroke="url(#na)" stroke-width="1.2" stroke-opacity=".45"/>
       </svg>
     </div>
     <div class="admin-login-title">Адмін-панель</div>
@@ -656,21 +653,25 @@ body {
     <div class="ct-logo ct-logo--header">
       <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
         <defs>
-          <linearGradient id="hg" x1="0" y1="0" x2="36" y2="36" gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stop-color="#34d399" stop-opacity="0.3"/>
-            <stop offset="100%" stop-color="#60a5fa" stop-opacity="0.4"/>
-          </linearGradient>
-          <linearGradient id="ht" x1="0" y1="0" x2="36" y2="36" gradientUnits="userSpaceOnUse">
+          <linearGradient id="nh" x1="0" y1="0" x2="36" y2="36" gradientUnits="userSpaceOnUse">
             <stop offset="0%" stop-color="#34d399"/>
             <stop offset="100%" stop-color="#60a5fa"/>
           </linearGradient>
         </defs>
-        <rect width="36" height="36" rx="10" fill="url(#hg)"/>
-        <rect width="36" height="36" rx="10" fill="none" stroke="url(#ht)" stroke-width="0.8" stroke-opacity="0.6"/>
-        <path d="M9.5 15C9.5 12.5 11.3 10.5 14 10.5H16" stroke="url(#ht)" stroke-width="2.2" stroke-linecap="round" fill="none"/>
-        <path d="M9.5 15V21C9.5 23.5 11.3 25.5 14 25.5H16" stroke="url(#ht)" stroke-width="2.2" stroke-linecap="round" fill="none"/>
-        <line x1="19" y1="10.5" x2="27" y2="10.5" stroke="url(#ht)" stroke-width="2.2" stroke-linecap="round"/>
-        <line x1="23" y1="10.5" x2="23" y2="25.5" stroke="url(#ht)" stroke-width="2.2" stroke-linecap="round"/>
+        <rect width="36" height="36" rx="9" fill="#0b1120"/>
+        <circle cx="18" cy="18" r="3" fill="url(#nh)"/>
+        <circle cx="18" cy="8"  r="2" fill="url(#nh)" opacity=".75"/>
+        <circle cx="26.6" cy="13" r="2" fill="url(#nh)" opacity=".75"/>
+        <circle cx="26.6" cy="23" r="2" fill="url(#nh)" opacity=".75"/>
+        <circle cx="18" cy="28" r="2" fill="url(#nh)" opacity=".75"/>
+        <circle cx="9.4"  cy="23" r="2" fill="url(#nh)" opacity=".75"/>
+        <circle cx="9.4"  cy="13" r="2" fill="url(#nh)" opacity=".75"/>
+        <line x1="18" y1="18" x2="18"   y2="8"    stroke="url(#nh)" stroke-width="1" stroke-opacity=".45"/>
+        <line x1="18" y1="18" x2="26.6" y2="13"   stroke="url(#nh)" stroke-width="1" stroke-opacity=".45"/>
+        <line x1="18" y1="18" x2="26.6" y2="23"   stroke="url(#nh)" stroke-width="1" stroke-opacity=".45"/>
+        <line x1="18" y1="18" x2="18"   y2="28"   stroke="url(#nh)" stroke-width="1" stroke-opacity=".45"/>
+        <line x1="18" y1="18" x2="9.4"  y2="23"   stroke="url(#nh)" stroke-width="1" stroke-opacity=".45"/>
+        <line x1="18" y1="18" x2="9.4"  y2="13"   stroke="url(#nh)" stroke-width="1" stroke-opacity=".45"/>
       </svg>
     </div>
     <div class="app-header-info">
