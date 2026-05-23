@@ -1,0 +1,1240 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<!-- ДОДАНО НОВИЙ РЯДОК НИЖЧЕ -->
+<meta name="mobile-web-app-capable" content="yes"> 
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0e1320">
+<link rel="manifest" href="manifest.json">
+<title>ClearText AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+:root {
+  --bg: #0e1320;
+  --surface: rgba(255,255,255,0.18);
+  --surface2: rgba(255,255,255,0.22);
+  --border: rgba(255,255,255,0.1);
+  --border2: rgba(255,255,255,0.16);
+  --blur: blur(36px) saturate(180%);
+  --blur-sm: blur(16px) saturate(160%);
+  --green: #34d399;
+  --green-glow: rgba(52,211,153,0.25);
+  --blue: #60a5fa;
+  --blue-glow: rgba(96,165,250,0.25);
+  --amber: #fbbf24;
+  --rose: #fb7185;
+  --text: rgba(255,255,255,1);
+  --muted: rgba(255,255,255,0.75);
+  --dim: rgba(255,255,255,0.5);
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+html, body { height: 100%; height: 100dvh; }
+body {
+  font-family: 'Nunito', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100dvh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  position: relative;
+}
+
+/* BG */
+.bg-mesh { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+.bg-orb { position: absolute; border-radius: 50%; filter: blur(90px); }
+.bg-orb:nth-child(1) { width: 60vw; height: 60vw; background: radial-gradient(circle, #065f46, transparent 70%); top: -15%; left: -15%; opacity: 0.6; animation: o1 22s ease-in-out infinite alternate; }
+.bg-orb:nth-child(2) { width: 50vw; height: 50vw; background: radial-gradient(circle, #1e40af, transparent 70%); bottom: -10%; right: -10%; opacity: 0.5; animation: o2 18s ease-in-out infinite alternate; }
+.bg-orb:nth-child(3) { width: 40vw; height: 40vw; background: radial-gradient(circle, #6b21a8, transparent 70%); top: 40%; left: 35%; opacity: 0.35; animation: o1 14s ease-in-out infinite alternate-reverse; }
+@keyframes o1 { 0%{transform:translate(0,0) scale(1)} 100%{transform:translate(5vw,-4vh) scale(1.08)} }
+@keyframes o2 { 0%{transform:translate(0,0) scale(1)} 100%{transform:translate(-4vw,5vh) scale(0.92)} }
+
+/* ── NO API SCREEN ── */
+#no-api-screen {
+  position: relative; z-index: 10;
+  min-height: 100dvh;
+  display: none;
+  flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: calc(var(--safe-top) + 24px) 20px calc(var(--safe-bottom) + 24px);
+}
+.no-api-card {
+  width: 100%; max-width: 400px;
+  background: rgba(255,255,255,0.06);
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
+  border: 1px solid rgba(251,113,133,0.25);
+  border-radius: 26px;
+  padding: 40px 32px;
+  box-shadow: 0 40px 100px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.18);
+  text-align: center;
+  animation: cardIn 0.6s cubic-bezier(0.34,1.56,0.64,1) forwards;
+}
+.no-api-icon { font-size: 48px; margin-bottom: 16px; }
+.no-api-title { font-size: 22px; font-weight: 900; color: var(--rose); margin-bottom: 10px; }
+.no-api-text { font-size: 14px; color: var(--muted); line-height: 1.7; }
+
+/* ── ADMIN LOGIN SCREEN ── */
+#admin-login-screen {
+  position: relative; z-index: 10;
+  min-height: 100dvh;
+  display: none;
+  flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: calc(var(--safe-top) + 24px) 20px calc(var(--safe-bottom) + 24px);
+}
+
+.admin-login-card {
+  width: 100%; max-width: 420px;
+  background: rgba(255,255,255,0.06);
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
+  border: 1px solid rgba(96,165,250,0.25);
+  border-radius: 26px;
+  padding: 40px 32px;
+  box-shadow: 0 40px 100px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.18);
+  animation: cardIn 0.6s cubic-bezier(0.34,1.56,0.64,1) forwards;
+}
+@keyframes cardIn {
+  from { opacity:0; transform:translateY(28px) scale(0.96); }
+  to   { opacity:1; transform:translateY(0) scale(1); }
+}
+
+.admin-login-icon {
+  width: 68px; height: 68px;
+  background: linear-gradient(135deg, rgba(96,165,250,0.3), rgba(139,92,246,0.25));
+  border: 1px solid rgba(96,165,250,0.35);
+  border-radius: 22px;
+  margin: 0 auto 18px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 30px;
+  box-shadow: 0 8px 32px rgba(96,165,250,0.2), inset 0 1px 0 rgba(255,255,255,0.2);
+}
+.admin-login-title {
+  font-size: 24px; font-weight: 900; text-align: center; letter-spacing: -0.03em;
+  background: linear-gradient(135deg, #fff 30%, var(--blue));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  margin-bottom: 6px;
+}
+.admin-login-sub { font-size: 13px; color: var(--muted); text-align: center; margin-bottom: 24px; }
+
+.field-label { font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--dim); margin-bottom: 7px; display: block; }
+.field-wrap { position: relative; margin-bottom: 14px; }
+.field-input {
+  width: 100%;
+  background: rgba(255,255,255,0.07); border: 1px solid var(--border);
+  border-radius: 14px; padding: 13px 46px 13px 16px;
+  color: var(--text); font-family: 'Nunito', sans-serif; font-size: 14px; font-weight: 600;
+  outline: none; transition: all 0.2s;
+  backdrop-filter: var(--blur-sm); -webkit-backdrop-filter: var(--blur-sm);
+  -webkit-appearance: none;
+}
+.field-input::placeholder { color: var(--dim); }
+.field-input:focus { border-color: rgba(96,165,250,0.5); box-shadow: 0 0 0 3px rgba(96,165,250,0.12); background: rgba(255,255,255,0.1); }
+.field-input.field-input--no-icon { padding-right: 16px; }
+
+.field-toggle { position: absolute; right: 13px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; font-size: 17px; color: var(--muted); transition: color 0.2s; }
+.field-toggle:hover { color: var(--blue); }
+
+.btn-admin-login {
+  width: 100%; padding: 15px;
+  background: linear-gradient(135deg, rgba(96,165,250,0.55), rgba(139,92,246,0.5));
+  border: 1px solid rgba(96,165,250,0.4); border-radius: 14px;
+  color: #fff; font-family: 'Nunito', sans-serif; font-size: 15px; font-weight: 900;
+  cursor: pointer; letter-spacing: 0.04em;
+  box-shadow: 0 4px 28px rgba(96,165,250,0.25), inset 0 1px 0 rgba(255,255,255,0.2);
+  transition: all 0.2s; -webkit-appearance: none;
+}
+.btn-admin-login:hover { transform: translateY(-1px); box-shadow: 0 8px 36px rgba(96,165,250,0.4); }
+.btn-admin-login:active { transform: scale(0.98); }
+
+.admin-login-error {
+  background: rgba(251,113,133,0.1); border: 1px solid rgba(251,113,133,0.3);
+  border-radius: 10px; padding: 10px 14px;
+  font-size: 13px; font-weight: 600; color: #fda4af;
+  display: none; margin-top: 12px; text-align: center;
+}
+.admin-back-link {
+  display: block; text-align: center; margin-top: 16px;
+  font-size: 12px; color: var(--dim); cursor: pointer; text-decoration: underline;
+  transition: color 0.2s;
+}
+.admin-back-link:hover { color: var(--muted); }
+
+/* ── ADMIN PANEL ── */
+#admin-screen {
+  display: none;
+  position: relative; z-index: 10;
+  min-height: 100dvh;
+  flex-direction: column;
+}
+
+.admin-header {
+  position: sticky; top: 0; z-index: 50;
+  padding: calc(var(--safe-top) + 12px) 20px 12px;
+  background: rgba(8,11,20,0.7);
+  backdrop-filter: blur(40px) saturate(200%);
+  -webkit-backdrop-filter: blur(40px) saturate(200%);
+  border-bottom: 1px solid rgba(96,165,250,0.15);
+  display: flex; align-items: center; gap: 12px;
+}
+.admin-header-badge {
+  background: rgba(96,165,250,0.15); border: 1px solid rgba(96,165,250,0.3);
+  border-radius: 8px; padding: 3px 9px;
+  font-size: 10px; font-weight: 800; color: var(--blue); letter-spacing: 0.1em; text-transform: uppercase;
+}
+.admin-header-title { font-size: 17px; font-weight: 900; color: var(--text); flex: 1; }
+.btn-admin-logout {
+  background: rgba(251,113,133,0.1); border: 1px solid rgba(251,113,133,0.25);
+  border-radius: 10px; padding: 7px 13px;
+  font-family: 'Nunito', sans-serif; font-size: 12px; font-weight: 700; color: var(--rose);
+  cursor: pointer; transition: all 0.2s; -webkit-appearance: none;
+}
+.btn-admin-logout:hover { background: rgba(251,113,133,0.18); }
+
+.admin-body {
+  flex: 1; padding: 24px 16px calc(var(--safe-bottom) + 28px);
+  display: flex; flex-direction: column; gap: 18px;
+  max-width: 680px; margin: 0 auto; width: 100%;
+}
+
+.admin-section {
+  background: rgba(255,255,255,0.05);
+  backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
+  border: 1px solid var(--border); border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.25);
+}
+.admin-section-header {
+  padding: 14px 18px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.admin-section-title { font-size: 12px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); display: flex; align-items: center; gap: 7px; }
+.admin-section-body { padding: 18px; display: flex; flex-direction: column; gap: 14px; }
+
+.status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 8px rgba(52,211,153,0.6); display: inline-block; }
+.status-dot.off { background: var(--rose); box-shadow: 0 0 8px rgba(251,113,133,0.6); }
+
+.admin-key-wrap { position: relative; }
+.admin-key-input {
+  width: 100%;
+  background: rgba(255,255,255,0.07); border: 1px solid var(--border);
+  border-radius: 12px; padding: 12px 46px 12px 14px;
+  color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 400;
+  outline: none; transition: all 0.2s;
+  -webkit-appearance: none;
+}
+.admin-key-input::placeholder { color: var(--dim); font-family: 'Nunito', sans-serif; }
+.admin-key-input:focus { border-color: rgba(52,211,153,0.5); box-shadow: 0 0 0 3px rgba(52,211,153,0.12); }
+
+.btn-save {
+  padding: 12px 20px;
+  background: linear-gradient(135deg, rgba(52,211,153,0.5), rgba(16,185,129,0.6));
+  border: 1px solid rgba(52,211,153,0.35); border-radius: 12px;
+  color: #fff; font-family: 'Nunito', sans-serif; font-size: 13px; font-weight: 800;
+  cursor: pointer; transition: all 0.2s; -webkit-appearance: none; white-space: nowrap;
+  box-shadow: 0 4px 20px rgba(52,211,153,0.2);
+}
+.btn-save:hover { transform: translateY(-1px); box-shadow: 0 6px 28px rgba(52,211,153,0.35); }
+.btn-save:active { transform: scale(0.97); }
+.btn-save.saved { background: rgba(52,211,153,0.2); }
+
+.admin-row { display: flex; gap: 10px; align-items: flex-end; }
+.admin-row .admin-key-wrap { flex: 1; }
+
+.admin-success-msg {
+  font-size: 12px; font-weight: 700; color: var(--green);
+  display: none; animation: fadeIn 0.3s ease;
+}
+@keyframes fadeIn { from{opacity:0} to{opacity:1} }
+
+/* Models list */
+.models-list { display: flex; flex-direction: column; gap: 8px; }
+.model-item {
+  display: flex; align-items: center; gap: 12px;
+  background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 12px; padding: 12px 14px;
+  transition: all 0.2s;
+}
+.model-item:hover { background: rgba(255,255,255,0.07); }
+.model-item-name { flex: 1; font-size: 13px; font-weight: 700; font-family: 'JetBrains Mono', monospace; color: var(--text); }
+.model-item-label { font-size: 11px; font-weight: 600; color: var(--dim); }
+.model-toggle {
+  position: relative; width: 40px; height: 22px; flex-shrink: 0;
+}
+.model-toggle input { opacity: 0; width: 0; height: 0; }
+.model-toggle-slider {
+  position: absolute; inset: 0; cursor: pointer;
+  background: rgba(255,255,255,0.1); border-radius: 22px; transition: 0.25s;
+  border: 1px solid rgba(255,255,255,0.12);
+}
+.model-toggle-slider::before {
+  content: ''; position: absolute;
+  width: 16px; height: 16px; border-radius: 50%; background: #fff;
+  left: 2px; top: 2px; transition: 0.25s;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+}
+.model-toggle input:checked + .model-toggle-slider { background: rgba(52,211,153,0.4); border-color: rgba(52,211,153,0.5); }
+.model-toggle input:checked + .model-toggle-slider::before { transform: translateX(18px); }
+
+.model-add-row { display: flex; gap: 8px; }
+.model-add-input {
+  flex: 1;
+  background: rgba(255,255,255,0.07); border: 1px solid var(--border);
+  border-radius: 12px; padding: 11px 14px;
+  color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 12px;
+  outline: none; transition: all 0.2s; -webkit-appearance: none;
+}
+.model-add-input::placeholder { color: var(--dim); font-family: 'Nunito', sans-serif; font-size: 13px; }
+.model-add-input:focus { border-color: rgba(96,165,250,0.5); box-shadow: 0 0 0 3px rgba(96,165,250,0.1); }
+.btn-add-model {
+  padding: 11px 16px;
+  background: rgba(96,165,250,0.15); border: 1px solid rgba(96,165,250,0.3);
+  border-radius: 12px; color: var(--blue);
+  font-family: 'Nunito', sans-serif; font-size: 13px; font-weight: 800;
+  cursor: pointer; transition: all 0.2s; white-space: nowrap; -webkit-appearance: none;
+}
+.btn-add-model:hover { background: rgba(96,165,250,0.25); }
+.btn-del-model {
+  background: none; border: none; cursor: pointer;
+  font-size: 16px; color: var(--dim); transition: color 0.2s; padding: 2px 4px;
+  line-height: 1;
+}
+.btn-del-model:hover { color: var(--rose); }
+
+/* Admin credentials section */
+.cred-grid { display: flex; flex-direction: column; gap: 10px; }
+
+/* Admin info box */
+.info-box {
+  background: rgba(96,165,250,0.08); border: 1px solid rgba(96,165,250,0.2);
+  border-radius: 12px; padding: 12px 14px;
+  font-size: 12px; font-weight: 600; color: rgba(96,165,250,0.8); line-height: 1.6;
+}
+
+/* ── MAIN APP ── */
+#app-screen {
+  display: none;
+  position: relative; z-index: 10;
+  min-height: 100dvh;
+  flex-direction: column;
+}
+
+.app-header {
+  position: sticky; top: 0; z-index: 50;
+  padding: calc(var(--safe-top) + 12px) 20px 12px;
+  background: rgba(8,11,20,0.6);
+  backdrop-filter: blur(40px) saturate(200%);
+  -webkit-backdrop-filter: blur(40px) saturate(200%);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 12px;
+}
+.app-header-icon { font-size: 22px; }
+.app-header-info { flex: 1; }
+.app-header-title { font-size: 17px; font-weight: 900; letter-spacing: -0.02em; color: #ffffff; -webkit-text-fill-color: #ffffff; }
+.app-header-sub { font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.7); letter-spacing: 0.1em; text-transform: uppercase; }
+
+.model-sel { display: none !important; } .model-sel-hidden {
+  background: rgba(255,255,255,0.07); border: 1px solid var(--border);
+  border-radius: 10px; color: var(--muted);
+  font-family: 'Nunito', sans-serif; font-size: 11px; font-weight: 700;
+  padding: 5px 9px; outline: none; cursor: pointer; max-width: 150px;
+  -webkit-appearance: none; backdrop-filter: var(--blur-sm); -webkit-backdrop-filter: var(--blur-sm);
+}
+.model-sel-hidden option { background: #0f172a; }
+
+.app-body {
+  flex: 1; padding: 20px 16px calc(var(--safe-bottom) + 24px);
+  display: flex; flex-direction: column; gap: 16px;
+}
+@media(min-width:640px) { .app-body { max-width: 720px; margin: 0 auto; width: 100%; padding: 28px 24px calc(var(--safe-bottom) + 28px); } }
+
+.card {
+  background: rgba(255,255,255,0.055);
+  backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
+  border: 1px solid var(--border); border-radius: 20px;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1);
+  overflow: hidden;
+}
+.card-header {
+  padding: 14px 18px 10px;
+  display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.card-title { font-size: 12px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); display: flex; align-items: center; gap: 7px; }
+.card-title span { font-size: 14px; }
+.char-count { font-size: 11px; font-weight: 700; color: var(--dim); font-family: 'JetBrains Mono', monospace; }
+
+#text-input {
+  width: 100%; background: none; border: none; outline: none; resize: none;
+  color: var(--text); font-family: 'Nunito', sans-serif; font-size: 15px; font-weight: 600;
+  line-height: 1.7; padding: 14px 18px 18px; min-height: 130px; max-height: 260px;
+  overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--border) transparent;
+  -webkit-appearance: none;
+}
+#text-input::-webkit-scrollbar { width: 3px; }
+#text-input::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+#text-input::placeholder { color: var(--dim); font-weight: 500; }
+
+.lang-row {
+  padding: 10px 18px 14px;
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+.lang-label { font-size: 11px; font-weight: 700; color: var(--dim); margin-right: 2px; }
+.lang-btn {
+  background: rgba(255,255,255,0.06); border: 1px solid var(--border);
+  border-radius: 20px; padding: 5px 12px;
+  font-family: 'Nunito', sans-serif; font-size: 11px; font-weight: 700; color: var(--muted);
+  cursor: pointer; transition: all 0.2s; -webkit-appearance: none;
+}
+.lang-btn.active { background: rgba(52,211,153,0.15); border-color: rgba(52,211,153,0.4); color: var(--green); }
+.lang-btn:hover { background: rgba(255,255,255,0.1); }
+
+.btn-fix {
+  width: 100%; padding: 16px;
+  background: linear-gradient(135deg, rgba(52,211,153,0.5), rgba(96,165,250,0.45));
+  border: 1px solid rgba(52,211,153,0.35); border-radius: 16px;
+  color: #fff; font-family: 'Nunito', sans-serif; font-size: 16px; font-weight: 900;
+  cursor: pointer; letter-spacing: 0.03em;
+  box-shadow: 0 4px 28px rgba(52,211,153,0.2), inset 0 1px 0 rgba(255,255,255,0.18);
+  transition: all 0.2s; -webkit-appearance: none; position: relative; overflow: hidden;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.btn-fix::before { content: ''; position: absolute; inset: 0; background: linear-gradient(135deg, rgba(255,255,255,0.12), transparent); opacity: 0; transition: opacity 0.2s; }
+.btn-fix:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 8px 36px rgba(52,211,153,0.35), inset 0 1px 0 rgba(255,255,255,0.18); }
+.btn-fix:hover:not(:disabled)::before { opacity: 1; }
+.btn-fix:active:not(:disabled) { transform: scale(0.98); }
+.btn-fix:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-fix .spinner { width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; display: none; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.btn-fix.loading .btn-label { display: none; }
+.btn-fix.loading .spinner { display: block; }
+
+#result-card { display: none; animation: fadeUp 0.4s cubic-bezier(0.34,1.2,0.64,1) forwards; }
+@keyframes fadeUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+
+.result-text { padding: 16px 18px; font-size: 18px; font-weight: 600; line-height: 1.75; color: var(--text); border-bottom: 1px solid rgba(255,255,255,0.06); }
+
+.changes-header { padding: 12px 18px 8px; font-size: 12px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+.badge { background: rgba(251,191,36,0.2); border: 1px solid rgba(251,191,36,0.3); border-radius: 20px; padding: 2px 8px; font-size: 10px; font-weight: 800; color: var(--amber); }
+
+.change-item { margin: 0 12px 10px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 11px 14px; display: flex; flex-direction: column; gap: 5px; }
+.change-row { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; line-height: 1.4; }
+.change-before { color: var(--rose); font-weight: 700; font-family: 'JetBrains Mono', monospace; font-size: 15px; text-decoration: line-through; opacity: 0.8; }
+.change-arrow { color: var(--dim); font-size: 14px; margin-top: 1px; flex-shrink: 0; }
+.change-after { color: var(--green); font-weight: 700; font-family: 'JetBrains Mono', monospace; font-size: 15px; }
+.change-reason { font-size: 15px; font-weight: 600; color: var(--muted); padding-left: 2px; }
+
+.no-changes { padding: 16px 18px; display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 700; color: var(--green); }
+
+.result-actions { padding: 12px 14px; display: flex; gap: 8px; border-top: 1px solid rgba(255,255,255,0.06); }
+.act-btn { flex: 1; padding: 11px 8px; background: rgba(255,255,255,0.12); border: 1px solid var(--border); border-radius: 12px; color: var(--muted); font-family: 'Nunito', sans-serif; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s; -webkit-appearance: none; display: flex; align-items: center; justify-content: center; gap: 5px; }
+.act-btn:hover { background: rgba(255,255,255,0.1); color: var(--text); }
+.act-btn:active { transform: scale(0.96); }
+.act-btn.success { background: rgba(52,211,153,0.15); border-color: rgba(52,211,153,0.35); color: var(--green); }
+
+.error-box { background: rgba(251,113,133,0.1); border: 1px solid rgba(251,113,133,0.25); border-radius: 14px; padding: 14px 16px; font-size: 13px; font-weight: 600; color: #fda4af; line-height: 1.6; display: none; }
+
+.history-section { margin-top: 4px; }
+.history-title { font-size: 12px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--dim); margin-bottom: 10px; padding: 0 2px; display: flex; align-items: center; justify-content: space-between; }
+.history-clear { font-size: 12px; font-weight: 700; color: var(--rose); background: none; border: none; cursor: pointer; opacity: 0.7; transition: opacity 0.2s; }
+.history-clear:hover { opacity: 1; }
+.hist-item { background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 14px; padding: 12px 14px; margin-bottom: 8px; cursor: pointer; transition: all 0.2s; }
+.hist-item:hover { background: rgba(255,255,255,0.08); border-color: var(--border2); }
+.hist-item:active { transform: scale(0.99); }
+.hist-original { font-size: 15px; font-weight: 600; color: var(--muted); margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hist-fixed { font-size: 16px; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hist-time { font-size: 13px; color: var(--dim); margin-top: 5px; }
+
+@media(max-width:480px) {
+  .admin-login-card, .no-api-card { padding: 28px 20px; border-radius: 22px; }
+  .app-header { padding: calc(var(--safe-top) + 10px) 14px 10px; }
+  .app-body { padding: 14px 12px calc(var(--safe-bottom) + 20px); gap: 12px; }
+  #text-input { font-size: 16px; min-height: 110px; }
+  .result-text { font-size: 17px; }
+  .change-item { margin: 0 8px 8px; }
+  .admin-body { padding: 16px 12px; }
+}
+</style>
+</head>
+<body>
+
+<div class="bg-mesh">
+  <div class="bg-orb"></div>
+  <div class="bg-orb"></div>
+  <div class="bg-orb"></div>
+</div>
+
+<!-- ── NO API SCREEN ── -->
+<div id="no-api-screen">
+  <div class="no-api-card">
+    <div class="no-api-icon">🤖</div>
+    <div class="no-api-title" style="color:var(--text)">ClearText AI</div>
+    <div class="no-api-text">
+      Вибачте, на разі сервіс не працює.<br>
+      Спробуйте будь ласка пізніше.
+      <a id="goAdminLink" style="display:none"></a>
+    </div>
+  </div>
+</div>
+
+<!-- ── ADMIN LOGIN SCREEN ── -->
+<div id="admin-login-screen">
+  <div class="admin-login-card">
+    <div class="admin-login-icon">🔐</div>
+    <div class="admin-login-title">Адмін-панель</div>
+    <div class="admin-login-sub">Введіть дані для входу</div>
+
+    <label class="field-label" for="adminLoginInput">Логін</label>
+    <div class="field-wrap" style="margin-bottom:14px">
+      <input type="text" class="field-input field-input--no-icon" id="adminLoginInput" placeholder="admin" autocomplete="username">
+    </div>
+
+    <label class="field-label" for="adminPassInput">Пароль</label>
+    <div class="field-wrap">
+      <input type="password" class="field-input" id="adminPassInput" placeholder="••••••••" autocomplete="current-password">
+      <button class="field-toggle" id="adminPassToggle" type="button">👁</button>
+    </div>
+
+    <button class="btn-admin-login" id="adminLoginBtn" type="button">🔓 Увійти</button>
+    <div class="admin-login-error" id="adminLoginError">❌ Невірний логін або пароль</div>
+    <a class="admin-back-link" id="adminBackLink">← Повернутись на головну</a>
+  </div>
+</div>
+
+<!-- ── ADMIN PANEL ── -->
+<div id="admin-screen">
+  <div class="admin-header">
+    <div class="admin-header-badge">ADMIN</div>
+    <div class="admin-header-title">ClearText AI — Керування</div>
+    <button class="btn-admin-logout" id="adminLogoutBtn" type="button">Вийти</button>
+  </div>
+
+  <div class="admin-body">
+
+    <!-- API Key section -->
+    <div class="admin-section">
+      <div class="admin-section-header">
+        <div class="admin-section-title">
+          <span>🔑</span> Google Gemini API ключ
+          <span class="status-dot" id="apiStatusDot" style="display:none"></span>
+        </div>
+      </div>
+      <div class="admin-section-body">
+        <div class="info-box">Ключ збережений тут діє лише на цьому пристрої. Щоб сервіс працював на всіх пристроях — впишіть ключ напряму у файл <b style="color:var(--blue);font-family:'JetBrains Mono',monospace">HARDCODED_API_KEY</b> у коді.</div>
+        <div class="admin-row">
+          <div class="admin-key-wrap">
+            <input type="password" class="admin-key-input" id="adminApiKeyInput" placeholder="AIzaSy...">
+          </div>
+          <button class="field-toggle" id="adminApiKeyToggle" style="position:static;transform:none;background:rgba(255,255,255,0.07);border:1px solid var(--border);border-radius:10px;width:40px;height:40px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px;" type="button">👁</button>
+          <button class="btn-save" id="saveApiKeyBtn" type="button">💾 Зберегти</button>
+        </div>
+        <div class="admin-success-msg" id="apiKeySavedMsg">✅ API ключ збережено!</div>
+      </div>
+    </div>
+
+    <!-- Models section -->
+    <div class="admin-section">
+      <div class="admin-section-header">
+        <div class="admin-section-title"><span>🤖</span> Моделі Gemini</div>
+      </div>
+      <div class="admin-section-body">
+        <div class="models-list" id="modelsList"></div>
+        <div class="model-add-row">
+          <input type="text" class="model-add-input" id="newModelInput" placeholder="Додати модель: gemini-...">
+          <button class="btn-add-model" id="addModelBtn" type="button">+ Додати</button>
+        </div>
+        <div class="admin-success-msg" id="modelsSavedMsg">✅ Моделі збережено!</div>
+      </div>
+    </div>
+
+    <!-- Credentials section -->
+    <div class="admin-section">
+      <div class="admin-section-header">
+        <div class="admin-section-title"><span>👤</span> Дані для входу в адмін-панель</div>
+      </div>
+      <div class="admin-section-body">
+        <div class="cred-grid">
+          <div>
+            <label class="field-label" for="newAdminLogin">Новий логін</label>
+            <input type="text" class="admin-key-input" id="newAdminLogin" placeholder="admin" autocomplete="off">
+          </div>
+          <div>
+            <label class="field-label" for="newAdminPass">Новий пароль</label>
+            <input type="password" class="admin-key-input" id="newAdminPass" placeholder="мінімум 6 символів" autocomplete="new-password">
+          </div>
+          <div>
+            <label class="field-label" for="newAdminPassConfirm">Підтвердити пароль</label>
+            <input type="password" class="admin-key-input" id="newAdminPassConfirm" placeholder="повторіть пароль" autocomplete="new-password">
+          </div>
+        </div>
+        <button class="btn-save" id="saveCredsBtn" type="button" style="align-self:flex-start">💾 Зберегти дані входу</button>
+        <div class="admin-success-msg" id="credsSavedMsg">✅ Дані для входу оновлено!</div>
+        <div class="error-box" id="credsErrorBox" style="display:none;margin-top:0"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── APP ── -->
+<div id="app-screen">
+  <div class="app-header">
+    <div class="app-header-icon">✍️</div>
+    <div class="app-header-info">
+      <div class="app-header-title">ClearText AI</div>
+      <div class="app-header-sub">Виправлення тексту</div>
+    </div>
+    <select class="model-sel" id="modelSelect"></select>
+  </div>
+
+  <div class="app-body">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title"><span>✏️</span> Ваш текст</div>
+        <div class="char-count" id="charCount">0 / 800</div>
+      </div>
+      <textarea id="text-input" placeholder="Напишіть речення яке хочете виправити…&#10;Наприклад: «я вчора ходив магазін купляв хліб і молоко»"></textarea>
+
+    </div>
+
+    <button class="btn-fix" id="fixBtn" type="button">
+      <span class="btn-label">✦ Виправити текст</span>
+      <div class="spinner"></div>
+    </button>
+
+    <div class="error-box" id="errorBox"></div>
+
+    <div class="card" id="result-card">
+      <div class="card-header">
+        <div class="card-title"><span>✅</span> Виправлений текст</div>
+      </div>
+      <div class="result-text" id="result-text"></div>
+      <div class="result-actions">
+        <button class="act-btn" id="copyBtn" type="button"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
+        <button class="act-btn" id="useBtn" type="button"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+        <button class="act-btn" id="clearBtn" type="button"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
+      </div>
+      <div class="changes-header">
+        <span>🔍 Зміни</span>
+        <div class="badge" id="changes-badge">0</div>
+      </div>
+      <div id="changes-list"></div>
+    </div>
+
+    <div class="history-section" id="historySection" style="display:none">
+      <div class="history-title">
+        <span>🕓 Останні виправлення</span>
+        <button class="history-clear" id="historyClearBtn" type="button">очистити</button>
+      </div>
+      <div id="historyList"></div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+// ══════════════════════════════════════════════
+// FIREBASE INIT
+// ══════════════════════════════════════════════
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
+import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAdhdpQno2Pe0lBoS1DlZySJeRzso_WlZE",
+  authDomain: "cleartext-ai-a34a6.firebaseapp.com",
+  databaseURL: "https://cleartext-ai-a34a6-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "cleartext-ai-a34a6",
+  storageBucket: "cleartext-ai-a34a6.firebasestorage.app",
+  messagingSenderId: "897219922207",
+  appId: "1:897219922207:web:4d449dbfdfef501a0c082a"
+};
+
+const fireApp = initializeApp(firebaseConfig);
+const db = getFirestore(fireApp);
+
+// ══════════════════════════════════════════════
+// FIRESTORE HELPERS — зберігають спільні дані
+// ══════════════════════════════════════════════
+async function fsGet(docId) {
+  try {
+    const snap = await getDoc(doc(db, 'app', docId));
+    return snap.exists() ? snap.data() : null;
+  } catch(e) {
+    console.warn('fsGet error:', e);
+    return null;
+  }
+}
+
+async function fsSet(docId, data) {
+  try {
+    await setDoc(doc(db, 'app', docId), data, { merge: true });
+    return true;
+  } catch(e) {
+    console.warn('fsSet error:', e);
+    return false;
+  }
+}
+
+// ══════════════════════════════════════════════
+// LOCAL STORAGE HELPERS — тільки для сесії адміна
+// ══════════════════════════════════════════════
+const KEYS = {
+  ADMIN_USER: 'ct_admin_user',
+  ADMIN_PASS: 'ct_admin_pass',
+  ADMIN_SES:  'ct_admin_session',
+};
+
+const DEFAULT_ADMIN = { user: 'admin', pass: 'admin123' };
+
+const DEFAULT_MODELS = [
+  { id: 'gemini-3.1-flash-lite-preview', label: '3.1 Flash Lite', enabled: true  },
+  { id: 'gemini-2.5-flash', label: '2.5 Flash', enabled: true  },
+  { id: 'gemini-2.0-flash', label: '2.0 Flash', enabled: true  },
+  { id: 'gemini-2.5-pro',   label: '2.5 Pro',   enabled: false },
+];
+
+function lsGet(key, fallback = null) {
+  try { const v = localStorage.getItem(key); return v !== null ? JSON.parse(v) : fallback; }
+  catch { return fallback; }
+}
+function lsSet(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch {} }
+
+// Кеш щоб не робити зайвих запитів до Firestore
+let _cachedSettings = null;
+
+async function getSettings() {
+  if (_cachedSettings) return _cachedSettings;
+  const data = await fsGet('settings');
+  _cachedSettings = data || { apiKey: '', models: DEFAULT_MODELS };
+  return _cachedSettings;
+}
+
+function invalidateCache() { _cachedSettings = null; }
+
+function getAdminUser(){ return lsGet(KEYS.ADMIN_USER, DEFAULT_ADMIN.user); }
+function getAdminPass(){ return lsGet(KEYS.ADMIN_PASS, DEFAULT_ADMIN.pass); }
+
+function isAdminSession() { return sessionStorage.getItem(KEYS.ADMIN_SES) === 'ok'; }
+function setAdminSession(v) {
+  if (v) sessionStorage.setItem(KEYS.ADMIN_SES, 'ok');
+  else sessionStorage.removeItem(KEYS.ADMIN_SES);
+}
+
+function show(id, flex) {
+  const el = document.getElementById(id);
+  el.style.display = flex ? 'flex' : 'block';
+}
+function hide(id) { document.getElementById(id).style.display = 'none'; }
+
+// ══════════════════════════════════════════════
+// ROUTING
+// ══════════════════════════════════════════════
+async function route() {
+  const url = window.location.href;
+  const goAdmin = window.location.search.includes('admin') ||
+                  window.location.hash === '#admin' ||
+                  url.includes('%3Fadmin');
+
+  if (goAdmin) {
+    if (isAdminSession()) {
+      await showAdmin();
+    } else {
+      showAdminLogin();
+    }
+  } else {
+    // Показуємо лоадер поки перевіряємо ключ
+    show('no-api-screen', true);
+    const settings = await getSettings();
+    if (settings.apiKey) {
+      showApp(settings);
+    } else {
+      // Залишаємо no-api-screen
+    }
+  }
+}
+
+window.addEventListener('hashchange', route);
+
+// ══════════════════════════════════════════════
+// SCREENS
+// ══════════════════════════════════════════════
+function showAdminLogin() {
+  hide('no-api-screen');
+  hide('admin-screen');
+  hide('app-screen');
+  show('admin-login-screen', true);
+}
+
+async function showAdmin() {
+  hide('no-api-screen');
+  hide('admin-login-screen');
+  hide('app-screen');
+  show('admin-screen', true);
+  await renderAdmin();
+}
+
+function showApp(settings) {
+  hide('no-api-screen');
+  hide('admin-login-screen');
+  hide('admin-screen');
+  show('app-screen', true);
+  renderAppModels(settings.models || DEFAULT_MODELS);
+  document.getElementById('text-input').focus();
+}
+
+// ══════════════════════════════════════════════
+// ADMIN LOGIN
+// ══════════════════════════════════════════════
+document.getElementById('adminPassToggle').onclick = () => {
+  const inp = document.getElementById('adminPassInput');
+  const s = inp.type === 'password';
+  inp.type = s ? 'text' : 'password';
+  document.getElementById('adminPassToggle').textContent = s ? '🙈' : '👁';
+};
+
+document.getElementById('adminLoginBtn').onclick = doAdminLogin;
+document.getElementById('adminPassInput').addEventListener('keydown', e => { if(e.key==='Enter') doAdminLogin(); });
+document.getElementById('adminLoginInput').addEventListener('keydown', e => { if(e.key==='Enter') document.getElementById('adminPassInput').focus(); });
+
+document.getElementById('adminBackLink').onclick = () => {
+  const base = window.location.href.split('?')[0].split('#')[0];
+  window.location.replace(base);
+};
+
+function doAdminLogin() {
+  const user = document.getElementById('adminLoginInput').value.trim();
+  const pass = document.getElementById('adminPassInput').value;
+  const errBox = document.getElementById('adminLoginError');
+
+  if (user === getAdminUser() && pass === getAdminPass()) {
+    errBox.style.display = 'none';
+    setAdminSession(true);
+    showAdmin();
+  } else {
+    errBox.style.display = 'block';
+    const card = document.querySelector('.admin-login-card');
+    card.animate([{transform:'translateX(-6px)'},{transform:'translateX(6px)'},{transform:'translateX(-4px)'},{transform:'translateX(0)'}],{duration:300});
+    document.getElementById('adminPassInput').value = '';
+    document.getElementById('adminPassInput').focus();
+  }
+}
+
+// ══════════════════════════════════════════════
+// ADMIN LOGOUT
+// ══════════════════════════════════════════════
+document.getElementById('adminLogoutBtn').onclick = () => {
+  setAdminSession(false);
+  const base = window.location.href.split('?')[0].split('#')[0];
+  window.location.replace(base);
+};
+
+// ══════════════════════════════════════════════
+// ADMIN PANEL
+// ══════════════════════════════════════════════
+async function renderAdmin() {
+  const settings = await getSettings();
+
+  // API key
+  const inp = document.getElementById('adminApiKeyInput');
+  inp.value = settings.apiKey || '';
+  const dot = document.getElementById('apiStatusDot');
+  dot.style.display = 'inline-block';
+  dot.className = 'status-dot' + (settings.apiKey ? '' : ' off');
+
+  renderAdminModels(settings.models || DEFAULT_MODELS);
+}
+
+function renderAdminModels(models) {
+  const list = document.getElementById('modelsList');
+  list.innerHTML = '';
+  models.forEach((m, i) => {
+    const item = document.createElement('div');
+    item.className = 'model-item';
+    item.innerHTML = `
+      <div style="flex:1">
+        <div class="model-item-name">${escHtml(m.id)}</div>
+        ${m.label ? `<div class="model-item-label">${escHtml(m.label)}</div>` : ''}
+      </div>
+      <label class="model-toggle">
+        <input type="checkbox" ${m.enabled ? 'checked' : ''} data-idx="${i}">
+        <span class="model-toggle-slider"></span>
+      </label>
+      <button class="btn-del-model" data-idx="${i}" title="Видалити">✕</button>`;
+    list.appendChild(item);
+  });
+
+  list.querySelectorAll('.model-toggle input').forEach(cb => {
+    cb.addEventListener('change', async () => {
+      const settings = await getSettings();
+      const mods = settings.models || DEFAULT_MODELS;
+      mods[+cb.dataset.idx].enabled = cb.checked;
+      await fsSet('settings', { models: mods });
+      invalidateCache();
+      showTmpMsg('modelsSavedMsg');
+    });
+  });
+
+  list.querySelectorAll('.btn-del-model').forEach(btn => {
+    btn.onclick = async () => {
+      const settings = await getSettings();
+      const mods = settings.models || DEFAULT_MODELS;
+      mods.splice(+btn.dataset.idx, 1);
+      await fsSet('settings', { models: mods });
+      invalidateCache();
+      const s2 = await getSettings();
+      renderAdminModels(s2.models || DEFAULT_MODELS);
+      showTmpMsg('modelsSavedMsg');
+    };
+  });
+}
+
+// Toggle API key visibility
+document.getElementById('adminApiKeyToggle').onclick = () => {
+  const inp = document.getElementById('adminApiKeyInput');
+  const s = inp.type === 'password';
+  inp.type = s ? 'text' : 'password';
+  document.getElementById('adminApiKeyToggle').textContent = s ? '🙈' : '👁';
+};
+
+// Save API key → Firestore
+document.getElementById('saveApiKeyBtn').onclick = async () => {
+  const val = document.getElementById('adminApiKeyInput').value.trim();
+  const btn = document.getElementById('saveApiKeyBtn');
+  btn.textContent = '⏳ Збереження...';
+  btn.disabled = true;
+
+  const ok = await fsSet('settings', { apiKey: val });
+  invalidateCache();
+
+  const dot = document.getElementById('apiStatusDot');
+  dot.className = 'status-dot' + (val ? '' : ' off');
+  btn.textContent = '💾 Зберегти';
+  btn.disabled = false;
+
+  if (ok) showTmpMsg('apiKeySavedMsg');
+  else {
+    document.getElementById('apiKeySavedMsg').textContent = '❌ Помилка збереження. Перевір правила Firestore.';
+    document.getElementById('apiKeySavedMsg').style.color = 'var(--rose)';
+    document.getElementById('apiKeySavedMsg').style.display = 'block';
+    setTimeout(() => {
+      document.getElementById('apiKeySavedMsg').style.display = 'none';
+      document.getElementById('apiKeySavedMsg').style.color = '';
+      document.getElementById('apiKeySavedMsg').textContent = '✅ API ключ збережено!';
+    }, 3000);
+  }
+};
+
+// Add model → Firestore
+document.getElementById('addModelBtn').onclick = async () => {
+  const inp = document.getElementById('newModelInput');
+  const val = inp.value.trim();
+  if (!val) return;
+
+  const settings = await getSettings();
+  const mods = settings.models || DEFAULT_MODELS;
+  if (mods.find(m => m.id === val)) { inp.value = ''; return; }
+  mods.push({ id: val, label: '', enabled: true });
+  await fsSet('settings', { models: mods });
+  invalidateCache();
+  renderAdminModels(mods);
+  inp.value = '';
+  showTmpMsg('modelsSavedMsg');
+};
+document.getElementById('newModelInput').addEventListener('keydown', e => { if(e.key==='Enter') document.getElementById('addModelBtn').click(); });
+
+// Save admin credentials → localStorage (тільки на пристрої адміна)
+document.getElementById('saveCredsBtn').onclick = () => {
+  const login = document.getElementById('newAdminLogin').value.trim();
+  const pass  = document.getElementById('newAdminPass').value;
+  const pass2 = document.getElementById('newAdminPassConfirm').value;
+  const errBox = document.getElementById('credsErrorBox');
+  errBox.style.display = 'none';
+
+  if (!login) { errBox.textContent = '⚠️ Введіть логін'; errBox.style.display = 'block'; return; }
+  if (pass.length < 6) { errBox.textContent = '⚠️ Пароль мінімум 6 символів'; errBox.style.display = 'block'; return; }
+  if (pass !== pass2) { errBox.textContent = '⚠️ Паролі не збігаються'; errBox.style.display = 'block'; return; }
+
+  lsSet(KEYS.ADMIN_USER, login);
+  lsSet(KEYS.ADMIN_PASS, pass);
+  document.getElementById('newAdminLogin').value = '';
+  document.getElementById('newAdminPass').value = '';
+  document.getElementById('newAdminPassConfirm').value = '';
+  showTmpMsg('credsSavedMsg');
+};
+
+function showTmpMsg(id) {
+  const el = document.getElementById(id);
+  el.style.display = 'block';
+  setTimeout(() => { el.style.display = 'none'; }, 2500);
+}
+
+// ══════════════════════════════════════════════
+// MAIN APP
+// ══════════════════════════════════════════════
+let selectedLang = 'uk';
+let appHistory = [];
+
+function renderAppModels(models) {
+  const sel = document.getElementById('modelSelect');
+  sel.innerHTML = '';
+  models.filter(m => m.enabled).forEach(m => {
+    const opt = document.createElement('option');
+    opt.value = m.id;
+    opt.textContent = m.label || m.id;
+    sel.appendChild(opt);
+  });
+}
+
+document.querySelectorAll('.lang-btn').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    selectedLang = btn.dataset.lang;
+  };
+});
+
+const textInput = document.getElementById('text-input');
+textInput.addEventListener('input', () => {
+  const len = textInput.value.length;
+  document.getElementById('charCount').textContent = `${len} / 800`;
+  if (len > 800) textInput.value = textInput.value.slice(0, 800);
+});
+
+document.getElementById('fixBtn').onclick = fixText;
+textInput.addEventListener('keydown', e => { if (e.key==='Enter' && e.ctrlKey) fixText(); });
+
+async function fixText() {
+  const text = textInput.value.trim();
+  if (!text) {
+    textInput.animate([{borderColor:'rgba(251,113,133,0.5)'},{borderColor:''}],{duration:400});
+    return;
+  }
+
+  const settings = await getSettings();
+  const apiKey = settings.apiKey;
+  if (!apiKey) {
+    document.getElementById('errorBox').textContent = '⚠️ API ключ не налаштовано. Зверніться до адміністратора.';
+    document.getElementById('errorBox').style.display = 'block';
+    return;
+  }
+
+  const btn = document.getElementById('fixBtn');
+  btn.classList.add('loading');
+  btn.disabled = true;
+  document.getElementById('result-card').style.display = 'none';
+  document.getElementById('errorBox').style.display = 'none';
+
+  const langNote = 'українською мовою';
+
+  const prompt = `Ти — асистент з виправлення тексту для людей з вадами слуху, які пишуть неграмотно.
+
+ВАЖЛИВІ ПРАВИЛА:
+1. Якщо текст англійською — виправити лише граматику, залишити англійською.
+2. Якщо текст будь-якою іншою мовою (російська, суржик, польська тощо) — перекласти та виправити УКРАЇНСЬКОЮ.
+3. Якщо є кальки з російської або суржик — виправити на літературну українську і пояснити що це кальки/суржик.
+4. Якщо текст вже українською — виправити граматику українською.
+5. Зроби речення граматично правильним, зрозумілим і природним.
+
+ТЕКСТ ДЛЯ ВИПРАВЛЕННЯ:
+"${text}"
+
+Відповідай ВИКЛЮЧНО у форматі JSON, без будь-яких пояснень поза JSON:
+{
+  "corrected": "виправлений текст",
+  "changes": [
+    {
+      "before": "помилкове слово або фраза",
+      "after": "правильний варіант",
+      "reason": "коротке пояснення (1 речення)"
+    }
+  ],
+  "noChanges": false
+}
+
+Якщо текст вже правильний українською, поверни: {"corrected": "${text}", "changes": [], "noChanges": true}
+ВАЖЛИВО: відповідай тільки валідним JSON, без markdown і додаткового тексту.`;
+
+  try {
+    const model = document.getElementById('modelSelect').value;
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ role: 'user', parts: [{ text: prompt }] }],
+          generationConfig: { temperature: 0.3, maxOutputTokens: 1024 }
+        })
+      }
+    );
+    const data = await res.json();
+    if (data.error) { showError(data.error); return; }
+
+    let raw = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    raw = raw.replace(/```json|```/g, '').trim();
+
+    let parsed;
+    try { parsed = JSON.parse(raw); }
+    catch(e) {
+      const match = raw.match(/\{[\s\S]*\}/);
+      if (match) parsed = JSON.parse(match[0]);
+      else throw new Error('Не вдалося розпізнати відповідь AI');
+    }
+
+    showResult(parsed);
+    saveToHistory(text, parsed.corrected);
+
+  } catch(err) {
+    document.getElementById('errorBox').textContent = `⚠️ ${err.message}`;
+    document.getElementById('errorBox').style.display = 'block';
+  } finally {
+    btn.classList.remove('loading');
+    btn.disabled = false;
+  }
+}
+
+function showError(err) {
+  const box = document.getElementById('errorBox');
+  const isQuota = err.message?.toLowerCase().includes('quota');
+  const retry = err.message?.match(/retry in ([\d.]+)s/i);
+  const sec = retry ? Math.ceil(parseFloat(retry[1])) : null;
+  if (isQuota) box.innerHTML = `⚠️ Ліміт вичерпано${sec ? ` — спробуй через ${sec}с` : ''}. Обери іншу модель.`;
+  else if (err.code === 400 || err.code === 403) box.textContent = '🔑 Невірний API ключ. Зверніться до адміністратора.';
+  else box.textContent = `⚠️ ${err.message}`;
+  box.style.display = 'block';
+}
+
+function showResult(data) {
+  const card = document.getElementById('result-card');
+  const resultText = document.getElementById('result-text');
+  const changesList = document.getElementById('changes-list');
+  const badge = document.getElementById('changes-badge');
+  resultText.textContent = data.corrected;
+  changesList.innerHTML = '';
+  if (data.noChanges || data.changes.length === 0) {
+    badge.textContent = '0';
+    changesList.innerHTML = `<div class="no-changes">✅ Текст вже правильний! Помилок не знайдено.</div>`;
+  } else {
+    badge.textContent = data.changes.length;
+    data.changes.forEach(c => {
+      const item = document.createElement('div');
+      item.className = 'change-item';
+      item.innerHTML = `
+        <div class="change-row">
+          <span class="change-before">${escHtml(c.before)}</span>
+          <span class="change-arrow">→</span>
+          <span class="change-after">${escHtml(c.after)}</span>
+        </div>
+        <div class="change-reason">${escHtml(c.reason)}</div>`;
+      changesList.appendChild(item);
+    });
+  }
+  card.style.display = 'block';
+  card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+document.getElementById('copyBtn').onclick = async () => {
+  const text = document.getElementById('result-text').textContent;
+  if (!text) return;
+  try { await navigator.clipboard.writeText(text); }
+  catch(e) {
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.position='fixed'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove();
+  }
+  const btn = document.getElementById('copyBtn');
+  btn.innerHTML = '✅'; btn.classList.add('success');
+  setTimeout(() => { btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>'; btn.classList.remove('success'); }, 2000);
+};
+
+document.getElementById('useBtn').onclick = () => {
+  const text = document.getElementById('result-text').textContent;
+  if (!text) return;
+  textInput.value = text;
+  textInput.dispatchEvent(new Event('input'));
+  document.getElementById('result-card').style.display = 'none';
+  textInput.focus();
+  textInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+};
+
+document.getElementById('clearBtn').onclick = () => {
+  textInput.value = '';
+  textInput.dispatchEvent(new Event('input'));
+  document.getElementById('result-card').style.display = 'none';
+  document.getElementById('errorBox').style.display = 'none';
+  textInput.focus();
+};
+
+function saveToHistory(original, corrected) {
+  if (original === corrected) return;
+  appHistory.unshift({ original, corrected, time: new Date().toLocaleTimeString('uk-UA',{hour:'2-digit',minute:'2-digit'}) });
+  if (appHistory.length > 10) appHistory.pop();
+  renderHistory();
+}
+
+function renderHistory() {
+  const sec = document.getElementById('historySection');
+  const list = document.getElementById('historyList');
+  if (appHistory.length === 0) { sec.style.display = 'none'; return; }
+  sec.style.display = 'block';
+  list.innerHTML = '';
+  appHistory.forEach(item => {
+    const el = document.createElement('div');
+    el.className = 'hist-item';
+    el.innerHTML = `
+      <div class="hist-original">❌ ${escHtml(item.original)}</div>
+      <div class="hist-fixed">✅ ${escHtml(item.corrected)}</div>
+      <div class="hist-time">${item.time}</div>`;
+    el.onclick = () => {
+      textInput.value = item.original;
+      textInput.dispatchEvent(new Event('input'));
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+    list.appendChild(el);
+  });
+}
+
+document.getElementById('historyClearBtn').onclick = () => {
+  appHistory = [];
+  renderHistory();
+};
+
+// ══════════════════════════════════════════════
+// SMART ADMIN LINK
+// ══════════════════════════════════════════════
+function getAdminUrl() {
+  const base = window.location.href.split('?')[0].split('#')[0];
+  return window.location.protocol === 'file:' ? base + '#admin' : base + '?admin';
+}
+
+const _link = document.getElementById('goAdminLink');
+if (_link) _link.onclick = () => { window.location.href = getAdminUrl(); };
+
+// ══════════════════════════════════════════════
+// START
+// ══════════════════════════════════════════════
+route();
+</script>
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
+}
+</script>
+</body>
+</html>
