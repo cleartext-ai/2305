@@ -1,16 +1,9 @@
-const CACHE = 'cleartext-v2';
-const OFFLINE_URL = 'offline.html';
+const CACHE = 'cleartext-v3';
 
-// При встановленні — кешуємо офлайн-сторінку і головну
+// При встановленні — кешуємо index.html
 self.addEventListener('install', e => {
   e.waitUntil(
-    caches.open(CACHE).then(cache => cache.addAll([
-      '/',
-      '/index.html',
-      OFFLINE_URL
-    ])).catch(() =>
-      caches.open(CACHE).then(cache => cache.add(OFFLINE_URL))
-    )
+    caches.open(CACHE).then(cache => cache.add('/index.html'))
   );
   self.skipWaiting();
 });
@@ -25,33 +18,27 @@ self.addEventListener('activate', e => {
   self.clients.claim();
 });
 
-// Перехоплення запитів
+// Навігаційні запити — спочатку кеш, потім мережа
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
 
-  // Пропускаємо API запити без перехоплення
+  // API запити — не чіпаємо
   const url = e.request.url;
   if (url.includes('generativelanguage.googleapis.com')) return;
   if (url.includes('firestore.googleapis.com')) return;
   if (url.includes('firebase')) return;
-  if (url.includes('fonts.googleapis.com')) return;
-  if (url.includes('fonts.gstatic.com')) return;
 
-  // Навігаційні запити (відкриття сторінки) — показуємо офлайн якщо немає мережі
+  // Навігація (відкриття сторінки) — кеш якщо немає мережі
   if (e.request.mode === 'navigate') {
     e.respondWith(
-      fetch(e.request).catch(() =>
-        caches.match(OFFLINE_URL)
-      )
+      fetch(e.request)
+        .then(res => {
+          // Оновлюємо кеш при успішному завантаженні
+          const clone = res.clone();
+          caches.open(CACHE).then(cache => cache.put(e.request, clone));
+          return res;
+        })
+        .catch(() => caches.match('/index.html'))
     );
-    return;
   }
-
-  // Інші ресурси — спочатку кеш, потім мережа
-  e.respondWith(
-    caches.match(e.request).then(cached => {
-      if (cached) return cached;
-      return fetch(e.request).catch(() => caches.match(OFFLINE_URL));
-    })
-  );
 });
