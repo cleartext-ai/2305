@@ -935,7 +935,7 @@ async function saveStats(changesCount, noChanges, modelId) {
       lastUpdated: new Date().toISOString()
     });
   } catch(e) {
-    // не критично якщо не вдалося зберегти
+    console.error('saveStats error:', e);
   }
 }
 // ══════════════════════════════════════════════
@@ -1456,7 +1456,13 @@ document.getElementById('loadStatsBtn').addEventListener('click', async () => {
       const total = d.total || 0;
       const totalChanges = d.totalChanges || 0;
       const noChanges = d.noChanges || 0;
-      const totalCostUsd = parseFloat(d.totalCostUsd) || 0;
+      let totalCostUsd = parseFloat(d.totalCostUsd) || 0;
+      // Якщо totalCostUsd не збереглось — рахуємо з моделей
+      if (totalCostUsd === 0 && Object.keys(d.models || {}).length > 0) {
+        totalCostUsd = Object.entries(d.models || {}).reduce((sum, [m, c]) => {
+          return sum + getModelPrice(m) * c;
+        }, 0);
+      }
       const models = d.models || {};
       document.getElementById('statTotal').textContent = total;
       document.getElementById('statChanges').textContent = totalChanges;
