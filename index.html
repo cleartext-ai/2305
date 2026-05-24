@@ -770,7 +770,7 @@ body {
               <div><span style="font-size:20px;font-weight:900;color:var(--green)" id="statCostUsd">—</span> <span style="font-size:11px;color:var(--dim)">USD сьогодні</span></div>
               <div><span style="font-size:20px;font-weight:900;color:var(--green)" id="statCostUah">—</span> <span style="font-size:11px;color:var(--dim)">грн сьогодні</span></div>
             </div>
-            <div style="font-size:11px;color:var(--dim);margin-top:6px">Реальна ціна залежно від моделі • Курс НБУ автоматично</div><div id="statModelInfo" style="margin-top:8px;display:flex;flex-wrap:wrap;gap:4px">—</div>
+            <div style="font-size:11px;color:var(--dim);margin-top:6px">Реальна ціна залежно від моделі • Курс USD/UAH автоматично</div><div id="statModelInfo" style="margin-top:8px;display:flex;flex-wrap:wrap;gap:4px">—</div>
           </div>
           <button class="btn-save" id="loadStatsBtn" type="button" style="align-self:flex-start"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg> Оновити</button>
         </div>
@@ -1345,7 +1345,7 @@ async function fixText() {
 
     showResult(parsed);
     console.log("calling saveStats...");
-    saveStats(parsed.changes ? parsed.changes.length : 0, parsed.noChanges, document.getElementById('modelSelect').value);
+    await saveStats(parsed.changes ? parsed.changes.length : 0, parsed.noChanges, document.getElementById('modelSelect').value);
 
   } catch(err) {
     document.getElementById('errorBox').innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> ${err.message}`;
@@ -1472,25 +1472,13 @@ document.getElementById('loadStatsBtn').addEventListener('click', async () => {
       document.getElementById('statChanges').textContent = totalChanges;
       document.getElementById('statNoChange').textContent = noChanges;
 
-      // Автокурс НБУ
+      // Автокурс USD/UAH
       let uahRate = 41.5;
       try {
-        const nbuUrl = 'https://bank.gov.ua/NBUStatService/v1/statdirectory/exchange?valcode=USD&json';
-        const rateResp = await fetch('https://api.allorigins.win/get?url=' + encodeURIComponent(nbuUrl));
-        const rateWrap = await rateResp.json();
-        console.log('allorigins response:', rateWrap);
-        const rateData = JSON.parse(rateWrap.contents);
-        if (rateData[0]?.rate) { uahRate = rateData[0].rate; console.log('NBU rate:', uahRate); }
-      } catch(e) {
-        console.warn('NBU via allorigins failed:', e);
-        try {
-          const r2 = await fetch('https://open.er-api.com/v6/latest/USD');
-          const d2 = await r2.json();
-          console.log('open.er-api response:', d2?.rates?.UAH);
-          if (d2?.rates?.UAH) uahRate = d2.rates.UAH;
-        } catch(e2) { console.warn('open.er-api failed:', e2); }
-      }
-      console.log('Final uahRate:', uahRate);
+        const r = await fetch('https://open.er-api.com/v6/latest/USD');
+        const d = await r.json();
+        if (d?.rates?.UAH) uahRate = d.rates.UAH;
+      } catch(e) { console.warn('Rate fetch failed:', e); }
 
       const costUah = (totalCostUsd * uahRate).toFixed(4);
       document.getElementById('statCostUsd').textContent = '$' + totalCostUsd.toFixed(6);
