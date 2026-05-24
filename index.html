@@ -918,22 +918,29 @@ function getModelPrice(modelId) {
 async function saveStats(changesCount, noChanges, modelId) {
   console.log("saveStats called", changesCount, noChanges);
   try {
-    const today = new Date().toISOString().slice(0, 10); // 2026-05-24
+    const today = new Date().toISOString().slice(0, 10);
+    console.log("saveStats step 1 - today:", today);
     const statsRef = doc(db, 'stats', today);
+    console.log("saveStats step 2 - statsRef ok");
     const snap = await getDoc(statsRef);
+    console.log("saveStats step 3 - snap exists:", snap.exists());
     const prev = snap.exists() ? snap.data() : { total: 0, noChanges: 0, totalChanges: 0, totalCostUsd: 0 };
     const price = getModelPrice(modelId);
+    console.log("saveStats step 4 - price:", price, "modelId:", modelId);
     const modelKey = (modelId || 'unknown').replace(/[^a-z0-9.-]/g, '-');
     const modelStats = prev.models || {};
     modelStats[modelKey] = (modelStats[modelKey] || 0) + 1;
-    await setDoc(statsRef, {
+    const newData = {
       total: (prev.total || 0) + 1,
       noChanges: (prev.noChanges || 0) + (noChanges ? 1 : 0),
       totalChanges: (prev.totalChanges || 0) + (changesCount || 0),
       totalCostUsd: Math.round(((prev.totalCostUsd || 0) + price) * 1e8) / 1e8,
       models: modelStats,
       lastUpdated: new Date().toISOString()
-    });
+    };
+    console.log("saveStats step 5 - writing:", JSON.stringify(newData));
+    await setDoc(statsRef, newData);
+    console.log("saveStats step 6 - DONE");
   } catch(e) {
     console.error('saveStats error:', e);
   }
