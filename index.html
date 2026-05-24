@@ -1289,7 +1289,17 @@ async function fixText() {
 
   const prompt = `Ти — асистент з виправлення тексту для людей з вадами слуху, які пишуть неграмотно.
 
-ВАЖЛИВІ ПРАВИЛА:
+ПРАВИЛА БЕЗПЕКИ (перевір ПЕРШОЧЕРГОВО):
+Якщо текст містить будь-що з наведеного — НЕ виправляй, а поверни {"blocked": true, "reason": "..."}:
+- Підтримка, виправдання або пропаганда військової агресії Росії проти України
+- Заперечення воєнних злочинів РФ, виправдання окупації
+- Ненависть, дискримінація за расою, релігією, статтю, орієнтацією (виняток: негативне ставлення до РФ, російської армії та держави-агресора — допустимо)
+- Сексуальний контент, порнографія
+- Домашнє насильство, погрози, залякування
+- Спам, реклама, комерційні оголошення
+- Заклики до насильства або самоушкодження
+
+ВАЖЛИВІ ПРАВИЛА ВИПРАВЛЕННЯ:
 1. Якщо текст англійською — виправити лише граматику, залишити англійською.
 2. Якщо текст будь-якою іншою мовою (російська, суржик, польська тощо) — перекласти та виправити УКРАЇНСЬКОЮ.
 3. Якщо є кальки з російської або суржик — виправити на літературну українську і пояснити що це кальки/суржик.
@@ -1324,12 +1334,24 @@ async function fixText() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           contents: [{ role: 'user', parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.3, maxOutputTokens: 1024 }
+          generationConfig: { temperature: 0.3, maxOutputTokens: 1024 },
+          safetySettings: [
+            { category: 'HARM_CATEGORY_HARASSMENT',        threshold: 'BLOCK_LOW_AND_ABOVE' },
+            { category: 'HARM_CATEGORY_HATE_SPEECH',       threshold: 'BLOCK_LOW_AND_ABOVE' },
+            { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_LOW_AND_ABOVE' },
+            { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_LOW_AND_ABOVE' }
+          ]
         })
       }
     );
     const data = await res.json();
     if (data.error) { showError(data.error); return; }
+
+    // Gemini заблокував на рівні API
+    if (data.candidates?.[0]?.finishReason === 'SAFETY') {
+      showBlocked('Текст містить недопустимий контент і не може бути оброблений.');
+      return;
+    }
 
     let raw = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
     raw = raw.replace(/```json|```/g, '').trim();
@@ -1340,6 +1362,12 @@ async function fixText() {
       const match = raw.match(/\{[\s\S]*\}/);
       if (match) parsed = JSON.parse(match[0]);
       else throw new Error('Не вдалося розпізнати відповідь AI');
+    }
+
+    // Модель повернула blocked
+    if (parsed.blocked) {
+      showBlocked(parsed.reason || 'Текст містить недопустимий контент.');
+      return;
     }
 
     showResult(parsed);
@@ -1363,6 +1391,12 @@ function showError(err) {
   if (isQuota) box.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Ліміт вичерпано${timeStr ? ` — спробуйте через ${timeStr}` : ''}. Спробуйте пізніше.`;
   else if (err.code === 400 || err.code === 403) box.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg> Невірний API ключ. Зверніться до адміністратора.';
   else box.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> ${err.message}`;
+  box.style.display = 'block';
+}
+
+function showBlocked(reason) {
+  const box = document.getElementById('errorBox');
+  box.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg> <strong>Текст заблоковано.</strong> ${reason}`;
   box.style.display = 'block';
 }
 
