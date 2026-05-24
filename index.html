@@ -1631,11 +1631,16 @@ async function loadStats() {
       total += d.total || 0;
       totalChanges += d.totalChanges || 0;
       noChanges += d.noChanges || 0;
+      const dayTotal = d.total || 0;
       let cost = parseFloat(d.totalCostUsd) || 0;
-      if (cost === 0 && Object.keys(d.models || {}).length > 0) {
-        cost = Object.entries(d.models || {}).reduce((s, [m, c]) => s + getModelPrice(m) * c, 0);
+      // Якщо збережена вартість менша ніж мінімально можлива — рахуємо з total
+      const minCost = dayTotal * 0.0001;
+      if (cost < minCost) {
+        if (Object.keys(d.models || {}).length > 0) {
+          cost = Object.entries(d.models || {}).reduce((s, [m, c]) => s + getModelPrice(m) * c, 0);
+        }
+        if (cost < minCost) cost = dayTotal * 0.0001;
       }
-      if (cost === 0 && (d.total || 0) > 0) cost = (d.total || 0) * 0.0006;
       totalCostUsd += cost;
       for (const [k, v] of Object.entries(d.models || {})) {
         allModels[k] = (allModels[k] || 0) + v;
@@ -1655,8 +1660,8 @@ async function loadStats() {
     } catch(e) {}
     document.getElementById('statUahRate').textContent = uahRate.toFixed(2);
 
-    const costUah = (totalCostUsd * uahRate).toFixed(4);
-    const usdStr = totalCostUsd < 0.01 ? '$' + totalCostUsd.toFixed(6) : '$' + totalCostUsd.toFixed(4);
+    const costUah = (totalCostUsd * uahRate).toFixed(2);
+    const usdStr = '$' + totalCostUsd.toFixed(4);
     document.getElementById('statCostUsd').textContent = usdStr;
     document.getElementById('statCostUah').textContent = costUah + ' ₴';
 
