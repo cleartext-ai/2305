@@ -806,6 +806,7 @@ async function fsSet(docId, data) {
 // СТАТИСТИКА — анонімна, без тексту користувача
 // ══════════════════════════════════════════════
 async function saveStats(changesCount, noChanges) {
+  console.log("saveStats called", changesCount, noChanges);
   try {
     const today = new Date().toISOString().slice(0, 10); // 2026-05-24
     const statsRef = doc(db, 'stats', today);
@@ -1229,6 +1230,7 @@ async function fixText() {
 
     showResult(parsed);
     saveToHistory(text, parsed.corrected);
+    console.log("calling saveStats...");
     saveStats(parsed.changes ? parsed.changes.length : 0, parsed.noChanges);
 
   } catch(err) {
