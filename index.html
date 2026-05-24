@@ -40,6 +40,119 @@
   --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #f0f4f8;
+    --glass: rgba(255,255,255,0.6);
+    --glass2: rgba(255,255,255,0.75);
+    --glass-heavy: rgba(255,255,255,0.7);
+    --surface: rgba(255,255,255,0.6);
+    --surface2: rgba(255,255,255,0.75);
+    --border: rgba(0,0,0,0.1);
+    --border2: rgba(0,0,0,0.15);
+    --border-top: rgba(255,255,255,0.9);
+    --text: rgba(0,0,0,0.9);
+    --muted: rgba(0,0,0,0.6);
+    --dim: rgba(0,0,0,0.4);
+    --green: #059669;
+    --green-glow: rgba(5,150,105,0.2);
+    --blue: #2563eb;
+    --blue-glow: rgba(37,99,235,0.2);
+    --rose: #e11d48;
+    --amber: #d97706;
+  }
+
+  body {
+    background: #f0f4f8;
+    background-image: radial-gradient(ellipse at 20% 20%, rgba(52,211,153,0.12) 0%, transparent 50%), radial-gradient(ellipse at 80% 80%, rgba(96,165,250,0.12) 0%, transparent 50%);
+  }
+
+  .card-title, .card-title svg { color: rgba(0,0,0,0.7) !important; stroke: rgba(0,0,0,0.7) !important; }
+  .char-count { color: rgba(0,0,0,0.5) !important; }
+  .changes-header, .changes-header svg { color: rgba(0,0,0,0.7) !important; stroke: rgba(0,0,0,0.7) !important; }
+  .history-title, .history-title svg { color: rgba(0,0,0,0.7) !important; stroke: rgba(0,0,0,0.7) !important; }
+  .history-clear { color: var(--rose) !important; }
+  .hist-original, .hist-original svg { color: rgba(0,0,0,0.5) !important; stroke: rgba(0,0,0,0.5) !important; }
+  .hist-fixed { color: rgba(0,0,0,0.85) !important; }
+  .hist-time { color: rgba(0,0,0,0.4) !important; }
+  .act-btn svg { stroke: rgba(0,0,0,0.6) !important; }
+  .change-reason { color: rgba(0,0,0,0.65) !important; }
+  .change-arrow { color: rgba(0,0,0,0.4) !important; }
+  .app-header-sub { color: rgba(0,0,0,0.5) !important; }
+  .admin-section-title { color: rgba(0,0,0,0.7) !important; }
+  .stat-label { color: rgba(0,0,0,0.5) !important; }
+
+  .btn-fix { 
+    background: linear-gradient(135deg, rgba(5,150,105,0.8), rgba(37,99,235,0.7)) !important;
+    border: 1px solid rgba(5,150,105,0.5) !important;
+    border-top: 1px solid rgba(255,255,255,0.6) !important;
+    box-shadow: 0 8px 32px rgba(5,150,105,0.3), inset 0 1px 0 rgba(255,255,255,0.4) !important;
+  }
+  .btn-label { color: #fff !important; }
+  .btn-fix .spinner-ring { border-color: rgba(255,255,255,0.3) !important; border-top-color: #fff !important; }
+
+  .card-header { border-bottom: 1px solid rgba(0,0,0,0.06) !important; }
+  .changes-header { border-bottom: 1px solid rgba(0,0,0,0.06) !important; }
+  .badge { background: var(--rose) !important; color: #fff !important; }
+
+  .bg-orb:nth-child(1) { background: radial-gradient(circle, rgba(52,211,153,0.3), transparent 70%); opacity: 0.6; }
+  .bg-orb:nth-child(2) { background: radial-gradient(circle, rgba(96,165,250,0.3), transparent 70%); opacity: 0.5; }
+  .bg-orb:nth-child(3) { background: radial-gradient(circle, rgba(167,139,250,0.2), transparent 70%); opacity: 0.4; }
+
+  .app-header {
+    background: rgba(240,244,248,0.7);
+    box-shadow: 0 1px 0 rgba(0,0,0,0.08), 0 4px 20px rgba(0,0,0,0.06);
+  }
+
+  .card {
+    background: rgba(255,255,255,0.65);
+    border: 1px solid rgba(0,0,0,0.08);
+    border-top: 1px solid rgba(255,255,255,0.95);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.9);
+  }
+
+  .result-text { border-bottom: 1px solid rgba(0,0,0,0.06); }
+
+  .act-btn {
+    background: rgba(255,255,255,0.7);
+    border: 1px solid rgba(0,0,0,0.1);
+    border-top: 1px solid rgba(255,255,255,0.95);
+    color: rgba(0,0,0,0.6);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.8), 0 2px 8px rgba(0,0,0,0.08);
+  }
+
+  .act-btn:hover { background: rgba(255,255,255,0.9); color: rgba(0,0,0,0.8); }
+
+  .change-item {
+    background: rgba(255,255,255,0.6);
+    border: 1px solid rgba(0,0,0,0.07);
+    border-top: 1px solid rgba(255,255,255,0.9);
+  }
+
+  .hist-item { background: rgba(255,255,255,0.4); border-bottom: 1px solid rgba(0,0,0,0.05); }
+  .hist-item:hover { background: rgba(255,255,255,0.7); }
+
+  .history-section {
+    background: rgba(255,255,255,0.55);
+    border: 1px solid rgba(0,0,0,0.08);
+    border-top: 1px solid rgba(255,255,255,0.95);
+  }
+
+  textarea {
+    background: rgba(255,255,255,0.5) !important;
+    color: rgba(0,0,0,0.9) !important;
+  }
+
+  textarea::placeholder { color: rgba(0,0,0,0.35) !important; }
+
+  .error-box {
+    background: rgba(251,113,133,0.08);
+    border: 1px solid rgba(225,29,72,0.2);
+  }
+
+  .stat-box { background: rgba(255,255,255,0.5); }
+}
 html, body { height: 100%; height: 100dvh; }
 body {
   font-family: 'Nunito', sans-serif;
