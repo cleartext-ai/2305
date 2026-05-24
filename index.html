@@ -632,6 +632,41 @@ body {
   </div>
 </div>
 
+<!-- ── OFFLINE SCREEN ── -->
+<div id="offline-screen" style="display:none;position:relative;z-index:10;min-height:100dvh;flex-direction:column;align-items:center;justify-content:center;padding:calc(var(--safe-top) + 24px) 32px calc(var(--safe-bottom) + 24px);text-align:center">
+  <div style="animation:cardIn 0.6s cubic-bezier(0.34,1.56,0.64,1) forwards">
+    <div class="ct-logo ct-logo--splash" style="margin-bottom:24px">
+      <svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs><linearGradient id="ol" x1="0" y1="0" x2="80" y2="80" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#34d399"/><stop offset="100%" stop-color="#60a5fa"/></linearGradient></defs>
+        <rect width="80" height="80" rx="22" fill="#0b1120"/>
+        <circle cx="40" cy="40" r="6" fill="url(#ol)"/>
+        <circle cx="40" cy="16" r="4.5" fill="url(#ol)" opacity=".75"/>
+        <circle cx="62" cy="28" r="4.5" fill="url(#ol)" opacity=".75"/>
+        <circle cx="62" cy="52" r="4.5" fill="url(#ol)" opacity=".75"/>
+        <circle cx="40" cy="64" r="4.5" fill="url(#ol)" opacity=".75"/>
+        <circle cx="18" cy="52" r="4.5" fill="url(#ol)" opacity=".75"/>
+        <circle cx="18" cy="28" r="4.5" fill="url(#ol)" opacity=".75"/>
+        <line x1="40" y1="40" x2="40" y2="16" stroke="url(#ol)" stroke-width="1.4" stroke-opacity=".45"/>
+        <line x1="40" y1="40" x2="62" y2="28" stroke="url(#ol)" stroke-width="1.4" stroke-opacity=".45"/>
+        <line x1="40" y1="40" x2="62" y2="52" stroke="url(#ol)" stroke-width="1.4" stroke-opacity=".45"/>
+        <line x1="40" y1="40" x2="40" y2="64" stroke="url(#ol)" stroke-width="1.4" stroke-opacity=".45"/>
+        <line x1="40" y1="40" x2="18" y2="52" stroke="url(#ol)" stroke-width="1.4" stroke-opacity=".45"/>
+        <line x1="40" y1="40" x2="18" y2="28" stroke="url(#ol)" stroke-width="1.4" stroke-opacity=".45"/>
+      </svg>
+    </div>
+    <div style="font-size:28px;font-weight:900;letter-spacing:-0.03em;background:linear-gradient(135deg,#fff 30%,#34d399 70%,#60a5fa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:36px">ClearText AI</div>
+    <div style="width:56px;height:56px;background:rgba(251,113,133,0.12);border:1px solid rgba(251,113,133,0.3);border-radius:18px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;box-shadow:0 8px 32px rgba(251,113,133,0.15)">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fb7185" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="1" y1="1" x2="23" y2="23"/><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/><path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/><path d="M10.71 5.05A16 16 0 0 1 22.56 9"/><path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
+    </div>
+    <div style="font-size:20px;font-weight:900;color:#fff;margin-bottom:10px">Немає підключення</div>
+    <div style="font-size:14px;font-weight:600;color:rgba(255,255,255,0.55);line-height:1.7;max-width:280px;margin:0 auto 28px">Увімкніть мобільні дані або Wi-Fi,<br>щоб скористатися ClearText AI.</div>
+    <button onclick="if(navigator.onLine){hide('offline-screen');route();}else{this.textContent='Ще немає…';setTimeout(()=>this.innerHTML='<svg width=\'15\' height=\'15\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2.5\' stroke-linecap=\'round\' stroke-linejoin=\'round\'><polyline points=\'23 4 23 10 17 10\'/><path d=\'M20.49 15a9 9 0 1 1-2.12-9.36L23 10\'/></svg> Спробувати знову',1500);}" style="display:inline-flex;align-items:center;gap:8px;padding:13px 28px;background:linear-gradient(135deg,rgba(52,211,153,0.25),rgba(96,165,250,0.2));border:1px solid rgba(52,211,153,0.35);border-top:1px solid rgba(255,255,255,0.25);border-radius:14px;color:#fff;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer;backdrop-filter:blur(20px);box-shadow:0 4px 24px rgba(52,211,153,0.15),inset 0 1px 0 rgba(255,255,255,0.15);transition:all 0.2s;-webkit-appearance:none">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+      Спробувати знову
+    </button>
+  </div>
+</div>
+
 <!-- ── ADMIN LOGIN SCREEN ── -->
 <div id="admin-login-screen">
   <div class="admin-login-card">
@@ -992,6 +1027,9 @@ function hide(id) { document.getElementById(id).style.display = 'none'; }
 // ROUTING
 // ══════════════════════════════════════════════
 async function route() {
+  // Перевірка інтернету
+  if (!navigator.onLine) { showOffline(); return; }
+
   const url = window.location.href;
   const goAdmin = window.location.search.includes('admin') ||
                   window.location.hash === '#admin' ||
@@ -1015,6 +1053,8 @@ async function route() {
   }
 }
 
+window.addEventListener('online',  () => { hide('offline-screen'); route(); });
+window.addEventListener('offline', () => showOffline());
 window.addEventListener('hashchange', route);
 
 // ══════════════════════════════════════════════
@@ -1039,9 +1079,18 @@ function showApp(settings) {
   hide('no-api-screen');
   hide('admin-login-screen');
   hide('admin-screen');
+  hide('offline-screen');
   show('app-screen', true);
   renderAppModels(settings.models || DEFAULT_MODELS);
   document.getElementById('text-input').focus();
+}
+
+function showOffline() {
+  hide('no-api-screen');
+  hide('admin-login-screen');
+  hide('admin-screen');
+  hide('app-screen');
+  show('offline-screen', true);
 }
 
 // ══════════════════════════════════════════════
