@@ -459,6 +459,9 @@ body {
 
 .error-box { background: rgba(251,113,133,0.1); backdrop-filter: var(--blur-sm); -webkit-backdrop-filter: var(--blur-sm); border: 1px solid rgba(251,113,133,0.3); border-top: 1px solid rgba(255,200,200,0.35); border-radius: 16px; padding: 14px 16px; font-size: 13px; font-weight: 600; color: #fda4af; line-height: 1.6; display: none; box-shadow: inset 0 1px 0 rgba(255,255,255,0.15), 0 4px 16px rgba(251,113,133,0.1); }
 
+.stat-box { background: rgba(255,255,255,0.06); border-radius: 12px; padding: 12px; text-align: center; }
+.stat-val { font-size: 24px; font-weight: 900; color: var(--green); }
+.stat-label { font-size: 11px; font-weight: 700; color: var(--dim); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.05em; }
 .history-section { margin-top: 4px; background: var(--glass); backdrop-filter: var(--blur-heavy); -webkit-backdrop-filter: var(--blur-heavy); border: 1px solid var(--border); border-top: 1px solid var(--border-top); border-radius: 24px; overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.28); }
 .history-title { font-size: 12px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--dim); margin-bottom: 0; padding: 12px 14px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.06); }
 .history-clear { font-size: 12px; font-weight: 700; color: var(--rose); background: none; border: none; cursor: pointer; opacity: 0.7; transition: opacity 0.2s; }
@@ -659,6 +662,21 @@ body {
       </div>
     </div>
 
+
+      <!-- СТАТИСТИКА -->
+      <div class="admin-card">
+        <div class="card-header">
+          <div class="admin-section-title"><span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span> Статистика</div>
+        </div>
+        <div style="padding:16px;display:flex;flex-direction:column;gap:10px">
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px" id="statsGrid">
+            <div class="stat-box"><div class="stat-val" id="statTotal">—</div><div class="stat-label">Запитів сьогодні</div></div>
+            <div class="stat-box"><div class="stat-val" id="statChanges">—</div><div class="stat-label">Змін зроблено</div></div>
+            <div class="stat-box"><div class="stat-val" id="statNoChange">—</div><div class="stat-label">Без помилок</div></div>
+          </div>
+          <button class="btn-save" id="loadStatsBtn" type="button" style="align-self:flex-start"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg> Оновити</button>
+        </div>
+      </div>
   </div>
 </div>
 
@@ -783,6 +801,26 @@ async function fsSet(docId, data) {
   }
 }
 
+
+// ══════════════════════════════════════════════
+// СТАТИСТИКА — анонімна, без тексту користувача
+// ══════════════════════════════════════════════
+async function saveStats(changesCount, noChanges) {
+  try {
+    const today = new Date().toISOString().slice(0, 10); // 2026-05-24
+    const statsRef = doc(db, 'stats', today);
+    const snap = await getDoc(statsRef);
+    const prev = snap.exists() ? snap.data() : { total: 0, noChanges: 0, totalChanges: 0 };
+    await setDoc(statsRef, {
+      total: (prev.total || 0) + 1,
+      noChanges: (prev.noChanges || 0) + (noChanges ? 1 : 0),
+      totalChanges: (prev.totalChanges || 0) + (changesCount || 0),
+      lastUpdated: new Date().toISOString()
+    });
+  } catch(e) {
+    // не критично якщо не вдалося зберегти
+  }
+}
 // ══════════════════════════════════════════════
 // LOCAL STORAGE HELPERS — тільки для сесії адміна
 // ══════════════════════════════════════════════
@@ -1191,6 +1229,7 @@ async function fixText() {
 
     showResult(parsed);
     saveToHistory(text, parsed.corrected);
+    saveStats(parsed.changes ? parsed.changes.length : 0, parsed.noChanges);
 
   } catch(err) {
     document.getElementById('errorBox').innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> ${err.message}`;
@@ -1334,6 +1373,26 @@ if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js').catch(() => {});
   });
 }
+
+// Завантаження статистики в адмін
+document.getElementById('loadStatsBtn').addEventListener('click', async () => {
+  const today = new Date().toISOString().slice(0, 10);
+  try {
+    const snap = await getDoc(doc(db, 'stats', today));
+    if (snap.exists()) {
+      const d = snap.data();
+      document.getElementById('statTotal').textContent = d.total || 0;
+      document.getElementById('statChanges').textContent = d.totalChanges || 0;
+      document.getElementById('statNoChange').textContent = d.noChanges || 0;
+    } else {
+      document.getElementById('statTotal').textContent = '0';
+      document.getElementById('statChanges').textContent = '0';
+      document.getElementById('statNoChange').textContent = '0';
+    }
+  } catch(e) {
+    console.warn('Stats error:', e);
+  }
+});
 </script>
 </body>
 </html>
