@@ -71,11 +71,6 @@
   .card-title, .card-title svg { color: rgba(0,0,0,0.7) !important; stroke: rgba(0,0,0,0.7) !important; }
   .char-count { color: rgba(0,0,0,0.5) !important; }
   .changes-header, .changes-header svg { color: rgba(0,0,0,0.7) !important; stroke: rgba(0,0,0,0.7) !important; }
-  .history-title, .history-title svg { color: rgba(0,0,0,0.7) !important; stroke: rgba(0,0,0,0.7) !important; }
-  .history-clear { color: var(--rose) !important; }
-  .hist-original, .hist-original svg { color: rgba(0,0,0,0.5) !important; stroke: rgba(0,0,0,0.5) !important; }
-  .hist-fixed { color: rgba(0,0,0,0.85) !important; }
-  .hist-time { color: rgba(0,0,0,0.4) !important; }
   .act-btn svg { stroke: rgba(0,0,0,0.6) !important; }
   .change-reason { color: rgba(0,0,0,0.65) !important; }
   .change-arrow { color: rgba(0,0,0,0.4) !important; }
@@ -128,15 +123,6 @@
     background: rgba(255,255,255,0.6);
     border: 1px solid rgba(0,0,0,0.07);
     border-top: 1px solid rgba(255,255,255,0.9);
-  }
-
-  .hist-item { background: rgba(255,255,255,0.4); border-bottom: 1px solid rgba(0,0,0,0.05); }
-  .hist-item:hover { background: rgba(255,255,255,0.7); }
-
-  .history-section {
-    background: rgba(255,255,255,0.55);
-    border: 1px solid rgba(0,0,0,0.08);
-    border-top: 1px solid rgba(255,255,255,0.95);
   }
 
   textarea {
@@ -575,16 +561,7 @@ body {
 .stat-box { background: rgba(255,255,255,0.06); border-radius: 12px; padding: 12px; text-align: center; }
 .stat-val { font-size: 24px; font-weight: 900; color: var(--green); }
 .stat-label { font-size: 11px; font-weight: 700; color: var(--dim); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.05em; }
-.history-section { margin-top: 4px; background: var(--glass); backdrop-filter: var(--blur-heavy); -webkit-backdrop-filter: var(--blur-heavy); border: 1px solid var(--border); border-top: 1px solid var(--border-top); border-radius: 24px; overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.28); }
-.history-title { font-size: 12px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--dim); margin-bottom: 0; padding: 12px 14px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.06); }
-.history-clear { font-size: 12px; font-weight: 700; color: var(--rose); background: none; border: none; cursor: pointer; opacity: 0.7; transition: opacity 0.2s; }
-.history-clear:hover { opacity: 1; }
-.hist-item { background: rgba(255,255,255,0.04); border: none; border-bottom: 1px solid rgba(255,255,255,0.06); border-radius: 0; padding: 12px 14px; margin-bottom: 0; cursor: pointer; transition: all 0.2s; }
-.hist-item:hover { background: rgba(255,255,255,0.08); }
-.hist-item:active { transform: scale(0.99); } .hist-item:last-child { border-bottom: none; }
-.hist-original { font-size: 15px; font-weight: 600; color: var(--muted); margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.hist-fixed { font-size: 16px; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.hist-time { font-size: 13px; color: var(--dim); margin-top: 5px; }
+
 
 @media(max-width:480px) {
   .admin-login-card, .no-api-card { padding: 28px 20px; border-radius: 22px; }
@@ -869,13 +846,7 @@ body {
       <div id="changes-list"></div>
     </div>
 
-    <div class="history-section" id="historySection" style="display:none">
-      <div class="history-title">
-        <span style="display:flex;align-items:center;gap:6px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Останні виправлення</span>
-        <button class="history-clear" id="historyClearBtn" type="button">очистити</button>
-      </div>
-      <div id="historyList"></div>
-    </div>
+
   </div>
 </div>
 
@@ -1264,7 +1235,6 @@ function showTmpMsg(id) {
 // MAIN APP
 // ══════════════════════════════════════════════
 let selectedLang = 'uk';
-let appHistory = [];
 
 function renderAppModels(models) {
   const sel = document.getElementById('modelSelect');
@@ -1374,7 +1344,6 @@ async function fixText() {
     }
 
     showResult(parsed);
-    saveToHistory(text, parsed.corrected);
     console.log("calling saveStats...");
     saveStats(parsed.changes ? parsed.changes.length : 0, parsed.noChanges, document.getElementById('modelSelect').value);
 
@@ -1462,40 +1431,6 @@ document.getElementById('clearBtn').onclick = () => {
   document.getElementById('result-card').style.display = 'none';
   document.getElementById('errorBox').style.display = 'none';
   textInput.focus();
-};
-
-function saveToHistory(original, corrected) {
-  if (original === corrected) return;
-  appHistory.unshift({ original, corrected, time: new Date().toLocaleTimeString('uk-UA',{hour:'2-digit',minute:'2-digit'}) });
-  if (appHistory.length > 10) appHistory.pop();
-  renderHistory();
-}
-
-function renderHistory() {
-  const sec = document.getElementById('historySection');
-  const list = document.getElementById('historyList');
-  if (appHistory.length === 0) { sec.style.display = 'none'; return; }
-  sec.style.display = 'block';
-  list.innerHTML = '';
-  appHistory.forEach(item => {
-    const el = document.createElement('div');
-    el.className = 'hist-item';
-    el.innerHTML = `
-      <div class="hist-original"><span style="display:inline-flex;align-items:center;gap:4px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span> ${escHtml(item.original)}</div>
-      <div class="hist-fixed"><span style="display:inline-flex;align-items:center;gap:4px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span> ${escHtml(item.corrected)}</div>
-      <div class="hist-time">${item.time}</div>`;
-    el.onclick = () => {
-      textInput.value = item.original;
-      textInput.dispatchEvent(new Event('input'));
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    };
-    list.appendChild(el);
-  });
-}
-
-document.getElementById('historyClearBtn').onclick = () => {
-  appHistory = [];
-  renderHistory();
 };
 
 // ══════════════════════════════════════════════
