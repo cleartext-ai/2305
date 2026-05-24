@@ -1362,17 +1362,6 @@ const _link = document.getElementById('goAdminLink');
 if (_link) _link.onclick = () => { window.location.href = getAdminUrl(); };
 
 // ══════════════════════════════════════════════
-// START
-// ══════════════════════════════════════════════
-route();
-</script>
-
-<script>
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').catch(() => {});
-  });
-}
 
 // Завантаження статистики в адмін
 document.getElementById('loadStatsBtn').addEventListener('click', async () => {
@@ -1393,6 +1382,18 @@ document.getElementById('loadStatsBtn').addEventListener('click', async () => {
     console.warn('Stats error:', e);
   }
 });
+
+// START
+// ══════════════════════════════════════════════
+route();
+</script>
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
+}
 </script>
 </body>
 </html>
