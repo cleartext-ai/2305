@@ -765,7 +765,7 @@ body {
             <div class="stat-box"><div class="stat-val" id="statNoChange">—</div><div class="stat-label">Без помилок</div></div>
           </div>
           <div style="background:rgba(52,211,153,0.08);border:1px solid rgba(52,211,153,0.2);border-radius:14px;padding:14px 16px;margin-top:4px">
-            <div style="font-size:11px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:var(--green);margin-bottom:8px">💸 Економія (якби платно)</div>
+            <div style="font-size:11px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:var(--green);margin-bottom:8px">🪙 Економія (якби платно)</div>
             <div style="display:flex;gap:16px;flex-wrap:wrap">
               <div><span style="font-size:20px;font-weight:900;color:var(--green)" id="statCostUsd">—</span> <span style="font-size:11px;color:var(--dim)">USD сьогодні</span></div>
               <div><span style="font-size:20px;font-weight:900;color:var(--green)" id="statCostUah">—</span> <span style="font-size:11px;color:var(--dim)">грн сьогодні</span></div>
@@ -923,7 +923,7 @@ async function saveStats(changesCount, noChanges, modelId) {
     const snap = await getDoc(statsRef);
     const prev = snap.exists() ? snap.data() : { total: 0, noChanges: 0, totalChanges: 0, totalCostUsd: 0 };
     const price = getModelPrice(modelId);
-    const modelKey = (modelId || 'unknown').replace(/[^a-z0-9-]/g, '-');
+    const modelKey = (modelId || 'unknown').replace(/[^a-z0-9.-]/g, '-');
     const modelStats = prev.models || {};
     modelStats[modelKey] = (modelStats[modelKey] || 0) + 1;
     await setDoc(statsRef, {
@@ -1468,13 +1468,19 @@ document.getElementById('loadStatsBtn').addEventListener('click', async () => {
       document.getElementById('statChanges').textContent = totalChanges;
       document.getElementById('statNoChange').textContent = noChanges;
 
-      // Автокурс НБУ
+      // Автокурс USD/UAH
       let uahRate = 41.5;
       try {
-        const rateResp = await fetch('https://bank.gov.ua/NBUStatService/v1/statdirectory/exchange?valcode=USD&json');
+        const rateResp = await fetch('https://api.exchangerate-api.com/v4/latest/USD');
         const rateData = await rateResp.json();
-        if (rateData[0]?.rate) uahRate = rateData[0].rate;
-      } catch(e) {}
+        if (rateData?.rates?.UAH) uahRate = rateData.rates.UAH;
+      } catch(e) {
+        try {
+          const r2 = await fetch('https://open.er-api.com/v6/latest/USD');
+          const d2 = await r2.json();
+          if (d2?.rates?.UAH) uahRate = d2.rates.UAH;
+        } catch(e2) {}
+      }
 
       const costUah = (totalCostUsd * uahRate).toFixed(4);
       document.getElementById('statCostUsd').textContent = '$' + totalCostUsd.toFixed(6);
