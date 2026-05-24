@@ -930,7 +930,7 @@ async function saveStats(changesCount, noChanges, modelId) {
       total: (prev.total || 0) + 1,
       noChanges: (prev.noChanges || 0) + (noChanges ? 1 : 0),
       totalChanges: (prev.totalChanges || 0) + (changesCount || 0),
-      totalCostUsd: ((prev.totalCostUsd || 0) + price),
+      totalCostUsd: Math.round(((prev.totalCostUsd || 0) + price) * 1e8) / 1e8,
       models: modelStats,
       lastUpdated: new Date().toISOString()
     });
@@ -1456,7 +1456,7 @@ document.getElementById('loadStatsBtn').addEventListener('click', async () => {
       const total = d.total || 0;
       const totalChanges = d.totalChanges || 0;
       const noChanges = d.noChanges || 0;
-      const totalCostUsd = d.totalCostUsd || 0;
+      const totalCostUsd = parseFloat(d.totalCostUsd) || 0;
       const models = d.models || {};
       document.getElementById('statTotal').textContent = total;
       document.getElementById('statChanges').textContent = totalChanges;
@@ -1470,8 +1470,8 @@ document.getElementById('loadStatsBtn').addEventListener('click', async () => {
         if (rateData[0]?.rate) uahRate = rateData[0].rate;
       } catch(e) {}
 
-      const costUah = (totalCostUsd * uahRate).toFixed(2);
-      document.getElementById('statCostUsd').textContent = '$' + totalCostUsd.toFixed(4);
+      const costUah = (totalCostUsd * uahRate).toFixed(4);
+      document.getElementById('statCostUsd').textContent = '$' + totalCostUsd.toFixed(6);
       document.getElementById('statCostUah').textContent = costUah + ' ₴';
 
       // Розбивка по моделях
@@ -1482,8 +1482,8 @@ document.getElementById('loadStatsBtn').addEventListener('click', async () => {
       document.getElementById('statTotal').textContent = '0';
       document.getElementById('statChanges').textContent = '0';
       document.getElementById('statNoChange').textContent = '0';
-      document.getElementById('statCostUsd').textContent = '$0.0000';
-      document.getElementById('statCostUah').textContent = '0.00 ₴';
+      document.getElementById('statCostUsd').textContent = '$0.000000';
+      document.getElementById('statCostUah').textContent = '0.0000 ₴';
     }
   } catch(e) {
     console.warn('Stats error:', e);
