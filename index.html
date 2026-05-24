@@ -1516,28 +1516,30 @@ document.getElementById('shareBtn').onclick = async () => {
   if (navigator.share) {
     try {
       await navigator.share({ text });
-      return;
-    } catch(e) {}
+    } catch(e) {
+      // Користувач закрив меню — нічого не робимо
+    }
+    return; // завжди виходимо якщо є navigator.share
   }
-  // Fallback — показуємо меню вибору
+  // Fallback — показуємо кастомне меню (тільки на ПК)
   const menu = document.createElement('div');
   menu.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,0.5);backdrop-filter:blur(8px);animation:fadeIn 0.2s ease';
   const enc = encodeURIComponent(text);
   menu.innerHTML = `
-    <div style="width:100%;max-width:480px;background:#0e1320;border:1px solid rgba(255,255,255,0.12);border-radius:24px 24px 0 0;padding:16px 16px calc(env(safe-area-inset-bottom,0px) + 16px);margin:0">
+    <div style="width:100%;max-width:480px;background:var(--bg);backdrop-filter:blur(40px);-webkit-backdrop-filter:blur(40px);border:1px solid var(--border);border-top:1px solid var(--border-top);border-radius:24px 24px 0 0;padding:16px 16px calc(env(safe-area-inset-bottom,0px) + 16px);margin:0">
       <div style="width:36px;height:4px;background:rgba(255,255,255,0.2);border-radius:2px;margin:0 auto 20px"></div>
       <div style="font-size:13px;font-weight:700;color:rgba(255,255,255,0.4);text-align:center;margin-bottom:14px;letter-spacing:0.08em;text-transform:uppercase">Поділитись через</div>
       <div style="display:flex;gap:12px;justify-content:center;margin-bottom:16px">
-        <a href="https://t.me/share/url?url=&text=${enc}" target="_blank" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;padding:16px 8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:16px;text-decoration:none;color:#fff;font-size:12px;font-weight:700">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="#60a5fa"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248l-2.032 9.574c-.149.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L6.54 14.748l-2.95-.924c-.642-.2-.654-.642.136-.95l11.532-4.448c.535-.194 1.003.13.304.822z"/></svg>
+        <a href="https://t.me/share/url?url=&text=${enc}" target="_blank" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;padding:16px 8px;background:var(--glass2);backdrop-filter:blur(20px);border:1px solid var(--border);border-top:1px solid var(--border-top);border-radius:16px;text-decoration:none;color:var(--text);font-size:12px;font-weight:700">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="#29B6F6"><path d="M9.78 18.65l.28-4.23 7.68-6.92c.34-.31-.07-.46-.52-.19L7.74 13.3 3.64 12c-.88-.25-.89-.86.2-1.3l15.97-6.16c.73-.33 1.43.18 1.15 1.3l-2.72 12.81c-.19.91-.74 1.13-1.5.71L12.6 16.3l-1.99 1.93c-.23.23-.42.42-.83.42z"/></svg>
           Telegram
         </a>
-        <a href="https://wa.me/?text=${enc}" target="_blank" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;padding:16px 8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:16px;text-decoration:none;color:#fff;font-size:12px;font-weight:700">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="#34d399"><path d="M12.031 0C5.381 0 .003 5.37.003 11.988c0 2.09.549 4.052 1.509 5.756L0 24l6.445-1.49A12.03 12.03 0 0 0 12.031 24C18.68 24 24 18.628 24 12.012 24 5.374 18.68 0 12.031 0zm6.311 17.298c-.262.736-1.535 1.41-2.105 1.459-.57.05-1.105.252-3.726-.776-3.13-1.24-5.12-4.432-5.276-4.637-.154-.203-1.26-1.677-1.26-3.2S6.9 8.07 7.228 7.72c.328-.35.714-.437.952-.437.238 0 .476.002.685.013.22.012.514-.083.805.614.299.714 1.017 2.476 1.105 2.657.09.18.15.393.03.632-.12.24-.18.39-.357.6-.178.21-.374.47-.535.632-.178.18-.364.374-.156.733.207.358.921 1.519 1.977 2.46 1.358 1.21 2.504 1.585 2.862 1.764.358.18.566.15.774-.09.207-.24.893-.042 1.044-.28.15-.24.15-.449.105-.632z"/></svg>
+        <a href="https://wa.me/?text=${enc}" target="_blank" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;padding:16px 8px;background:var(--glass2);backdrop-filter:blur(20px);border:1px solid var(--border);border-top:1px solid var(--border-top);border-radius:16px;text-decoration:none;color:var(--text);font-size:12px;font-weight:700">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
           WhatsApp
         </a>
-        <a href="viber://forward?text=${enc}" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;padding:16px 8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:16px;text-decoration:none;color:#fff;font-size:12px;font-weight:700">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="#a78bfa"><path d="M11.985.015C9.52.015 4.88.38 2.67 2.4.87 4.1.25 6.6.22 9.67c-.03 3.07-.06 8.83 5.4 10.36v2.38s-.04.93.58.93c.77 0 1.22-.79 1.96-1.63.4-.44.96-1.09 1.38-1.59 3.8.32 6.72-.41 7.05-.52.77-.25 5.12-1.6 5.83-6.55.74-5.1-.36-8.32-2.35-9.77-2.03-1.46-4.07-1.29-5.07-1.29l-.05.03zM12.1 2.5h.04c.87 0 2.64-.1 4.27 1.07 1.5 1.08 2.36 3.72 1.73 7.96-.59 4.02-4.02 4.82-4.62 5.01-.28.09-2.89.74-6.2.5l-.6-.04-.43.5s-.56.65-.95 1.1c0-.52-.05-1.05-.05-1.05l-.38-.11C1.35 16.1 1.72 11.13 1.74 8.83c.02-2.47.5-4.46 1.96-5.82 1.8-1.67 5.64-1.5 7.4-1.5l1 .01v-.02z"/></svg>
+        <a href="viber://forward?text=${enc}" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;padding:16px 8px;background:var(--glass2);backdrop-filter:blur(20px);border:1px solid var(--border);border-top:1px solid var(--border-top);border-radius:16px;text-decoration:none;color:var(--text);font-size:12px;font-weight:700">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="#7360F2"><path d="M11.4 0C8.96-.03 3.96.46 1.65 2.46-.15 4.16-.77 6.66-.8 9.73c-.03 3.07-.06 8.83 5.4 10.36v2.38s-.04.93.58.93c.77 0 1.22-.79 1.96-1.63.4-.44.96-1.09 1.38-1.59 3.8.32 6.72-.41 7.05-.52.77-.25 5.12-1.6 5.83-6.55.74-5.1-.36-8.32-2.35-9.77C17.44-.13 15.4.03 14.4.03L11.4 0zm.1 2.5c.87 0 2.64-.1 4.27 1.07 1.5 1.08 2.36 3.72 1.73 7.96-.59 4.02-4.02 4.82-4.62 5.01-.28.09-2.89.74-6.2.5l-.6-.04-.43.5s-.56.65-.95 1.1c0-.52-.05-1.05-.05-1.05l-.38-.11C1.35 16.1 1.72 11.13 1.74 8.83c.02-2.47.5-4.46 1.96-5.82C5.5 1.34 9.74 2.5 11.5 2.5z"/></svg>
           Viber
         </a>
       </div>
