@@ -1463,6 +1463,10 @@ document.getElementById('loadStatsBtn').addEventListener('click', async () => {
           return sum + getModelPrice(m) * c;
         }, 0);
       }
+      // Якщо і моделей немає — рахуємо з total по дефолтній ціні
+      if (totalCostUsd === 0 && total > 0) {
+        totalCostUsd = total * 0.0006;
+      }
       const models = d.models || {};
       document.getElementById('statTotal').textContent = total;
       document.getElementById('statChanges').textContent = totalChanges;
