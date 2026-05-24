@@ -871,6 +871,7 @@ body {
       <div class="result-text" id="result-text"></div>
       <div class="result-actions">
         <button class="act-btn" id="copyBtn" type="button"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
+        <button class="act-btn" id="shareBtn" type="button"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg></button>
         <button class="act-btn" id="useBtn" type="button"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
         <button class="act-btn" id="clearBtn" type="button"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
       </div>
@@ -1507,6 +1508,44 @@ function showResult(data) {
 function escHtml(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
+
+document.getElementById('shareBtn').onclick = async () => {
+  const text = document.getElementById('result-text').textContent;
+  if (!text) return;
+  // Використовуємо нативний Web Share API якщо доступний (iOS/Android)
+  if (navigator.share) {
+    try {
+      await navigator.share({ text });
+      return;
+    } catch(e) {}
+  }
+  // Fallback — показуємо меню вибору
+  const menu = document.createElement('div');
+  menu.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,0.5);backdrop-filter:blur(8px);animation:fadeIn 0.2s ease';
+  const enc = encodeURIComponent(text);
+  menu.innerHTML = `
+    <div style="width:100%;max-width:480px;background:#0e1320;border:1px solid rgba(255,255,255,0.12);border-radius:24px 24px 0 0;padding:16px 16px calc(env(safe-area-inset-bottom,0px) + 16px);margin:0">
+      <div style="width:36px;height:4px;background:rgba(255,255,255,0.2);border-radius:2px;margin:0 auto 20px"></div>
+      <div style="font-size:13px;font-weight:700;color:rgba(255,255,255,0.4);text-align:center;margin-bottom:14px;letter-spacing:0.08em;text-transform:uppercase">Поділитись через</div>
+      <div style="display:flex;gap:12px;justify-content:center;margin-bottom:16px">
+        <a href="https://t.me/share/url?url=&text=${enc}" target="_blank" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;padding:16px 8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:16px;text-decoration:none;color:#fff;font-size:12px;font-weight:700">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="#60a5fa"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248l-2.032 9.574c-.149.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L6.54 14.748l-2.95-.924c-.642-.2-.654-.642.136-.95l11.532-4.448c.535-.194 1.003.13.304.822z"/></svg>
+          Telegram
+        </a>
+        <a href="https://wa.me/?text=${enc}" target="_blank" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;padding:16px 8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:16px;text-decoration:none;color:#fff;font-size:12px;font-weight:700">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="#34d399"><path d="M12.031 0C5.381 0 .003 5.37.003 11.988c0 2.09.549 4.052 1.509 5.756L0 24l6.445-1.49A12.03 12.03 0 0 0 12.031 24C18.68 24 24 18.628 24 12.012 24 5.374 18.68 0 12.031 0zm6.311 17.298c-.262.736-1.535 1.41-2.105 1.459-.57.05-1.105.252-3.726-.776-3.13-1.24-5.12-4.432-5.276-4.637-.154-.203-1.26-1.677-1.26-3.2S6.9 8.07 7.228 7.72c.328-.35.714-.437.952-.437.238 0 .476.002.685.013.22.012.514-.083.805.614.299.714 1.017 2.476 1.105 2.657.09.18.15.393.03.632-.12.24-.18.39-.357.6-.178.21-.374.47-.535.632-.178.18-.364.374-.156.733.207.358.921 1.519 1.977 2.46 1.358 1.21 2.504 1.585 2.862 1.764.358.18.566.15.774-.09.207-.24.893-.042 1.044-.28.15-.24.15-.449.105-.632z"/></svg>
+          WhatsApp
+        </a>
+        <a href="viber://forward?text=${enc}" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;padding:16px 8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:16px;text-decoration:none;color:#fff;font-size:12px;font-weight:700">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="#a78bfa"><path d="M11.985.015C9.52.015 4.88.38 2.67 2.4.87 4.1.25 6.6.22 9.67c-.03 3.07-.06 8.83 5.4 10.36v2.38s-.04.93.58.93c.77 0 1.22-.79 1.96-1.63.4-.44.96-1.09 1.38-1.59 3.8.32 6.72-.41 7.05-.52.77-.25 5.12-1.6 5.83-6.55.74-5.1-.36-8.32-2.35-9.77-2.03-1.46-4.07-1.29-5.07-1.29l-.05.03zM12.1 2.5h.04c.87 0 2.64-.1 4.27 1.07 1.5 1.08 2.36 3.72 1.73 7.96-.59 4.02-4.02 4.82-4.62 5.01-.28.09-2.89.74-6.2.5l-.6-.04-.43.5s-.56.65-.95 1.1c0-.52-.05-1.05-.05-1.05l-.38-.11C1.35 16.1 1.72 11.13 1.74 8.83c.02-2.47.5-4.46 1.96-5.82 1.8-1.67 5.64-1.5 7.4-1.5l1 .01v-.02z"/></svg>
+          Viber
+        </a>
+      </div>
+      <button onclick="this.closest('div[style*=fixed]').remove()" style="width:100%;padding:14px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.1);border-radius:14px;color:rgba(255,255,255,0.6);font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;cursor:pointer;-webkit-appearance:none">Скасувати</button>
+    </div>`;
+  document.body.appendChild(menu);
+  menu.onclick = e => { if(e.target === menu) menu.remove(); };
+};
 
 document.getElementById('copyBtn').onclick = async () => {
   const text = document.getElementById('result-text').textContent;
