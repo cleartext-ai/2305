@@ -16,11 +16,20 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('fetch', e => {
-  // Не кешуємо запити до API
-  if (e.request.url.includes('googleapis.com') || e.request.url.includes('firestore')) {
+  const url = e.request.url;
+  
+  // Не чіпаємо зовнішні запити
+  if (
+    url.includes('googleapis.com') ||
+    url.includes('firestore') ||
+    url.includes('firebase') ||
+    url.includes('gstatic.com') ||
+    url.includes('generativelanguage')
+  ) {
     return;
   }
+
   e.respondWith(
-    caches.match(e.request).then(cached => cached || fetch(e.request))
+    caches.match(e.request).then(cached => cached || fetch(e.request).catch(() => cached))
   );
 });
