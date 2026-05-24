@@ -765,7 +765,7 @@ body {
             <div class="stat-box"><div class="stat-val" id="statNoChange">—</div><div class="stat-label">Без помилок</div></div>
           </div>
           <div style="background:rgba(52,211,153,0.08);border:1px solid rgba(52,211,153,0.2);border-radius:14px;padding:14px 16px;margin-top:4px">
-            <div style="font-size:11px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:var(--green);margin-bottom:8px">🪙 Економія (якби платно)</div>
+            <div style="font-size:11px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:var(--green);margin-bottom:8px;display:flex;align-items:center;gap:5px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9.5 9.5C9.5 8.1 10.6 7 12 7s2.5 1.1 2.5 2.5S12 12 12 12s-2.5 1.1-2.5 2.5S10.6 17 12 17s2.5-1.1 2.5-2.5"/></svg> Економія (якби платно)</div>
             <div style="display:flex;gap:16px;flex-wrap:wrap">
               <div><span style="font-size:20px;font-weight:900;color:var(--green)" id="statCostUsd">—</span> <span style="font-size:11px;color:var(--dim)">USD сьогодні</span></div>
               <div><span style="font-size:20px;font-weight:900;color:var(--green)" id="statCostUah">—</span> <span style="font-size:11px;color:var(--dim)">грн сьогодні</span></div>
@@ -1486,6 +1486,8 @@ document.getElementById('loadStatsBtn').addEventListener('click', async () => {
       document.getElementById('statCostUsd').textContent = '$' + totalCostUsd.toFixed(6);
       document.getElementById('statCostUah').textContent = costUah + ' ₴';
 
+      // DEBUG
+      console.log('Firestore stats raw:', JSON.stringify(d));
       // Розбивка по моделях
       const modelList = Object.entries(models).map(([m, c]) => `<span style="font-size:11px;background:rgba(52,211,153,0.1);border-radius:6px;padding:2px 6px;color:var(--green)">${m}: ${c}</span>`).join(' ');
       const modelInfo = document.getElementById('statModelInfo');
