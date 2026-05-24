@@ -787,6 +787,14 @@ body {
             <div class="stat-box"><div class="stat-val" id="statChanges">—</div><div class="stat-label">Змін зроблено</div></div>
             <div class="stat-box"><div class="stat-val" id="statNoChange">—</div><div class="stat-label">Без помилок</div></div>
           </div>
+          <div style="background:rgba(52,211,153,0.08);border:1px solid rgba(52,211,153,0.2);border-radius:14px;padding:14px 16px;margin-top:4px">
+            <div style="font-size:11px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:var(--green);margin-bottom:8px">💸 Економія (якби платно)</div>
+            <div style="display:flex;gap:16px;flex-wrap:wrap">
+              <div><span style="font-size:20px;font-weight:900;color:var(--green)" id="statCostUsd">—</span> <span style="font-size:11px;color:var(--dim)">USD сьогодні</span></div>
+              <div><span style="font-size:20px;font-weight:900;color:var(--green)" id="statCostUah">—</span> <span style="font-size:11px;color:var(--dim)">грн сьогодні</span></div>
+            </div>
+            <div style="font-size:11px;color:var(--dim);margin-top:6px">Реальна ціна залежно від моделі • Курс НБУ автоматично</div><div id="statModelInfo" style="margin-top:8px;display:flex;flex-wrap:wrap;gap:4px">—</div>
+          </div>
           <button class="btn-save" id="loadStatsBtn" type="button" style="align-self:flex-start"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg> Оновити</button>
         </div>
       </div>
@@ -918,17 +926,41 @@ async function fsSet(docId, data) {
 // ══════════════════════════════════════════════
 // СТАТИСТИКА — анонімна, без тексту користувача
 // ══════════════════════════════════════════════
-async function saveStats(changesCount, noChanges) {
+
+// Ціни моделей Gemini (USD за 1 запит ~500 вхідних + 200 вихідних токенів)
+const MODEL_PRICES = {
+  'gemini-2.5-flash': 0.0006,
+  'gemini-2.5-flash-preview-04-17': 0.0006,
+  'gemini-2.0-flash': 0.0004,
+  'gemini-2.0-flash-lite': 0.0002,
+  'gemini-1.5-flash': 0.0003,
+  'gemini-2.5-pro': 0.006,
+  'gemini-3.1-flash-lite-preview': 0.0001,
+};
+function getModelPrice(modelId) {
+  if (!modelId) return 0.0006;
+  for (const key of Object.keys(MODEL_PRICES)) {
+    if (modelId.includes(key) || key.includes(modelId)) return MODEL_PRICES[key];
+  }
+  return 0.0006; // default
+}
+async function saveStats(changesCount, noChanges, modelId) {
   console.log("saveStats called", changesCount, noChanges);
   try {
     const today = new Date().toISOString().slice(0, 10); // 2026-05-24
     const statsRef = doc(db, 'stats', today);
     const snap = await getDoc(statsRef);
-    const prev = snap.exists() ? snap.data() : { total: 0, noChanges: 0, totalChanges: 0 };
+    const prev = snap.exists() ? snap.data() : { total: 0, noChanges: 0, totalChanges: 0, totalCostUsd: 0 };
+    const price = getModelPrice(modelId);
+    const modelKey = (modelId || 'unknown').replace(/[^a-z0-9-]/g, '-');
+    const modelStats = prev.models || {};
+    modelStats[modelKey] = (modelStats[modelKey] || 0) + 1;
     await setDoc(statsRef, {
       total: (prev.total || 0) + 1,
       noChanges: (prev.noChanges || 0) + (noChanges ? 1 : 0),
       totalChanges: (prev.totalChanges || 0) + (changesCount || 0),
+      totalCostUsd: ((prev.totalCostUsd || 0) + price),
+      models: modelStats,
       lastUpdated: new Date().toISOString()
     });
   } catch(e) {
@@ -1344,7 +1376,7 @@ async function fixText() {
     showResult(parsed);
     saveToHistory(text, parsed.corrected);
     console.log("calling saveStats...");
-    saveStats(parsed.changes ? parsed.changes.length : 0, parsed.noChanges);
+    saveStats(parsed.changes ? parsed.changes.length : 0, parsed.noChanges, document.getElementById('modelSelect').value);
 
   } catch(err) {
     document.getElementById('errorBox').innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> ${err.message}`;
@@ -1360,7 +1392,8 @@ function showError(err) {
   const isQuota = err.message?.toLowerCase().includes('quota');
   const retry = err.message?.match(/retry in ([\d.]+)s/i);
   const sec = retry ? Math.ceil(parseFloat(retry[1])) : null;
-  if (isQuota) box.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Ліміт вичерпано${sec ? ` — спробуй через ${sec}с` : ''}. Обери іншу модель.`;
+  const timeStr = sec ? (sec >= 3600 ? `${Math.ceil(sec/3600)} год` : sec >= 60 ? `${Math.ceil(sec/60)} хв` : `${sec}с`) : null;
+  if (isQuota) box.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Ліміт вичерпано${timeStr ? ` — спробуйте через ${timeStr}` : ''}. Спробуйте пізніше.`;
   else if (err.code === 400 || err.code === 403) box.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg> Невірний API ключ. Зверніться до адміністратора.';
   else box.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> ${err.message}`;
   box.style.display = 'block';
@@ -1485,13 +1518,37 @@ document.getElementById('loadStatsBtn').addEventListener('click', async () => {
     const snap = await getDoc(doc(db, 'stats', today));
     if (snap.exists()) {
       const d = snap.data();
-      document.getElementById('statTotal').textContent = d.total || 0;
-      document.getElementById('statChanges').textContent = d.totalChanges || 0;
-      document.getElementById('statNoChange').textContent = d.noChanges || 0;
+      const total = d.total || 0;
+      const totalChanges = d.totalChanges || 0;
+      const noChanges = d.noChanges || 0;
+      const totalCostUsd = d.totalCostUsd || 0;
+      const models = d.models || {};
+      document.getElementById('statTotal').textContent = total;
+      document.getElementById('statChanges').textContent = totalChanges;
+      document.getElementById('statNoChange').textContent = noChanges;
+
+      // Автокурс НБУ
+      let uahRate = 41.5;
+      try {
+        const rateResp = await fetch('https://bank.gov.ua/NBUStatService/v1/statdirectory/exchange?valcode=USD&json');
+        const rateData = await rateResp.json();
+        if (rateData[0]?.rate) uahRate = rateData[0].rate;
+      } catch(e) {}
+
+      const costUah = (totalCostUsd * uahRate).toFixed(2);
+      document.getElementById('statCostUsd').textContent = '$' + totalCostUsd.toFixed(4);
+      document.getElementById('statCostUah').textContent = costUah + ' ₴';
+
+      // Розбивка по моделях
+      const modelList = Object.entries(models).map(([m, c]) => `<span style="font-size:11px;background:rgba(52,211,153,0.1);border-radius:6px;padding:2px 6px;color:var(--green)">${m}: ${c}</span>`).join(' ');
+      const modelInfo = document.getElementById('statModelInfo');
+      if (modelInfo) modelInfo.innerHTML = modelList || '—';
     } else {
       document.getElementById('statTotal').textContent = '0';
       document.getElementById('statChanges').textContent = '0';
       document.getElementById('statNoChange').textContent = '0';
+      document.getElementById('statCostUsd').textContent = '$0.0000';
+      document.getElementById('statCostUah').textContent = '0.00 ₴';
     }
   } catch(e) {
     console.warn('Stats error:', e);
