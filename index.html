@@ -559,6 +559,8 @@ body {
 .error-box { background: rgba(251,113,133,0.1); backdrop-filter: var(--blur-sm); -webkit-backdrop-filter: var(--blur-sm); border: 1px solid rgba(251,113,133,0.3); border-top: 1px solid rgba(255,200,200,0.35); border-radius: 16px; padding: 14px 16px; font-size: 13px; font-weight: 600; color: #fda4af; line-height: 1.6; display: none; box-shadow: inset 0 1px 0 rgba(255,255,255,0.15), 0 4px 16px rgba(251,113,133,0.1); }
 
 .stat-box { background: rgba(255,255,255,0.06); border-radius: 12px; padding: 12px; text-align: center; }
+.stat-period-btn { padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border); background: var(--glass); color: var(--muted); font-family: 'Nunito', sans-serif; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
+.stat-period-btn.active { background: rgba(52,211,153,0.15); border-color: rgba(52,211,153,0.4); color: var(--green); }
 .stat-val { font-size: 24px; font-weight: 900; color: var(--green); }
 .stat-label { font-size: 11px; font-weight: 700; color: var(--dim); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.05em; }
 
@@ -807,7 +809,13 @@ body {
             </div>
             <div style="font-size:11px;color:var(--dim);margin-top:6px">Реальна ціна залежно від моделі • 1 USD = <span id="statUahRate">—</span> ₴</div><div id="statModelInfo" style="margin-top:8px;display:flex;flex-wrap:wrap;gap:4px">—</div>
           </div>
-          <button class="btn-save" id="loadStatsBtn" type="button" style="align-self:flex-start"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg> Оновити</button>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <button class="stat-period-btn active" data-period="day">Сьогодні</button>
+            <button class="stat-period-btn" data-period="week">Тиждень</button>
+            <button class="stat-period-btn" data-period="month">Місяць</button>
+            <button class="stat-period-btn" data-period="year">Рік</button>
+            <button class="btn-save" id="loadStatsBtn" type="button"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg> Оновити</button>
+          </div>
         </div>
       </div>
   </div>
@@ -1595,60 +1603,82 @@ if (_link) _link.onclick = () => { window.location.href = getAdminUrl(); };
 // ══════════════════════════════════════════════
 
 // Завантаження статистики в адмін
-document.getElementById('loadStatsBtn').addEventListener('click', async () => {
-  const today = new Date().toISOString().slice(0, 10);
+let currentStatPeriod = 'day';
+
+function getDates(period) {
+  const dates = [];
+  const now = new Date();
+  const days = period === 'day' ? 1 : period === 'week' ? 7 : period === 'month' ? 30 : 365;
+  for (let i = 0; i < days; i++) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - i);
+    dates.push(d.toISOString().slice(0, 10));
+  }
+  return dates;
+}
+
+async function loadStats() {
   try {
-    const snap = await getDoc(doc(db, 'stats', today));
-    if (snap.exists()) {
+    const dates = getDates(currentStatPeriod);
+    const snaps = await Promise.all(dates.map(d => getDoc(doc(db, 'stats', d))));
+
+    let total = 0, totalChanges = 0, noChanges = 0, totalCostUsd = 0;
+    const allModels = {};
+
+    for (const snap of snaps) {
+      if (!snap.exists()) continue;
       const d = snap.data();
-      const total = d.total || 0;
-      const totalChanges = d.totalChanges || 0;
-      const noChanges = d.noChanges || 0;
-      let totalCostUsd = parseFloat(d.totalCostUsd) || 0;
-      // Якщо totalCostUsd не збереглось — рахуємо з моделей
-      if (totalCostUsd === 0 && Object.keys(d.models || {}).length > 0) {
-        totalCostUsd = Object.entries(d.models || {}).reduce((sum, [m, c]) => {
-          return sum + getModelPrice(m) * c;
-        }, 0);
+      total += d.total || 0;
+      totalChanges += d.totalChanges || 0;
+      noChanges += d.noChanges || 0;
+      let cost = parseFloat(d.totalCostUsd) || 0;
+      if (cost === 0 && Object.keys(d.models || {}).length > 0) {
+        cost = Object.entries(d.models || {}).reduce((s, [m, c]) => s + getModelPrice(m) * c, 0);
       }
-      // Якщо і моделей немає — рахуємо з total по дефолтній ціні
-      if (totalCostUsd === 0 && total > 0) {
-        totalCostUsd = total * 0.0006;
+      if (cost === 0 && (d.total || 0) > 0) cost = (d.total || 0) * 0.0006;
+      totalCostUsd += cost;
+      for (const [k, v] of Object.entries(d.models || {})) {
+        allModels[k] = (allModels[k] || 0) + v;
       }
-      const models = d.models || {};
-      document.getElementById('statTotal').textContent = total;
-      document.getElementById('statChanges').textContent = totalChanges;
-      document.getElementById('statNoChange').textContent = noChanges;
-
-      // Автокурс USD/UAH
-      let uahRate = 41.5;
-      try {
-        const r = await fetch('https://open.er-api.com/v6/latest/USD');
-        const d = await r.json();
-        if (d?.rates?.UAH) uahRate = d.rates.UAH;
-      } catch(e) { console.warn('Rate fetch failed:', e); }
-      document.getElementById('statUahRate').textContent = uahRate.toFixed(2);
-
-      const costUah = (totalCostUsd * uahRate).toFixed(4);
-      const usdStr = totalCostUsd < 0.01 ? '$' + totalCostUsd.toFixed(6) : '$' + totalCostUsd.toFixed(4);
-      document.getElementById('statCostUsd').textContent = usdStr;
-      document.getElementById('statCostUah').textContent = costUah + ' ₴';
-
-      // Розбивка по моделях
-      const modelList = Object.entries(models).map(([m, c]) => `<span style="font-size:11px;background:rgba(52,211,153,0.1);border-radius:6px;padding:2px 6px;color:var(--green)">${m}: ${c}</span>`).join(' ');
-      const modelInfo = document.getElementById('statModelInfo');
-      if (modelInfo) modelInfo.innerHTML = modelList || '—';
-    } else {
-      document.getElementById('statTotal').textContent = '0';
-      document.getElementById('statChanges').textContent = '0';
-      document.getElementById('statNoChange').textContent = '0';
-      document.getElementById('statCostUsd').textContent = '$0.000000';
-      document.getElementById('statCostUah').textContent = '0.0000 ₴';
     }
+
+    document.getElementById('statTotal').textContent = total;
+    document.getElementById('statChanges').textContent = totalChanges;
+    document.getElementById('statNoChange').textContent = noChanges;
+
+    // Автокурс НБУ
+    let uahRate = 41.5;
+    try {
+      const r = await fetch('https://bank.gov.ua/NBUStatService/v1/statdirectory/exchange?valcode=USD&json');
+      const rd = await r.json();
+      if (rd[0]?.rate) uahRate = rd[0].rate;
+    } catch(e) {}
+    document.getElementById('statUahRate').textContent = uahRate.toFixed(2);
+
+    const costUah = (totalCostUsd * uahRate).toFixed(4);
+    const usdStr = totalCostUsd < 0.01 ? '$' + totalCostUsd.toFixed(6) : '$' + totalCostUsd.toFixed(4);
+    document.getElementById('statCostUsd').textContent = usdStr;
+    document.getElementById('statCostUah').textContent = costUah + ' ₴';
+
+    const modelList = Object.entries(allModels).map(([m, c]) => `<span style="font-size:11px;background:rgba(52,211,153,0.1);border-radius:6px;padding:2px 6px;color:var(--green)">${m}: ${c}</span>`).join(' ');
+    const modelInfo = document.getElementById('statModelInfo');
+    if (modelInfo) modelInfo.innerHTML = modelList || '—';
+
   } catch(e) {
     console.warn('Stats error:', e);
   }
+}
+
+document.querySelectorAll('.stat-period-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.stat-period-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentStatPeriod = btn.dataset.period;
+    loadStats();
+  });
 });
+
+document.getElementById('loadStatsBtn').addEventListener('click', loadStats);
 
 // START
 // ══════════════════════════════════════════════
