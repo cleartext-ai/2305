@@ -1472,19 +1472,25 @@ document.getElementById('loadStatsBtn').addEventListener('click', async () => {
       document.getElementById('statChanges').textContent = totalChanges;
       document.getElementById('statNoChange').textContent = noChanges;
 
-      // Автокурс USD/UAH
+      // Автокурс НБУ
       let uahRate = 41.5;
       try {
-        const rateResp = await fetch('https://api.exchangerate-api.com/v4/latest/USD');
-        const rateData = await rateResp.json();
-        if (rateData?.rates?.UAH) uahRate = rateData.rates.UAH;
+        const nbuUrl = 'https://bank.gov.ua/NBUStatService/v1/statdirectory/exchange?valcode=USD&json';
+        const rateResp = await fetch('https://api.allorigins.win/get?url=' + encodeURIComponent(nbuUrl));
+        const rateWrap = await rateResp.json();
+        console.log('allorigins response:', rateWrap);
+        const rateData = JSON.parse(rateWrap.contents);
+        if (rateData[0]?.rate) { uahRate = rateData[0].rate; console.log('NBU rate:', uahRate); }
       } catch(e) {
+        console.warn('NBU via allorigins failed:', e);
         try {
           const r2 = await fetch('https://open.er-api.com/v6/latest/USD');
           const d2 = await r2.json();
+          console.log('open.er-api response:', d2?.rates?.UAH);
           if (d2?.rates?.UAH) uahRate = d2.rates.UAH;
-        } catch(e2) {}
+        } catch(e2) { console.warn('open.er-api failed:', e2); }
       }
+      console.log('Final uahRate:', uahRate);
 
       const costUah = (totalCostUsd * uahRate).toFixed(4);
       document.getElementById('statCostUsd').textContent = '$' + totalCostUsd.toFixed(6);
