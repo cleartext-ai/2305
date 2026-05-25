@@ -940,9 +940,6 @@ const MODEL_PRICES = {
   'gemini-2.5-flash-preview-04-17': 0.0006,
   'gemini-2.0-flash': 0.0004,
   'gemini-2.0-flash-lite': 0.0002,
-  'gemini-1.5-flash': 0.0003,
-  'gemini-2.5-pro': 0.006,
-  'gemini-3.1-flash-lite-preview': 0.0001,
 };
 function getModelPrice(modelId) {
   if (!modelId) return 0.0006;
@@ -985,7 +982,7 @@ const KEYS = {
 const DEFAULT_ADMIN = { user: 'admin', pass: 'admin123' };
 
 const DEFAULT_MODELS = [
-  { id: 'gemini-3.1-flash-lite-preview', label: '3.1 Flash Lite', enabled: true  },
+  { id: 'gemini-2.0-flash-lite', label: '2.0 Flash Lite', enabled: true  },
   { id: 'gemini-2.5-flash', label: '2.5 Flash', enabled: true  },
   { id: 'gemini-2.0-flash', label: '2.0 Flash', enabled: true  },
   { id: 'gemini-2.5-pro',   label: '2.5 Pro',   enabled: false },
