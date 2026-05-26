@@ -1398,53 +1398,154 @@ async function fixText() {
 Якщо текст вже правильний українською, поверни: {"corrected": "${text}", "changes": [], "noChanges": true}
 ВАЖЛИВО: відповідай тільки валідним JSON, без markdown і додаткового тексту.`;
 
+  // ── AUTO-ROTATING MODEL CALL ──────────────────
+  // Builds ordered list: selected model first, then others, cycling forever
+  // until we get a valid result or hit a non-retriable error (SAFETY, bad key).
   try {
-    const model = document.getElementById('modelSelect').value;
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ role: 'user', parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.3, maxOutputTokens: 1024 },
-          safetySettings: [
-            { category: 'HARM_CATEGORY_HARASSMENT',        threshold: 'BLOCK_ONLY_HIGH' },
-            { category: 'HARM_CATEGORY_HATE_SPEECH',       threshold: 'BLOCK_ONLY_HIGH' },
-            { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_ONLY_HIGH' },
-            { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH' }
-          ]
-        })
+    const settings2 = await getSettings();
+    const enabledModels = (settings2.models || DEFAULT_MODELS).filter(m => m.enabled).map(m => m.id);
+    if (!enabledModels.length) {
+      document.getElementById('errorBox').innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Немає увімкнених моделей. Зверніться до адміністратора.`;
+      document.getElementById('errorBox').style.display = 'block';
+      return;
+    }
+
+    // Start from selected model, then rotate through the rest
+    const selectedModel = document.getElementById('modelSelect').value;
+    const startIdx = enabledModels.indexOf(selectedModel);
+    const orderedModels = startIdx >= 0
+      ? [...enabledModels.slice(startIdx), ...enabledModels.slice(0, startIdx)]
+      : enabledModels;
+
+    // Errors that mean "this model can't help" → try next model
+    function isRetriable(err) {
+      const msg = (err.message || err.status || '').toString().toLowerCase();
+      return (
+        err.code === 429 ||
+        err.code === 503 ||
+        err.code === 404 ||
+        msg.includes('quota') ||
+        msg.includes('rate') ||
+        msg.includes('limit') ||
+        msg.includes('not found') ||
+        msg.includes('deprecated') ||
+        msg.includes('unavailable') ||
+        msg.includes('overloaded') ||
+        msg.includes('invalid model') ||
+        msg.includes('does not exist') ||
+        msg.includes('no longer') ||
+        msg.includes('preview') ||
+        msg.includes('resource_exhausted') ||
+        msg.includes('service_unavailable')
+      );
+    }
+
+    let usedModel = null;
+    let parsed = null;
+    let lastErr = null;
+    let attempts = 0;
+
+    for (let round = 0; round < 3; round++) { // up to 3 full cycles
+      for (const model of orderedModels) {
+        attempts++;
+        try {
+          const res = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                contents: [{ role: 'user', parts: [{ text: prompt }] }],
+                generationConfig: { temperature: 0.3, maxOutputTokens: 1024 },
+                safetySettings: [
+                  { category: 'HARM_CATEGORY_HARASSMENT',        threshold: 'BLOCK_ONLY_HIGH' },
+                  { category: 'HARM_CATEGORY_HATE_SPEECH',       threshold: 'BLOCK_ONLY_HIGH' },
+                  { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_ONLY_HIGH' },
+                  { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH' }
+                ]
+              })
+            }
+          );
+
+          const data = await res.json();
+
+          // Non-retriable: bad API key
+          if (data.error?.code === 400 || data.error?.code === 401 || data.error?.code === 403) {
+            showError(data.error);
+            return;
+          }
+
+          // Retriable API error (quota, model not found, etc.)
+          if (data.error) {
+            lastErr = data.error;
+            if (isRetriable(data.error)) {
+              // Small delay before next model to avoid hammering
+              await new Promise(r => setTimeout(r, 400));
+              continue; // try next model
+            }
+            showError(data.error);
+            return;
+          }
+
+          // Safety block — not retriable, content issue
+          if (data.candidates?.[0]?.finishReason === 'SAFETY') {
+            showBlocked('Текст містить недопустимий контент і не може бути оброблений.');
+            return;
+          }
+
+          let raw = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+          raw = raw.replace(/```json|```/g, '').trim();
+
+          let tryParsed;
+          try { tryParsed = JSON.parse(raw); }
+          catch(e) {
+            const match = raw.match(/\{[\s\S]*\}/);
+            if (match) tryParsed = JSON.parse(match[0]);
+            else { lastErr = { message: 'Не вдалося розпізнати відповідь AI' }; continue; }
+          }
+
+          if (tryParsed.blocked) {
+            showBlocked(tryParsed.reason || 'Текст містить недопустимий контент.');
+            return;
+          }
+
+          // SUCCESS
+          usedModel = model;
+          parsed = tryParsed;
+          break;
+
+        } catch(err) {
+          lastErr = err;
+          if (isRetriable(err)) {
+            await new Promise(r => setTimeout(r, 400));
+            continue;
+          }
+          // Unexpected network error — still try next model
+          await new Promise(r => setTimeout(r, 400));
+          continue;
+        }
       }
-    );
-    const data = await res.json();
-    if (data.error) { showError(data.error); return; }
+      if (parsed) break;
+      // Brief pause between full cycles
+      if (round < 2) await new Promise(r => setTimeout(r, 1000));
+    }
 
-    // Gemini заблокував на рівні API
-    if (data.candidates?.[0]?.finishReason === 'SAFETY') {
-      showBlocked('Текст містить недопустимий контент і не може бути оброблений.');
+    if (!parsed) {
+      // All models exhausted
+      const errMsg = lastErr?.message || 'Усі моделі тимчасово недоступні. Спробуйте пізніше.';
+      document.getElementById('errorBox').innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> ${errMsg}`;
+      document.getElementById('errorBox').style.display = 'block';
       return;
     }
 
-    let raw = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    raw = raw.replace(/```json|```/g, '').trim();
-
-    let parsed;
-    try { parsed = JSON.parse(raw); }
-    catch(e) {
-      const match = raw.match(/\{[\s\S]*\}/);
-      if (match) parsed = JSON.parse(match[0]);
-      else throw new Error('Не вдалося розпізнати відповідь AI');
-    }
-
-    // Модель повернула blocked
-    if (parsed.blocked) {
-      showBlocked(parsed.reason || 'Текст містить недопустимий контент.');
-      return;
+    // Update the select UI to reflect which model actually responded
+    if (usedModel) {
+      const sel = document.getElementById('modelSelect');
+      if ([...sel.options].some(o => o.value === usedModel)) sel.value = usedModel;
     }
 
     showResult(parsed);
-    await saveStats(parsed.changes ? parsed.changes.length : 0, parsed.noChanges, document.getElementById('modelSelect').value);
+    await saveStats(parsed.changes ? parsed.changes.length : 0, parsed.noChanges, usedModel || selectedModel);
 
   } catch(err) {
     document.getElementById('errorBox').innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> ${err.message}`;
