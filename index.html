@@ -21,6 +21,18 @@
   <div class="bg-orb"></div>
 </div>
 
+<!-- SVG filter that gives the tab bar its liquid-glass refraction (iOS 26 style) -->
+<svg width="0" height="0" style="position:absolute;overflow:hidden" aria-hidden="true">
+  <defs>
+    <filter id="liquidGlass" x="-40%" y="-40%" width="180%" height="180%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.012 0.03" numOctaves="2" seed="7" result="noise"/>
+      <feGaussianBlur in="noise" stdDeviation="3" result="blurredNoise"/>
+      <feDisplacementMap in="SourceGraphic" in2="blurredNoise" scale="26" xChannelSelector="R" yChannelSelector="G" result="displaced"/>
+      <feGaussianBlur in="displaced" stdDeviation="0.4"/>
+    </filter>
+  </defs>
+</svg>
+
 <!-- ── NO API SCREEN ── -->
 <div id="no-api-screen">
   <div class="no-api-card">
@@ -272,7 +284,7 @@
     <select class="model-sel" id="modelSelect"></select>
   </div>
 
-  <div class="app-body">
+  <div class="app-body" id="view-home">
     <div class="gender-row">
       <span class="gender-label">Ваш рід:</span>
       <div class="gender-group" role="group" aria-label="Оберіть ваш рід для правильного узгодження дієслів">
@@ -318,6 +330,63 @@
 
 
   </div>
+
+  <!-- ── TEMPLATES VIEW ── -->
+  <div class="app-body" id="view-templates" style="display:none">
+    <div class="tpl-intro">
+      <div class="tpl-intro-title"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="7" rx="2"/><rect x="3" y="14" width="9" height="7" rx="2"/><rect x="16" y="14" width="5" height="7" rx="2"/></svg> Готові шаблони</div>
+      <div class="tpl-intro-sub">Оберіть фразу — вона одразу з'явиться у полі тексту, а ClearText AI допоможе її виправити.</div>
+    </div>
+
+    <div class="tpl-cat" data-cat="Привітання">
+      <div class="tpl-cat-title">👋 Привітання</div>
+      <div class="tpl-chip-row">
+        <button type="button" class="tpl-chip">Доброго дня, як у вас справи?</button>
+        <button type="button" class="tpl-chip">Вітаю! Радий вас бачити.</button>
+        <button type="button" class="tpl-chip">Доброго ранку, гарного дня!</button>
+      </div>
+    </div>
+
+    <div class="tpl-cat" data-cat="У лікаря">
+      <div class="tpl-cat-title">🩺 У лікаря</div>
+      <div class="tpl-chip-row">
+        <button type="button" class="tpl-chip">Мене турбує біль, підкажіть що робити.</button>
+        <button type="button" class="tpl-chip">Чи можна записатися на прийом?</button>
+        <button type="button" class="tpl-chip">Скажіть, будь ласка, ще раз повільніше.</button>
+      </div>
+    </div>
+
+    <div class="tpl-cat" data-cat="На роботі">
+      <div class="tpl-cat-title">💼 На роботі</div>
+      <div class="tpl-chip-row">
+        <button type="button" class="tpl-chip">Перепрошую, чи можете повторити завдання?</button>
+        <button type="button" class="tpl-chip">Я закінчив роботу, що робити далі?</button>
+        <button type="button" class="tpl-chip">Мені потрібна допомога з документами.</button>
+      </div>
+    </div>
+
+    <div class="tpl-cat" data-cat="Побут">
+      <div class="tpl-cat-title">🛒 Побут і магазин</div>
+      <div class="tpl-chip-row">
+        <button type="button" class="tpl-chip">Скільки це коштує?</button>
+        <button type="button" class="tpl-chip">Підкажіть, де можна це знайти?</button>
+        <button type="button" class="tpl-chip">Дякую велике за допомогу!</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── LIQUID GLASS BOTTOM NAV ── -->
+  <nav class="liquid-tabbar" id="liquidTabbar" aria-label="Навігація">
+    <div class="liquid-tabbar-pill" id="tabbarPill" aria-hidden="true"></div>
+    <button type="button" class="tabbar-item active" id="tabHome" data-tab="home">
+      <span class="tabbar-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 4.9L19 9.8l-4.9 1.9L12 17l-1.9-5.3L5 9.8l5.1-1.9z"/></svg></span>
+      <span class="tabbar-label">ClearText AI</span>
+    </button>
+    <button type="button" class="tabbar-item" id="tabTemplates" data-tab="templates">
+      <span class="tabbar-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="7" rx="2"/><rect x="3" y="14" width="9" height="7" rx="2"/><rect x="16" y="14" width="5" height="7" rx="2"/></svg></span>
+      <span class="tabbar-label">Шаблони</span>
+    </button>
+  </nav>
 </div>
 
 <script type="module">
@@ -1136,6 +1205,53 @@ document.getElementById('clearBtn').onclick = () => {
   document.getElementById('errorBox').style.display = 'none';
   textInput.focus();
 };
+
+// ══════════════════════════════════════════════
+// LIQUID GLASS BOTTOM NAV (ClearText AI / Шаблони)
+// ══════════════════════════════════════════════
+(function initTabbar(){
+  const tabbar = document.getElementById('liquidTabbar');
+  if (!tabbar) return;
+  const pill = document.getElementById('tabbarPill');
+  const items = { home: document.getElementById('tabHome'), templates: document.getElementById('tabTemplates') };
+  const views = { home: document.getElementById('view-home'), templates: document.getElementById('view-templates') };
+
+  function movePill(btn, animate = true) {
+    if (!btn) return;
+    pill.style.transition = animate ? '' : 'none';
+    pill.style.width = btn.offsetWidth + 'px';
+    pill.style.transform = `translateX(${btn.offsetLeft}px)`;
+    if (!animate) requestAnimationFrame(() => { pill.style.transition = ''; });
+  }
+
+  window.switchTab = function switchTab(tab) {
+    if (!items[tab]) return;
+    Object.entries(items).forEach(([key, btn]) => btn.classList.toggle('active', key === tab));
+    Object.entries(views).forEach(([key, view]) => { if (view) view.style.display = key === tab ? 'flex' : 'none'; });
+    movePill(items[tab]);
+    // little liquid "squish" pulse on tap
+    pill.classList.remove('squish'); void pill.offsetWidth; pill.classList.add('squish');
+    if (tab === 'home') window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  items.home.addEventListener('click', () => switchTab('home'));
+  items.templates.addEventListener('click', () => switchTab('templates'));
+
+  // Tapping a template chip fills the textarea and jumps back to the main tab
+  document.querySelectorAll('.tpl-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      textInput.value = chip.textContent.trim();
+      textInput.dispatchEvent(new Event('input'));
+      document.getElementById('result-card').style.display = 'none';
+      document.getElementById('errorBox').style.display = 'none';
+      switchTab('home');
+      setTimeout(() => { textInput.focus(); textInput.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 320);
+    });
+  });
+
+  movePill(items.home, false);
+  window.addEventListener('resize', () => movePill(items[Object.keys(items).find(k => items[k].classList.contains('active'))], false));
+})();
 
 // ══════════════════════════════════════════════
 // SMART ADMIN LINK
