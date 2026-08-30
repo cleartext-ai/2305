@@ -273,42 +273,79 @@
   </div>
 
   <div class="app-body">
-    <div class="card">
-      <div class="card-header">
-        <div class="card-title"><span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg></span> Ваш текст</div>
-        <div class="char-count" id="charCount">0 / 800</div>
-      </div>
-      <textarea id="text-input" placeholder="Напишіть речення яке хочете виправити…&#10;Наприклад: «я вчора ходив магазін купляв хліб і молоко»"></textarea>
 
+    <!-- ═══ TAB: ВИПРАВЛЕННЯ ТЕКСТУ ═══ -->
+    <div class="tab-panel active" id="tab-fix">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title"><span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg></span> Ваш текст</div>
+          <div class="char-count" id="charCount">0 / 800</div>
+        </div>
+        <textarea id="text-input" placeholder="Напишіть речення яке хочете виправити…&#10;Наприклад: «я вчора ходив магазін купляв хліб і молоко»"></textarea>
+
+      </div>
+
+      <button class="btn-fix" id="fixBtn" type="button">
+        <span class="btn-label">✦ Виправити текст</span>
+        <div class="spinner"></div>
+      </button>
+
+      <div class="error-box" id="errorBox"></div>
+
+      <div class="card" id="result-card">
+        <div class="card-header">
+          <div class="card-title"><span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></span> Виправлений текст</div>
+        </div>
+        <div class="result-text" id="result-text"></div>
+        <div class="result-actions">
+          <button class="act-btn" id="copyBtn" type="button"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
+          <button class="act-btn" id="shareBtn" type="button"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg></button>
+          <button class="act-btn" id="useBtn" type="button"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+          <button class="act-btn" id="clearBtn" type="button"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
+        </div>
+        <div class="changes-header">
+          <span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span> Зміни
+          <div class="badge" id="changes-badge">0</div>
+        </div>
+        <div id="changes-list"></div>
+      </div>
     </div>
 
-    <button class="btn-fix" id="fixBtn" type="button">
-      <span class="btn-label">✦ Виправити текст</span>
-      <div class="spinner"></div>
-    </button>
-
-    <div class="error-box" id="errorBox"></div>
-
-    <div class="card" id="result-card">
-      <div class="card-header">
-        <div class="card-title"><span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></span> Виправлений текст</div>
+    <!-- ═══ TAB: ШАБЛОНИ ═══ -->
+    <div class="tab-panel" id="tab-templates">
+      <div class="tab-intro">
+        <div class="tab-intro-title">Готові шаблони</div>
+        <div class="tab-intro-sub">Оберіть фразу — вона підставиться у поле виправлення</div>
       </div>
-      <div class="result-text" id="result-text"></div>
-      <div class="result-actions">
-        <button class="act-btn" id="copyBtn" type="button"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
-        <button class="act-btn" id="shareBtn" type="button"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg></button>
-        <button class="act-btn" id="useBtn" type="button"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
-        <button class="act-btn" id="clearBtn" type="button"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
-      </div>
-      <div class="changes-header">
-        <span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span> Зміни
-        <div class="badge" id="changes-badge">0</div>
-      </div>
-      <div id="changes-list"></div>
+      <div id="templates-list"></div>
     </div>
 
+    <!-- ═══ TAB: ПОВІДОМЛЕННЯ (ВІД НОВИН) ═══ -->
+    <div class="tab-panel" id="tab-messages">
+      <div class="tab-intro">
+        <div class="tab-intro-title">Повідомлення від новин</div>
+        <div class="tab-intro-sub">Останні короткі новини — натисніть, щоб перевірити або переказати своїми словами</div>
+      </div>
+      <div id="messages-list"></div>
+    </div>
 
   </div>
+
+  <!-- ═══ TAB BAR ═══ -->
+  <nav class="tab-bar" id="tabBar">
+    <button class="tab-btn active" data-tab="tab-fix" type="button">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+      <span>Виправлення</span>
+    </button>
+    <button class="tab-btn" data-tab="tab-templates" type="button">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+      <span>Шаблони</span>
+    </button>
+    <button class="tab-btn" data-tab="tab-messages" type="button">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      <span>Повідомлення</span>
+    </button>
+  </nav>
 </div>
 
 <script type="module" src="script.js"></script>

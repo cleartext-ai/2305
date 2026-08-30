@@ -124,6 +124,28 @@
   }
 
   .stat-box { background: rgba(255,255,255,0.5); }
+
+  .tab-intro-title { color: rgba(0,0,0,0.85) !important; }
+  .tab-intro-sub { color: rgba(0,0,0,0.45) !important; }
+  .template-cat-title { color: rgba(0,0,0,0.6) !important; }
+  .template-item, .message-item {
+    background: rgba(255,255,255,0.65) !important;
+    border: 1px solid rgba(0,0,0,0.08) !important;
+    border-top: 1px solid rgba(255,255,255,0.95) !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.8), 0 4px 16px rgba(0,0,0,0.08) !important;
+  }
+  .template-item:hover, .message-item:hover { background: rgba(255,255,255,0.85) !important; }
+  .template-text, .message-text { color: rgba(0,0,0,0.85) !important; }
+  .message-time, .message-hint { color: rgba(0,0,0,0.4) !important; }
+  .template-arrow { color: rgba(0,0,0,0.35) !important; }
+
+  .tab-bar {
+    background: rgba(240,244,248,0.75) !important;
+    border-top: 1px solid rgba(0,0,0,0.08) !important;
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.08) !important;
+  }
+  .tab-btn { color: rgba(0,0,0,0.4) !important; }
+  .tab-btn.active { color: var(--green) !important; background: rgba(5,150,105,0.12) !important; }
 }
 html, body { height: 100%; height: 100dvh; }
 body {
@@ -447,10 +469,89 @@ body {
 .model-sel-hidden option { background: #0f172a; }
 
 .app-body {
-  flex: 1; padding: 20px 16px calc(var(--safe-bottom) + 24px);
+  flex: 1; padding: 20px 16px calc(var(--safe-bottom) + 96px);
   display: flex; flex-direction: column; gap: 16px;
 }
-@media(min-width:640px) { .app-body { max-width: 720px; margin: 0 auto; width: 100%; padding: 28px 24px calc(var(--safe-bottom) + 28px); } }
+@media(min-width:640px) { .app-body { max-width: 720px; margin: 0 auto; width: 100%; padding: 28px 24px calc(var(--safe-bottom) + 100px); } }
+
+/* ── TAB PANELS ── */
+.tab-panel { display: none; flex-direction: column; gap: 16px; animation: fadeUp 0.35s cubic-bezier(0.34,1.2,0.64,1) forwards; }
+.tab-panel.active { display: flex; }
+
+.tab-intro { padding: 4px 4px 2px; }
+.tab-intro-title { font-size: 20px; font-weight: 900; letter-spacing: -0.02em; color: var(--text); margin-bottom: 4px; }
+.tab-intro-sub { font-size: 13px; font-weight: 600; color: var(--dim); line-height: 1.5; }
+
+/* ── TEMPLATES ── */
+.template-cat { margin-bottom: 4px; }
+.template-cat-title { font-size: 11px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin: 4px 4px 8px; display: flex; align-items: center; gap: 6px; }
+.template-item {
+  background: var(--glass); backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
+  border: 1px solid var(--border); border-top: 1px solid var(--border-top);
+  border-radius: 18px; padding: 14px 16px; margin-bottom: 10px;
+  display: flex; align-items: center; gap: 12px; cursor: pointer;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.2), 0 4px 16px rgba(0,0,0,0.15);
+  transition: all 0.2s;
+}
+.template-item:hover { background: var(--glass2); transform: translateY(-1px); }
+.template-item:active { transform: scale(0.98); }
+.template-icon {
+  flex-shrink: 0; width: 38px; height: 38px; border-radius: 50%;
+  background: linear-gradient(135deg, rgba(52,211,153,0.25), rgba(96,165,250,0.2));
+  border: 1px solid rgba(52,211,153,0.3);
+  display: flex; align-items: center; justify-content: center; color: var(--green);
+}
+.template-text { flex: 1; font-size: 14px; font-weight: 700; color: var(--text); line-height: 1.4; }
+.template-arrow { flex-shrink: 0; color: var(--dim); }
+
+/* ── MESSAGES (NEWS) ── */
+.message-item {
+  background: var(--glass); backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
+  border: 1px solid var(--border); border-top: 1px solid var(--border-top);
+  border-radius: 18px; padding: 14px 16px; margin-bottom: 10px; cursor: pointer;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.2), 0 4px 16px rgba(0,0,0,0.15);
+  transition: all 0.2s;
+}
+.message-item:hover { background: var(--glass2); transform: translateY(-1px); }
+.message-item:active { transform: scale(0.98); }
+.message-top { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.message-tag {
+  font-size: 10px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--blue); background: rgba(96,165,250,0.15); border: 1px solid rgba(96,165,250,0.3);
+  border-radius: 20px; padding: 2px 9px;
+}
+.message-time { font-size: 11px; font-weight: 700; color: var(--dim); margin-left: auto; }
+.message-text { font-size: 14px; font-weight: 700; color: var(--text); line-height: 1.5; }
+.message-hint { margin-top: 8px; font-size: 11px; font-weight: 700; color: var(--dim); display: flex; align-items: center; gap: 5px; }
+
+/* ── TAB BAR ── */
+.tab-bar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 60;
+  display: flex; justify-content: center; gap: 4px;
+  padding: 8px 12px calc(var(--safe-bottom) + 10px);
+  background: rgba(8,12,24,0.55);
+  backdrop-filter: var(--blur-heavy); -webkit-backdrop-filter: var(--blur-heavy);
+  border-top: 1px solid var(--border);
+  box-shadow: 0 -4px 24px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.12);
+}
+@media(min-width:640px) { .tab-bar { max-width: 720px; margin: 0 auto; left: 0; right: 0; border-radius: 26px 26px 0 0; } }
+.tab-btn {
+  flex: 1; max-width: 140px;
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  background: none; border: none; outline: none; cursor: pointer;
+  padding: 8px 4px 6px; border-radius: 16px;
+  color: var(--dim); font-family: 'Nunito', sans-serif;
+  transition: all 0.2s; -webkit-appearance: none;
+}
+.tab-btn span { font-size: 10.5px; font-weight: 800; letter-spacing: 0.01em; }
+.tab-btn svg { transition: all 0.2s; }
+.tab-btn.active { color: var(--green); background: rgba(52,211,153,0.12); }
+.tab-btn:active { transform: scale(0.94); }
+
+@media(max-width:480px) {
+  .tab-bar { padding: 7px 6px calc(var(--safe-bottom) + 8px); }
+  .tab-btn span { font-size: 9.5px; }
+}
 
 .card {
   background: var(--glass);
@@ -502,7 +603,7 @@ body {
   backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
   border: 1px solid rgba(52,211,153,0.4);
   border-top: 1px solid rgba(255,255,255,0.4);
-  border-radius: 18px;
+  border-radius: 999px;
   color: #fff; font-family: 'Nunito', sans-serif; font-size: 16px; font-weight: 900;
   cursor: pointer; letter-spacing: 0.03em;
   box-shadow: 0 8px 32px rgba(52,211,153,0.25), 0 2px 8px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.35), inset 0 -1px 0 rgba(0,0,0,0.1);

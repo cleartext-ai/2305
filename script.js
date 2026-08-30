@@ -404,6 +404,125 @@ function renderAppModels(models) {
   });
 }
 
+// ══════════════════════════════════════════════
+// TAB BAR — Виправлення / Шаблони / Повідомлення
+// ══════════════════════════════════════════════
+function switchTab(tabId) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === tabId));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tabId));
+  document.querySelector('.app-body')?.scrollTo?.({ top: 0, behavior: 'instant' });
+  window.scrollTo({ top: 0, behavior: 'instant' });
+}
+
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+});
+
+// Бере текст (з шаблону чи новини), переносить у поле виправлення і перемикає вкладку
+function useTextInFixer(text) {
+  const input = document.getElementById('text-input');
+  input.value = text;
+  input.dispatchEvent(new Event('input'));
+  document.getElementById('result-card').style.display = 'none';
+  document.getElementById('errorBox').style.display = 'none';
+  switchTab('tab-fix');
+  setTimeout(() => { input.focus(); input.setSelectionRange(text.length, text.length); }, 50);
+}
+
+// ── ШАБЛОНИ ──
+const TEMPLATE_CATEGORIES = [
+  {
+    title: 'Привітання',
+    items: [
+      'доброго дня як у вас справи',
+      'вітаю з днем народження бажаю здоровя',
+      'дякую за допомогу дуже приємно',
+    ]
+  },
+  {
+    title: 'Прохання',
+    items: [
+      'будь ласка допоможіть мені з цим питанням',
+      'можна я прийду завтра трохи пізніше',
+      'підкажіть будь ласка як це зробити',
+    ]
+  },
+  {
+    title: 'Пояснення',
+    items: [
+      'я не почув що ви сказали повторіть будь ласка',
+      'вибачте я погано чую можете писати текстом',
+      'мені потрібен жестовий перекладач на прийомі',
+    ]
+  },
+  {
+    title: 'Побутове',
+    items: [
+      'я вчора ходив магазін купляв хліб і молоко',
+      'завтра йду до лікаря на другій годині',
+      'зателефонуйте мені смс краще ніж дзвінок',
+    ]
+  }
+];
+
+function renderTemplates() {
+  const list = document.getElementById('templates-list');
+  if (!list) return;
+  list.innerHTML = '';
+  TEMPLATE_CATEGORIES.forEach(cat => {
+    const block = document.createElement('div');
+    block.className = 'template-cat';
+    const catTitle = document.createElement('div');
+    catTitle.className = 'template-cat-title';
+    catTitle.textContent = cat.title;
+    block.appendChild(catTitle);
+    cat.items.forEach(phrase => {
+      const item = document.createElement('div');
+      item.className = 'template-item';
+      item.innerHTML = `
+        <div class="template-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg></div>
+        <div class="template-text">${escHtml(phrase)}</div>
+        <div class="template-arrow"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></div>`;
+      item.addEventListener('click', () => useTextInFixer(phrase));
+      block.appendChild(item);
+    });
+    list.appendChild(block);
+  });
+}
+
+// ── ПОВІДОМЛЕННЯ (ВІД НОВИН) ──
+// Короткі приклади на основі новинної тематики — для тренування виправлення тексту
+const NEWS_MESSAGES = [
+  { tag: 'Погода', time: 'сьогодні', text: 'завтра обіцяють дощ і сильний вітер вдягніться тепліше' },
+  { tag: 'Місто', time: 'сьогодні', text: 'у центрі міста перекрили дорогу через ремонтні роботи' },
+  { tag: 'Здоровʼя', time: 'вчора', text: 'лікарі радять робити щеплення від грипу восени' },
+  { tag: 'Транспорт', time: 'вчора', text: 'автобус номер сім змінив розклад руху з понеділка' },
+  { tag: 'Спорт', time: '2 дні тому', text: 'наша збірна перемогла у важливому матчі вчора ввечері' },
+  { tag: 'Технології', time: '3 дні тому', text: 'нова версія застосунку стала швидша і зрозуміліша' },
+];
+
+function renderMessages() {
+  const list = document.getElementById('messages-list');
+  if (!list) return;
+  list.innerHTML = '';
+  NEWS_MESSAGES.forEach(m => {
+    const item = document.createElement('div');
+    item.className = 'message-item';
+    item.innerHTML = `
+      <div class="message-top">
+        <span class="message-tag">${escHtml(m.tag)}</span>
+        <span class="message-time">${escHtml(m.time)}</span>
+      </div>
+      <div class="message-text">${escHtml(m.text)}</div>
+      <div class="message-hint"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg> Натисніть, щоб перевірити або переказати своїми словами</div>`;
+    item.addEventListener('click', () => useTextInFixer(m.text));
+    list.appendChild(item);
+  });
+}
+
+renderTemplates();
+renderMessages();
+
 document.querySelectorAll('.lang-btn').forEach(btn => {
   btn.onclick = () => {
     document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
