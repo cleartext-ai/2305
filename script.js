@@ -111,7 +111,7 @@ let _cachedSettings = null;
 async function getSettings() {
   if (_cachedSettings) return _cachedSettings;
   const data = await fsGet('settings');
-  _cachedSettings = data || { apiKey: '', models: DEFAULT_MODELS };
+  _cachedSettings = data || { apiKey: '', models: DEFAULT_MODELS, maintenanceMode: false };
   return _cachedSettings;
 }
 
@@ -154,10 +154,12 @@ async function route() {
     // Показуємо лоадер поки перевіряємо ключ
     show('no-api-screen', true);
     const settings = await getSettings();
-    if (settings.apiKey) {
+    if (settings.maintenanceMode) {
+      showNoApi('maintenance');
+    } else if (settings.apiKey) {
       showApp(settings);
     } else {
-      // Залишаємо no-api-screen
+      showNoApi('nokey');
     }
   }
 }
@@ -209,6 +211,21 @@ function showOffline() {
   hide('admin-screen');
   hide('app-screen');
   show('offline-screen', true);
+}
+
+function showNoApi(reason) {
+  hide('admin-login-screen');
+  hide('admin-screen');
+  hide('app-screen');
+  hide('offline-screen');
+  const noKeyEl = document.getElementById('noApiTextNoKey');
+  const maintEl = document.getElementById('noApiTextMaintenance');
+  if (noKeyEl && maintEl) {
+    const isMaintenance = reason === 'maintenance';
+    noKeyEl.style.display = isMaintenance ? 'none' : 'inline';
+    maintEl.style.display = isMaintenance ? 'inline' : 'none';
+  }
+  show('no-api-screen', true);
 }
 
 // ══════════════════════════════════════════════
@@ -263,6 +280,13 @@ document.getElementById('adminLogoutBtn').onclick = () => {
 async function renderAdmin() {
   const settings = await getSettings();
 
+  // Maintenance mode
+  const maintToggle = document.getElementById('maintenanceToggle');
+  if (maintToggle) {
+    maintToggle.checked = !!settings.maintenanceMode;
+    updateMaintenanceUI(!!settings.maintenanceMode);
+  }
+
   // API key
   const inp = document.getElementById('adminApiKeyInput');
   inp.value = settings.apiKey || '';
@@ -272,6 +296,35 @@ async function renderAdmin() {
 
   renderAdminModels(settings.models || DEFAULT_MODELS);
 }
+
+function updateMaintenanceUI(isOn) {
+  const label = document.getElementById('maintenanceStatusLabel');
+  const dot = document.getElementById('maintenanceStatusDot');
+  if (label) {
+    label.textContent = isOn ? 'Увімкнено — застосунок недоступний для користувачів' : 'Вимкнено — застосунок працює';
+    label.style.color = isOn ? 'var(--rose)' : 'var(--text)';
+  }
+  if (dot) {
+    dot.style.display = 'inline-block';
+    dot.className = 'status-dot' + (isOn ? ' off' : '');
+  }
+}
+
+document.getElementById('maintenanceToggle').addEventListener('change', async (e) => {
+  const checked = e.target.checked;
+  const toggle = e.target;
+  toggle.disabled = true;
+  const ok = await fsSet('settings', { maintenanceMode: checked });
+  invalidateCache();
+  toggle.disabled = false;
+  if (ok) {
+    updateMaintenanceUI(checked);
+    showTmpMsg('maintenanceSavedMsg');
+  } else {
+    // Відкат чекбокса якщо збереження не вдалось
+    toggle.checked = !checked;
+  }
+});
 
 function renderAdminModels(models) {
   const list = document.getElementById('modelsList');

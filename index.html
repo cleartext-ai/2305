@@ -50,8 +50,8 @@
     </div>
     <div class="no-api-title" style="color:var(--text)">ClearText AI</div>
     <div class="no-api-text">
-      Вибачте, на разі сервіс не працює.<br>
-      Спробуйте будь ласка пізніше.
+      <span id="noApiTextNoKey">Вибачте, на разі сервіс не працює.<br>Спробуйте будь ласка пізніше.</span>
+      <span id="noApiTextMaintenance" style="display:none">Ведуться технічні роботи.<br>Спробуйте будь ласка пізніше.</span>
       <a id="goAdminLink" style="display:none"></a>
     </div>
   </div>
@@ -149,6 +149,27 @@
   </div>
 
   <div class="admin-body">
+
+    <!-- Maintenance mode section -->
+    <div class="admin-section">
+      <div class="admin-section-header">
+        <div class="admin-section-title">
+          <span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></span> Технічні роботи
+          <span class="status-dot off" id="maintenanceStatusDot" style="display:none"></span>
+        </div>
+      </div>
+      <div class="admin-section-body">
+        <div class="info-box">Коли увімкнено — застосунок вимикається для всіх користувачів, і замість форми виправлення тексту вони бачать повідомлення про технічні роботи. Використовуйте це під час обслуговування.</div>
+        <div class="admin-row" style="align-items:center;justify-content:space-between">
+          <div id="maintenanceStatusLabel" style="font-weight:800;font-size:14px">Вимкнено — застосунок працює</div>
+          <label class="model-toggle">
+            <input type="checkbox" id="maintenanceToggle">
+            <span class="model-toggle-slider"></span>
+          </label>
+        </div>
+        <div class="admin-success-msg" id="maintenanceSavedMsg"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Стан оновлено!</div>
+      </div>
+    </div>
 
     <!-- API Key section -->
     <div class="admin-section">
