@@ -186,29 +186,6 @@
       </div>
     </div>
 
-    <!-- Messages section -->
-    <div class="admin-section">
-      <div class="admin-section-header">
-        <div class="admin-section-title"><span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span> Повідомлення користувачам</div>
-      </div>
-      <div class="admin-section-body">
-        <div class="info-box">Ці повідомлення показуються всім користувачам у вкладці «Повідомлення» застосунку.</div>
-        <div class="cred-grid" style="grid-template-columns:1fr 2fr;gap:10px">
-          <div>
-            <label class="field-label" for="newMsgTag">Тег (коротко)</label>
-            <input type="text" class="admin-key-input" id="newMsgTag" placeholder="Оновлення">
-          </div>
-          <div>
-            <label class="field-label" for="newMsgText">Текст повідомлення</label>
-            <input type="text" class="admin-key-input" id="newMsgText" placeholder="Напишіть повідомлення для користувачів...">
-          </div>
-        </div>
-        <button class="btn-save" id="addMsgBtn" type="button" style="align-self:flex-start"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Додати повідомлення</button>
-        <div class="admin-success-msg" id="msgSavedMsg"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Повідомлення збережено!</div>
-        <div class="models-list" id="adminMessagesList" style="margin-top:6px"></div>
-      </div>
-    </div>
-
     <!-- Credentials section -->
     <div class="admin-section">
       <div class="admin-section-header">
@@ -343,15 +320,6 @@
       <div id="templates-list"></div>
     </div>
 
-    <!-- ═══ TAB: ПОВІДОМЛЕННЯ (ВІД АДМІНІСТРАЦІЇ) ═══ -->
-    <div class="tab-panel" id="tab-messages">
-      <div class="tab-intro">
-        <div class="tab-intro-title">Повідомлення</div>
-        <div class="tab-intro-sub">Новини та оновлення від адміністрації застосунку</div>
-      </div>
-      <div id="messages-list"></div>
-    </div>
-
   </div>
 
   <!-- ═══ TAB BAR ═══ -->
@@ -363,10 +331,6 @@
     <button class="tab-btn" data-tab="tab-templates" type="button">
       <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
       <span>Шаблони</span>
-    </button>
-    <button class="tab-btn" data-tab="tab-messages" type="button">
-      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-      <span>Повідомлення</span>
     </button>
   </nav>
 </div>
