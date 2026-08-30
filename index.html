@@ -1,0 +1,1764 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<!-- ДОДАНО НОВИЙ РЯДОК НИЖЧЕ -->
+<meta name="mobile-web-app-capable" content="yes"> 
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0e1320">
+<link rel="manifest" href="manifest.json">
+<title>ClearText AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+:root {
+  --bg: #080c18;
+  --glass: rgba(255,255,255,0.08);
+  --glass2: rgba(255,255,255,0.13);
+  --glass-heavy: rgba(255,255,255,0.16);
+  --surface: rgba(255,255,255,0.08);
+  --surface2: rgba(255,255,255,0.13);
+  --border: rgba(255,255,255,0.14);
+  --border2: rgba(255,255,255,0.22);
+  --border-top: rgba(255,255,255,0.35);
+  --blur: blur(60px) saturate(200%) brightness(1.1);
+  --blur-sm: blur(24px) saturate(180%);
+  --blur-heavy: blur(80px) saturate(220%) brightness(1.15);
+  --green: #34d399;
+  --green-glow: rgba(52,211,153,0.3);
+  --blue: #60a5fa;
+  --blue-glow: rgba(96,165,250,0.3);
+  --amber: #fbbf24;
+  --rose: #fb7185;
+  --text: rgba(255,255,255,1);
+  --muted: rgba(255,255,255,0.78);
+  --dim: rgba(255,255,255,0.5);
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #f0f4f8;
+    --glass: rgba(255,255,255,0.6);
+    --glass2: rgba(255,255,255,0.75);
+    --glass-heavy: rgba(255,255,255,0.7);
+    --surface: rgba(255,255,255,0.6);
+    --surface2: rgba(255,255,255,0.75);
+    --border: rgba(0,0,0,0.1);
+    --border2: rgba(0,0,0,0.15);
+    --border-top: rgba(255,255,255,0.9);
+    --text: rgba(0,0,0,0.9);
+    --muted: rgba(0,0,0,0.6);
+    --dim: rgba(0,0,0,0.4);
+    --green: #059669;
+    --green-glow: rgba(5,150,105,0.2);
+    --blue: #2563eb;
+    --blue-glow: rgba(37,99,235,0.2);
+    --rose: #e11d48;
+    --amber: #d97706;
+  }
+
+  body {
+    background: #f0f4f8;
+    background-image: radial-gradient(ellipse at 20% 20%, rgba(52,211,153,0.12) 0%, transparent 50%), radial-gradient(ellipse at 80% 80%, rgba(96,165,250,0.12) 0%, transparent 50%);
+  }
+
+  .card-title, .card-title svg { color: rgba(0,0,0,0.7) !important; stroke: rgba(0,0,0,0.7) !important; }
+  .char-count { color: rgba(0,0,0,0.5) !important; }
+  .changes-header, .changes-header svg { color: rgba(0,0,0,0.7) !important; stroke: rgba(0,0,0,0.7) !important; }
+  .act-btn svg { stroke: rgba(0,0,0,0.6) !important; }
+  .change-reason { color: rgba(0,0,0,0.65) !important; }
+  .change-arrow { color: rgba(0,0,0,0.4) !important; }
+  .app-header-sub { color: rgba(0,0,0,0.5) !important; }
+  .admin-section-title { color: rgba(0,0,0,0.7) !important; }
+  .stat-label { color: rgba(0,0,0,0.5) !important; }
+
+  .btn-fix { 
+    background: linear-gradient(135deg, rgba(5,150,105,0.8), rgba(37,99,235,0.7)) !important;
+    border: 1px solid rgba(5,150,105,0.5) !important;
+    border-top: 1px solid rgba(255,255,255,0.6) !important;
+    box-shadow: 0 8px 32px rgba(5,150,105,0.3), inset 0 1px 0 rgba(255,255,255,0.4) !important;
+  }
+  .btn-label { color: #fff !important; }
+  .btn-fix .spinner-ring { border-color: rgba(255,255,255,0.3) !important; border-top-color: #fff !important; }
+
+  .card-header { border-bottom: 1px solid rgba(0,0,0,0.06) !important; }
+  .changes-header { border-bottom: 1px solid rgba(0,0,0,0.06) !important; }
+  .badge { background: var(--rose) !important; color: #fff !important; }
+
+  .bg-orb:nth-child(1) { background: radial-gradient(circle, rgba(52,211,153,0.3), transparent 70%); opacity: 0.6; }
+  .bg-orb:nth-child(2) { background: radial-gradient(circle, rgba(96,165,250,0.3), transparent 70%); opacity: 0.5; }
+  .bg-orb:nth-child(3) { background: radial-gradient(circle, rgba(167,139,250,0.2), transparent 70%); opacity: 0.4; }
+
+  .app-header {
+    background: rgba(240,244,248,0.7);
+    box-shadow: 0 1px 0 rgba(0,0,0,0.08), 0 4px 20px rgba(0,0,0,0.06);
+  }
+
+  .card {
+    background: rgba(255,255,255,0.65);
+    border: 1px solid rgba(0,0,0,0.08);
+    border-top: 1px solid rgba(255,255,255,0.95);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.9);
+  }
+
+  .result-text { border-bottom: 1px solid rgba(0,0,0,0.06); }
+
+  .act-btn {
+    background: rgba(255,255,255,0.7);
+    border: 1px solid rgba(0,0,0,0.1);
+    border-top: 1px solid rgba(255,255,255,0.95);
+    color: rgba(0,0,0,0.6);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.8), 0 2px 8px rgba(0,0,0,0.08);
+  }
+
+  .act-btn:hover { background: rgba(255,255,255,0.9); color: rgba(0,0,0,0.8); }
+
+  .change-item {
+    background: rgba(255,255,255,0.6);
+    border: 1px solid rgba(0,0,0,0.07);
+    border-top: 1px solid rgba(255,255,255,0.9);
+  }
+
+  textarea {
+    background: rgba(255,255,255,0.5) !important;
+    color: rgba(0,0,0,0.9) !important;
+  }
+
+  textarea::placeholder { color: rgba(0,0,0,0.35) !important; }
+
+  .error-box {
+    background: rgba(251,113,133,0.08);
+    border: 1px solid rgba(225,29,72,0.2);
+  }
+
+  .stat-box { background: rgba(255,255,255,0.5); }
+}
+html, body { height: 100%; height: 100dvh; }
+body {
+  font-family: 'Nunito', sans-serif;
+  background: var(--bg);
+  background-image: radial-gradient(ellipse at 20% 20%, rgba(6,95,70,0.15) 0%, transparent 50%), radial-gradient(ellipse at 80% 80%, rgba(30,58,138,0.15) 0%, transparent 50%);
+  color: var(--text);
+  min-height: 100dvh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  position: relative;
+}
+
+/* BG */
+.bg-mesh { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+.bg-orb { position: absolute; border-radius: 50%; filter: blur(90px); }
+.bg-orb:nth-child(1) { width: 70vw; height: 70vw; background: radial-gradient(circle, #065f46, transparent 70%); top: -20%; left: -20%; opacity: 0.85; animation: o1 22s ease-in-out infinite alternate; }
+.bg-orb:nth-child(2) { width: 60vw; height: 60vw; background: radial-gradient(circle, #1e3a8a, transparent 70%); bottom: -15%; right: -15%; opacity: 0.75; animation: o2 18s ease-in-out infinite alternate; }
+.bg-orb:nth-child(3) { width: 50vw; height: 50vw; background: radial-gradient(circle, #581c87, transparent 70%); top: 35%; left: 30%; opacity: 0.6; animation: o1 14s ease-in-out infinite alternate-reverse; }
+@keyframes o1 { 0%{transform:translate(0,0) scale(1)} 100%{transform:translate(5vw,-4vh) scale(1.08)} }
+@keyframes o2 { 0%{transform:translate(0,0) scale(1)} 100%{transform:translate(-4vw,5vh) scale(0.92)} }
+
+/* ── NO API SCREEN ── */
+#no-api-screen {
+  position: relative; z-index: 10;
+  min-height: 100dvh;
+  display: none;
+  flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: calc(var(--safe-top) + 24px) 20px calc(var(--safe-bottom) + 24px);
+}
+.no-api-card {
+  width: 100%; max-width: 400px;
+  background: var(--glass);
+  backdrop-filter: var(--blur-heavy);
+  -webkit-backdrop-filter: var(--blur-heavy);
+  border: 1px solid rgba(251,113,133,0.3);
+  border-top: 1px solid rgba(255,255,255,0.35);
+  border-radius: 28px;
+  padding: 40px 32px;
+  box-shadow: 0 40px 100px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.3), inset 0 -1px 0 rgba(0,0,0,0.1);
+  text-align: center;
+  animation: cardIn 0.6s cubic-bezier(0.34,1.56,0.64,1) forwards;
+}
+.no-api-icon { font-size: 48px; margin-bottom: 16px; }
+.no-api-title { font-size: 22px; font-weight: 900; color: var(--rose); margin-bottom: 10px; }
+.no-api-text { font-size: 14px; color: var(--muted); line-height: 1.7; }
+
+/* ── ADMIN LOGIN SCREEN ── */
+#admin-login-screen {
+  position: relative; z-index: 10;
+  min-height: 100dvh;
+  display: none;
+  flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: calc(var(--safe-top) + 24px) 20px calc(var(--safe-bottom) + 24px);
+}
+
+.admin-login-card {
+  width: 100%; max-width: 420px;
+  background: var(--glass);
+  backdrop-filter: var(--blur-heavy);
+  -webkit-backdrop-filter: var(--blur-heavy);
+  border: 1px solid rgba(96,165,250,0.3);
+  border-top: 1px solid rgba(255,255,255,0.35);
+  border-radius: 28px;
+  padding: 40px 32px;
+  box-shadow: 0 40px 100px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.3), inset 0 -1px 0 rgba(0,0,0,0.1);
+  animation: cardIn 0.6s cubic-bezier(0.34,1.56,0.64,1) forwards;
+}
+@keyframes cardIn {
+  from { opacity:0; transform:translateY(28px) scale(0.96); }
+  to   { opacity:1; transform:translateY(0) scale(1); }
+}
+
+.admin-login-icon {
+  width: 68px; height: 68px;
+  background: linear-gradient(135deg, rgba(96,165,250,0.3), rgba(139,92,246,0.25));
+  border: 1px solid rgba(96,165,250,0.35);
+  border-radius: 22px;
+  margin: 0 auto 18px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 30px;
+  box-shadow: 0 8px 32px rgba(96,165,250,0.2), inset 0 1px 0 rgba(255,255,255,0.2);
+}
+.admin-login-title {
+  font-size: 24px; font-weight: 900; text-align: center; letter-spacing: -0.03em;
+  background: linear-gradient(135deg, #fff 30%, var(--blue));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  margin-bottom: 6px;
+}
+.admin-login-sub { font-size: 13px; color: var(--muted); text-align: center; margin-bottom: 24px; }
+
+.field-label { font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--dim); margin-bottom: 7px; display: block; }
+.field-wrap { position: relative; margin-bottom: 14px; }
+.field-input {
+  width: 100%;
+  background: var(--glass); border: 1px solid var(--border); border-top: 1px solid rgba(255,255,255,0.28);
+  border-radius: 14px; padding: 13px 46px 13px 16px;
+  color: var(--text); font-family: 'Nunito', sans-serif; font-size: 14px; font-weight: 600;
+  outline: none; transition: all 0.2s;
+  backdrop-filter: var(--blur-sm); -webkit-backdrop-filter: var(--blur-sm);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.12), 0 2px 8px rgba(0,0,0,0.1);
+  -webkit-appearance: none;
+}
+.field-input::placeholder { color: var(--dim); }
+.field-input:focus { border-color: rgba(96,165,250,0.5); box-shadow: 0 0 0 3px rgba(96,165,250,0.12); background: rgba(255,255,255,0.1); }
+.field-input.field-input--no-icon { padding-right: 16px; }
+
+.field-toggle { position: absolute; right: 13px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; font-size: 17px; color: var(--muted); transition: color 0.2s; }
+.field-toggle:hover { color: var(--blue); }
+
+.btn-admin-login {
+  width: 100%; padding: 15px;
+  background: linear-gradient(135deg, rgba(96,165,250,0.55), rgba(139,92,246,0.5));
+  border: 1px solid rgba(96,165,250,0.4); border-radius: 14px;
+  color: #fff; font-family: 'Nunito', sans-serif; font-size: 15px; font-weight: 900;
+  cursor: pointer; letter-spacing: 0.04em;
+  box-shadow: 0 4px 28px rgba(96,165,250,0.25), inset 0 1px 0 rgba(255,255,255,0.2);
+  transition: all 0.2s; -webkit-appearance: none;
+}
+.btn-admin-login:hover { transform: translateY(-1px); box-shadow: 0 8px 36px rgba(96,165,250,0.4); }
+.btn-admin-login:active { transform: scale(0.98); }
+
+.admin-login-error {
+  background: rgba(251,113,133,0.1); border: 1px solid rgba(251,113,133,0.3);
+  border-radius: 10px; padding: 10px 14px;
+  font-size: 13px; font-weight: 600; color: #fda4af;
+  display: none; margin-top: 12px; text-align: center;
+}
+.admin-back-link {
+  display: block; text-align: center; margin-top: 16px;
+  font-size: 12px; color: var(--dim); cursor: pointer; text-decoration: underline;
+  transition: color 0.2s;
+}
+.admin-back-link:hover { color: var(--muted); }
+
+/* ── ADMIN PANEL ── */
+#admin-screen {
+  display: none;
+  position: relative; z-index: 10;
+  min-height: 100dvh;
+  flex-direction: column;
+}
+
+.admin-header {
+  position: sticky; top: 0; z-index: 50;
+  padding: calc(var(--safe-top) + 12px) 20px 12px;
+  background: rgba(8,11,20,0.7);
+  backdrop-filter: blur(40px) saturate(200%);
+  -webkit-backdrop-filter: blur(40px) saturate(200%);
+  border-bottom: 1px solid rgba(96,165,250,0.15);
+  display: flex; align-items: center; gap: 12px;
+}
+.admin-header-badge {
+  background: rgba(96,165,250,0.15); border: 1px solid rgba(96,165,250,0.3);
+  border-radius: 8px; padding: 3px 9px;
+  font-size: 10px; font-weight: 800; color: var(--blue); letter-spacing: 0.1em; text-transform: uppercase;
+}
+.admin-header-title { font-size: 17px; font-weight: 900; color: var(--text); flex: 1; }
+.btn-admin-logout {
+  background: rgba(251,113,133,0.1); border: 1px solid rgba(251,113,133,0.25);
+  border-radius: 10px; padding: 7px 13px;
+  font-family: 'Nunito', sans-serif; font-size: 12px; font-weight: 700; color: var(--rose);
+  cursor: pointer; transition: all 0.2s; -webkit-appearance: none;
+}
+.btn-admin-logout:hover { background: rgba(251,113,133,0.18); }
+
+.admin-body {
+  flex: 1; padding: 24px 16px calc(var(--safe-bottom) + 28px);
+  display: flex; flex-direction: column; gap: 18px;
+  max-width: 680px; margin: 0 auto; width: 100%;
+}
+
+.admin-section {
+  background: rgba(255,255,255,0.05);
+  backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
+  border: 1px solid var(--border); border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.25);
+}
+.admin-section-header {
+  padding: 14px 18px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.admin-section-title { font-size: 12px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); display: flex; align-items: center; gap: 7px; }
+.admin-section-body { padding: 18px; display: flex; flex-direction: column; gap: 14px; }
+
+.status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 8px rgba(52,211,153,0.6); display: inline-block; }
+.status-dot.off { background: var(--rose); box-shadow: 0 0 8px rgba(251,113,133,0.6); }
+
+.admin-key-wrap { position: relative; }
+.admin-key-input {
+  width: 100%;
+  background: rgba(255,255,255,0.07); border: 1px solid var(--border);
+  border-radius: 12px; padding: 12px 46px 12px 14px;
+  color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 400;
+  outline: none; transition: all 0.2s;
+  -webkit-appearance: none;
+}
+.admin-key-input::placeholder { color: var(--dim); font-family: 'Nunito', sans-serif; }
+.admin-key-input:focus { border-color: rgba(52,211,153,0.5); box-shadow: 0 0 0 3px rgba(52,211,153,0.12); }
+
+.btn-save {
+  padding: 12px 20px;
+  background: linear-gradient(135deg, rgba(52,211,153,0.5), rgba(16,185,129,0.6));
+  border: 1px solid rgba(52,211,153,0.35); border-radius: 12px;
+  color: #fff; font-family: 'Nunito', sans-serif; font-size: 13px; font-weight: 800;
+  cursor: pointer; transition: all 0.2s; -webkit-appearance: none; white-space: nowrap;
+  box-shadow: 0 4px 20px rgba(52,211,153,0.2);
+}
+.btn-save:hover { transform: translateY(-1px); box-shadow: 0 6px 28px rgba(52,211,153,0.35); }
+.btn-save:active { transform: scale(0.97); }
+.btn-save.saved { background: rgba(52,211,153,0.2); }
+
+.admin-row { display: flex; gap: 10px; align-items: flex-end; }
+.admin-row .admin-key-wrap { flex: 1; }
+
+.admin-success-msg {
+  font-size: 12px; font-weight: 700; color: var(--green);
+  display: none; animation: fadeIn 0.3s ease;
+}
+@keyframes fadeIn { from{opacity:0} to{opacity:1} }
+
+/* Models list */
+.models-list { display: flex; flex-direction: column; gap: 8px; }
+.model-item {
+  display: flex; align-items: center; gap: 12px;
+  background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 12px; padding: 12px 14px;
+  transition: all 0.2s;
+}
+.model-item:hover { background: rgba(255,255,255,0.07); }
+.model-item-name { flex: 1; font-size: 13px; font-weight: 700; font-family: 'JetBrains Mono', monospace; color: var(--text); }
+.model-item-label { font-size: 11px; font-weight: 600; color: var(--dim); }
+.model-toggle {
+  position: relative; width: 40px; height: 22px; flex-shrink: 0;
+}
+.model-toggle input { opacity: 0; width: 0; height: 0; }
+.model-toggle-slider {
+  position: absolute; inset: 0; cursor: pointer;
+  background: rgba(255,255,255,0.1); border-radius: 22px; transition: 0.25s;
+  border: 1px solid rgba(255,255,255,0.12);
+}
+.model-toggle-slider::before {
+  content: ''; position: absolute;
+  width: 16px; height: 16px; border-radius: 50%; background: #fff;
+  left: 2px; top: 2px; transition: 0.25s;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+}
+.model-toggle input:checked + .model-toggle-slider { background: rgba(52,211,153,0.4); border-color: rgba(52,211,153,0.5); }
+.model-toggle input:checked + .model-toggle-slider::before { transform: translateX(18px); }
+
+.model-add-row { display: flex; gap: 8px; }
+.model-add-input {
+  flex: 1;
+  background: rgba(255,255,255,0.07); border: 1px solid var(--border);
+  border-radius: 12px; padding: 11px 14px;
+  color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 12px;
+  outline: none; transition: all 0.2s; -webkit-appearance: none;
+}
+.model-add-input::placeholder { color: var(--dim); font-family: 'Nunito', sans-serif; font-size: 13px; }
+.model-add-input:focus { border-color: rgba(96,165,250,0.5); box-shadow: 0 0 0 3px rgba(96,165,250,0.1); }
+.btn-add-model {
+  padding: 11px 16px;
+  background: rgba(96,165,250,0.15); border: 1px solid rgba(96,165,250,0.3);
+  border-radius: 12px; color: var(--blue);
+  font-family: 'Nunito', sans-serif; font-size: 13px; font-weight: 800;
+  cursor: pointer; transition: all 0.2s; white-space: nowrap; -webkit-appearance: none;
+}
+.btn-add-model:hover { background: rgba(96,165,250,0.25); }
+.btn-del-model {
+  background: none; border: none; cursor: pointer;
+  font-size: 16px; color: var(--dim); transition: color 0.2s; padding: 2px 4px;
+  line-height: 1;
+}
+.btn-del-model:hover { color: var(--rose); }
+
+/* Admin credentials section */
+.cred-grid { display: flex; flex-direction: column; gap: 10px; }
+
+/* Admin info box */
+.info-box {
+  background: rgba(96,165,250,0.08); border: 1px solid rgba(96,165,250,0.2);
+  border-radius: 12px; padding: 12px 14px;
+  font-size: 12px; font-weight: 600; color: rgba(96,165,250,0.8); line-height: 1.6;
+}
+
+/* ── MAIN APP ── */
+#app-screen {
+  display: none;
+  position: relative; z-index: 10;
+  min-height: 100dvh;
+  flex-direction: column;
+}
+
+.app-header {
+  position: sticky; top: 0; z-index: 50;
+  padding: calc(var(--safe-top) + 12px) 20px 12px;
+  background: rgba(8,12,24,0.5);
+  backdrop-filter: blur(60px) saturate(220%) brightness(1.1);
+  -webkit-backdrop-filter: blur(60px) saturate(220%) brightness(1.1);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.15), 0 4px 20px rgba(0,0,0,0.2);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 12px;
+}
+.app-header-icon { font-size: 22px; }
+.app-header-info { flex: 1; }
+.app-header-title { font-size: 17px; font-weight: 900; letter-spacing: -0.02em; color: #ffffff; -webkit-text-fill-color: #ffffff; }
+.app-header-sub { font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.7); letter-spacing: 0.1em; text-transform: uppercase; }
+
+.model-sel { display: none !important; } .model-sel-hidden {
+  background: rgba(255,255,255,0.07); border: 1px solid var(--border);
+  border-radius: 10px; color: var(--muted);
+  font-family: 'Nunito', sans-serif; font-size: 11px; font-weight: 700;
+  padding: 5px 9px; outline: none; cursor: pointer; max-width: 150px;
+  -webkit-appearance: none; backdrop-filter: var(--blur-sm); -webkit-backdrop-filter: var(--blur-sm);
+}
+.model-sel-hidden option { background: #0f172a; }
+
+.app-body {
+  flex: 1; padding: 20px 16px calc(var(--safe-bottom) + 24px);
+  display: flex; flex-direction: column; gap: 16px;
+}
+@media(min-width:640px) { .app-body { max-width: 720px; margin: 0 auto; width: 100%; padding: 28px 24px calc(var(--safe-bottom) + 28px); } }
+
+.card {
+  background: var(--glass);
+  backdrop-filter: var(--blur-heavy); -webkit-backdrop-filter: var(--blur-heavy);
+  border: 1px solid var(--border);
+  border-top: 1px solid var(--border-top);
+  border-radius: 24px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.35), 0 2px 8px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.28), inset 0 -1px 0 rgba(0,0,0,0.15);
+  overflow: hidden;
+}
+.card-header {
+  padding: 14px 18px 10px;
+  display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.card-title { font-size: 12px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); display: flex; align-items: center; gap: 7px; }
+.card-title span { font-size: 14px; }
+.char-count { font-size: 11px; font-weight: 700; color: var(--dim); font-family: 'JetBrains Mono', monospace; }
+
+#text-input {
+  width: 100%; background: none; border: none; outline: none; resize: none;
+  color: var(--text); font-family: 'Nunito', sans-serif; font-size: 15px; font-weight: 600;
+  line-height: 1.7; padding: 14px 18px 18px; min-height: 130px; max-height: 260px;
+  overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--border) transparent;
+  -webkit-appearance: none;
+}
+#text-input::-webkit-scrollbar { width: 3px; }
+#text-input::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+#text-input::placeholder { color: var(--dim); font-weight: 500; }
+
+.lang-row {
+  padding: 10px 18px 14px;
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+.lang-label { font-size: 11px; font-weight: 700; color: var(--dim); margin-right: 2px; }
+.lang-btn {
+  background: rgba(255,255,255,0.06); border: 1px solid var(--border);
+  border-radius: 20px; padding: 5px 12px;
+  font-family: 'Nunito', sans-serif; font-size: 11px; font-weight: 700; color: var(--muted);
+  cursor: pointer; transition: all 0.2s; -webkit-appearance: none;
+}
+.lang-btn.active { background: rgba(52,211,153,0.15); border-color: rgba(52,211,153,0.4); color: var(--green); }
+.lang-btn:hover { background: rgba(255,255,255,0.1); }
+
+.btn-fix {
+  width: 100%; padding: 16px;
+  background: linear-gradient(135deg, rgba(52,211,153,0.35), rgba(96,165,250,0.3));
+  backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
+  border: 1px solid rgba(52,211,153,0.4);
+  border-top: 1px solid rgba(255,255,255,0.4);
+  border-radius: 18px;
+  color: #fff; font-family: 'Nunito', sans-serif; font-size: 16px; font-weight: 900;
+  cursor: pointer; letter-spacing: 0.03em;
+  box-shadow: 0 8px 32px rgba(52,211,153,0.25), 0 2px 8px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.35), inset 0 -1px 0 rgba(0,0,0,0.1);
+  transition: all 0.2s; -webkit-appearance: none; position: relative; overflow: hidden;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.btn-fix::before { content: ''; position: absolute; inset: 0; background: linear-gradient(135deg, rgba(255,255,255,0.12), transparent); opacity: 0; transition: opacity 0.2s; }
+.btn-fix:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 8px 36px rgba(52,211,153,0.35), inset 0 1px 0 rgba(255,255,255,0.18); }
+.btn-fix:hover:not(:disabled)::before { opacity: 1; }
+.btn-fix:active:not(:disabled) { transform: scale(0.98); }
+.btn-fix:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-fix .spinner { width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; display: none; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.btn-fix.loading .btn-label { display: none; }
+.btn-fix.loading .spinner { display: block; }
+
+#result-card { display: none; animation: fadeUp 0.4s cubic-bezier(0.34,1.2,0.64,1) forwards; }
+@keyframes fadeUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+
+.result-text { padding: 16px 18px; font-size: 18px; font-weight: 600; line-height: 1.75; color: var(--text); border-bottom: 1px solid rgba(255,255,255,0.06); }
+
+.changes-header { padding: 12px 18px 8px; font-size: 12px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+.badge { background: rgba(251,191,36,0.2); border: 1px solid rgba(251,191,36,0.3); border-radius: 20px; padding: 2px 8px; font-size: 10px; font-weight: 800; color: var(--amber); }
+
+.change-item { margin: 0 12px 10px; background: var(--glass); backdrop-filter: var(--blur-sm); -webkit-backdrop-filter: var(--blur-sm); border: 1px solid rgba(255,255,255,0.12); border-top: 1px solid rgba(255,255,255,0.22); border-radius: 14px; padding: 11px 14px; display: flex; flex-direction: column; gap: 5px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.15), 0 2px 6px rgba(0,0,0,0.1); }
+.change-row { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; line-height: 1.4; }
+.change-before { color: var(--rose); font-weight: 700; font-family: 'JetBrains Mono', monospace; font-size: 15px; text-decoration: line-through; opacity: 0.8; }
+.change-arrow { color: var(--dim); font-size: 14px; margin-top: 1px; flex-shrink: 0; }
+.change-after { color: var(--green); font-weight: 700; font-family: 'JetBrains Mono', monospace; font-size: 15px; }
+.change-reason { font-size: 15px; font-weight: 600; color: var(--muted); padding-left: 2px; }
+
+.no-changes { padding: 16px 18px; display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 700; color: var(--green); }
+
+.result-actions { padding: 12px 14px; display: flex; gap: 8px; border-top: 1px solid rgba(255,255,255,0.06); }
+.act-btn { flex: 1; padding: 11px 8px; background: var(--glass2); backdrop-filter: var(--blur-sm); -webkit-backdrop-filter: var(--blur-sm); border: 1px solid var(--border); border-top: 1px solid rgba(255,255,255,0.28); border-radius: 14px; color: var(--muted); font-family: 'Nunito', sans-serif; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s; -webkit-appearance: none; display: flex; align-items: center; justify-content: center; gap: 5px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.2), 0 2px 8px rgba(0,0,0,0.15); }
+.act-btn:hover { background: rgba(255,255,255,0.1); color: var(--text); }
+.act-btn:active { transform: scale(0.96); }
+.act-btn.success { background: rgba(52,211,153,0.15); border-color: rgba(52,211,153,0.35); color: var(--green); }
+
+.error-box { background: rgba(251,113,133,0.1); backdrop-filter: var(--blur-sm); -webkit-backdrop-filter: var(--blur-sm); border: 1px solid rgba(251,113,133,0.3); border-top: 1px solid rgba(255,200,200,0.35); border-radius: 16px; padding: 14px 16px; font-size: 13px; font-weight: 600; color: #fda4af; line-height: 1.6; display: none; box-shadow: inset 0 1px 0 rgba(255,255,255,0.15), 0 4px 16px rgba(251,113,133,0.1); }
+
+.stat-box { background: rgba(255,255,255,0.06); border-radius: 12px; padding: 12px; text-align: center; }
+.stat-val { font-size: 32px; font-weight: 900; color: var(--green); }
+.stat-label { font-size: 13px; font-weight: 700; color: var(--dim); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.05em; }
+
+
+@media(max-width:480px) {
+  .admin-login-card, .no-api-card { padding: 28px 20px; border-radius: 22px; }
+  .app-header { padding: calc(var(--safe-top) + 10px) 14px 10px; }
+  .app-body { padding: 14px 12px calc(var(--safe-bottom) + 20px); gap: 12px; }
+  #text-input { font-size: 16px; min-height: 110px; }
+  .result-text { font-size: 17px; }
+  .change-item { margin: 0 8px 8px; }
+  .admin-body { padding: 16px 12px; }
+}
+
+/* ── CT LOGO ── */
+.ct-logo {
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.ct-logo svg { display: block; }
+
+/* Header logo — small */
+.ct-logo--header { width: 36px; height: 36px; }
+/* Splash / card logo — large */
+.ct-logo--splash { width: 80px; height: 80px; margin: 0 auto 20px; }
+/* Admin login logo */
+.ct-logo--admin { width: 68px; height: 68px; margin: 0 auto 18px; }
+</style>
+</head>
+<body>
+
+<div class="bg-mesh">
+  <div class="bg-orb"></div>
+  <div class="bg-orb"></div>
+  <div class="bg-orb"></div>
+</div>
+
+<!-- ── NO API SCREEN ── -->
+<div id="no-api-screen">
+  <div class="no-api-card">
+    <div class="ct-logo ct-logo--splash">
+      <svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="ns" x1="0" y1="0" x2="80" y2="80" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="#34d399"/>
+            <stop offset="100%" stop-color="#60a5fa"/>
+          </linearGradient>
+        </defs>
+        <rect width="80" height="80" rx="22" fill="#0b1120"/>
+        <circle cx="40" cy="40" r="6"   fill="url(#ns)"/>
+        <circle cx="40" cy="16"  r="4.5" fill="url(#ns)" opacity=".75"/>
+        <circle cx="62" cy="28"  r="4.5" fill="url(#ns)" opacity=".75"/>
+        <circle cx="62" cy="52"  r="4.5" fill="url(#ns)" opacity=".75"/>
+        <circle cx="40" cy="64"  r="4.5" fill="url(#ns)" opacity=".75"/>
+        <circle cx="18" cy="52"  r="4.5" fill="url(#ns)" opacity=".75"/>
+        <circle cx="18" cy="28"  r="4.5" fill="url(#ns)" opacity=".75"/>
+        <line x1="40" y1="40" x2="40"  y2="16"  stroke="url(#ns)" stroke-width="1.4" stroke-opacity=".45"/>
+        <line x1="40" y1="40" x2="62"  y2="28"  stroke="url(#ns)" stroke-width="1.4" stroke-opacity=".45"/>
+        <line x1="40" y1="40" x2="62"  y2="52"  stroke="url(#ns)" stroke-width="1.4" stroke-opacity=".45"/>
+        <line x1="40" y1="40" x2="40"  y2="64"  stroke="url(#ns)" stroke-width="1.4" stroke-opacity=".45"/>
+        <line x1="40" y1="40" x2="18"  y2="52"  stroke="url(#ns)" stroke-width="1.4" stroke-opacity=".45"/>
+        <line x1="40" y1="40" x2="18"  y2="28"  stroke="url(#ns)" stroke-width="1.4" stroke-opacity=".45"/>
+      </svg>
+    </div>
+    <div class="no-api-title" style="color:var(--text)">ClearText AI</div>
+    <div class="no-api-text">
+      Вибачте, на разі сервіс не працює.<br>
+      Спробуйте будь ласка пізніше.
+      <a id="goAdminLink" style="display:none"></a>
+    </div>
+  </div>
+</div>
+
+<!-- ── OFFLINE SCREEN ── -->
+<div id="offline-screen" style="display:none;position:relative;z-index:10;min-height:100dvh;flex-direction:column;align-items:center;justify-content:center;padding:calc(var(--safe-top) + 24px) 32px calc(var(--safe-bottom) + 24px);text-align:center">
+  <div style="animation:cardIn 0.6s cubic-bezier(0.34,1.56,0.64,1) forwards">
+    <div class="ct-logo ct-logo--splash" style="margin-bottom:24px">
+      <svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs><linearGradient id="ol" x1="0" y1="0" x2="80" y2="80" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#34d399"/><stop offset="100%" stop-color="#60a5fa"/></linearGradient></defs>
+        <rect width="80" height="80" rx="22" fill="#0b1120"/>
+        <circle cx="40" cy="40" r="6" fill="url(#ol)"/>
+        <circle cx="40" cy="16" r="4.5" fill="url(#ol)" opacity=".75"/>
+        <circle cx="62" cy="28" r="4.5" fill="url(#ol)" opacity=".75"/>
+        <circle cx="62" cy="52" r="4.5" fill="url(#ol)" opacity=".75"/>
+        <circle cx="40" cy="64" r="4.5" fill="url(#ol)" opacity=".75"/>
+        <circle cx="18" cy="52" r="4.5" fill="url(#ol)" opacity=".75"/>
+        <circle cx="18" cy="28" r="4.5" fill="url(#ol)" opacity=".75"/>
+        <line x1="40" y1="40" x2="40" y2="16" stroke="url(#ol)" stroke-width="1.4" stroke-opacity=".45"/>
+        <line x1="40" y1="40" x2="62" y2="28" stroke="url(#ol)" stroke-width="1.4" stroke-opacity=".45"/>
+        <line x1="40" y1="40" x2="62" y2="52" stroke="url(#ol)" stroke-width="1.4" stroke-opacity=".45"/>
+        <line x1="40" y1="40" x2="40" y2="64" stroke="url(#ol)" stroke-width="1.4" stroke-opacity=".45"/>
+        <line x1="40" y1="40" x2="18" y2="52" stroke="url(#ol)" stroke-width="1.4" stroke-opacity=".45"/>
+        <line x1="40" y1="40" x2="18" y2="28" stroke="url(#ol)" stroke-width="1.4" stroke-opacity=".45"/>
+      </svg>
+    </div>
+    <div style="font-size:28px;font-weight:900;letter-spacing:-0.03em;background:linear-gradient(135deg,#fff 30%,#34d399 70%,#60a5fa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:36px">ClearText AI</div>
+    <div style="width:56px;height:56px;background:rgba(251,113,133,0.12);border:1px solid rgba(251,113,133,0.3);border-radius:18px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;box-shadow:0 8px 32px rgba(251,113,133,0.15)">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fb7185" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="1" y1="1" x2="23" y2="23"/><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/><path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/><path d="M10.71 5.05A16 16 0 0 1 22.56 9"/><path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
+    </div>
+    <div style="font-size:20px;font-weight:900;color:#fff;margin-bottom:10px">Немає підключення</div>
+    <div style="font-size:14px;font-weight:600;color:rgba(255,255,255,0.55);line-height:1.7;max-width:280px;margin:0 auto 28px">Увімкніть мобільні дані або Wi-Fi,<br>щоб скористатися ClearText AI.</div>
+    <button onclick="if(navigator.onLine){hide('offline-screen');route();}else{this.textContent='Ще немає…';setTimeout(()=>this.innerHTML='<svg width=\'15\' height=\'15\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2.5\' stroke-linecap=\'round\' stroke-linejoin=\'round\'><polyline points=\'23 4 23 10 17 10\'/><path d=\'M20.49 15a9 9 0 1 1-2.12-9.36L23 10\'/></svg> Спробувати знову',1500);}" style="display:inline-flex;align-items:center;gap:8px;padding:13px 28px;background:linear-gradient(135deg,rgba(52,211,153,0.25),rgba(96,165,250,0.2));border:1px solid rgba(52,211,153,0.35);border-top:1px solid rgba(255,255,255,0.25);border-radius:14px;color:#fff;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer;backdrop-filter:blur(20px);box-shadow:0 4px 24px rgba(52,211,153,0.15),inset 0 1px 0 rgba(255,255,255,0.15);transition:all 0.2s;-webkit-appearance:none">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+      Спробувати знову
+    </button>
+  </div>
+</div>
+
+<!-- ── ADMIN LOGIN SCREEN ── -->
+<div id="admin-login-screen">
+  <div class="admin-login-card">
+    <div class="ct-logo ct-logo--admin">
+      <svg width="68" height="68" viewBox="0 0 68 68" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="na" x1="0" y1="0" x2="68" y2="68" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="#60a5fa"/>
+            <stop offset="100%" stop-color="#8b5cf6"/>
+          </linearGradient>
+        </defs>
+        <rect width="68" height="68" rx="20" fill="#0b1120"/>
+        <rect width="68" height="68" rx="20" fill="none" stroke="url(#na)" stroke-width="1" stroke-opacity=".3"/>
+        <circle cx="34" cy="34" r="5.5" fill="url(#na)"/>
+        <circle cx="34" cy="13"  r="4"   fill="url(#na)" opacity=".75"/>
+        <circle cx="52.5" cy="23.5" r="4" fill="url(#na)" opacity=".75"/>
+        <circle cx="52.5" cy="44.5" r="4" fill="url(#na)" opacity=".75"/>
+        <circle cx="34" cy="55"  r="4"   fill="url(#na)" opacity=".75"/>
+        <circle cx="15.5" cy="44.5" r="4" fill="url(#na)" opacity=".75"/>
+        <circle cx="15.5" cy="23.5" r="4" fill="url(#na)" opacity=".75"/>
+        <line x1="34" y1="34" x2="34"   y2="13"   stroke="url(#na)" stroke-width="1.2" stroke-opacity=".45"/>
+        <line x1="34" y1="34" x2="52.5" y2="23.5" stroke="url(#na)" stroke-width="1.2" stroke-opacity=".45"/>
+        <line x1="34" y1="34" x2="52.5" y2="44.5" stroke="url(#na)" stroke-width="1.2" stroke-opacity=".45"/>
+        <line x1="34" y1="34" x2="34"   y2="55"   stroke="url(#na)" stroke-width="1.2" stroke-opacity=".45"/>
+        <line x1="34" y1="34" x2="15.5" y2="44.5" stroke="url(#na)" stroke-width="1.2" stroke-opacity=".45"/>
+        <line x1="34" y1="34" x2="15.5" y2="23.5" stroke="url(#na)" stroke-width="1.2" stroke-opacity=".45"/>
+      </svg>
+    </div>
+    <div class="admin-login-title">Адмін-панель</div>
+    <div class="admin-login-sub">Введіть дані для входу</div>
+
+    <label class="field-label" for="adminLoginInput">Логін</label>
+    <div class="field-wrap" style="margin-bottom:14px">
+      <input type="text" class="field-input field-input--no-icon" id="adminLoginInput" placeholder="admin" autocomplete="username">
+    </div>
+
+    <label class="field-label" for="adminPassInput">Пароль</label>
+    <div class="field-wrap">
+      <input type="password" class="field-input" id="adminPassInput" placeholder="••••••••" autocomplete="current-password">
+      <button class="field-toggle" id="adminPassToggle" type="button"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+    </div>
+
+    <button class="btn-admin-login" id="adminLoginBtn" type="button"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg> Увійти</button>
+    <div class="admin-login-error" id="adminLoginError"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg> Невірний логін або пароль</div>
+    <a class="admin-back-link" id="adminBackLink">← Повернутись на головну</a>
+  </div>
+</div>
+
+<!-- ── ADMIN PANEL ── -->
+<div id="admin-screen">
+  <div class="admin-header">
+    <div class="admin-header-badge">ADMIN</div>
+    <div class="admin-header-title">ClearText AI — Керування</div>
+    <button class="btn-admin-logout" id="adminLogoutBtn" type="button">Вийти</button>
+  </div>
+
+  <div class="admin-body">
+
+    <!-- API Key section -->
+    <div class="admin-section">
+      <div class="admin-section-header">
+        <div class="admin-section-title">
+          <span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg></span> Google Gemini API ключ
+          <span class="status-dot" id="apiStatusDot" style="display:none"></span>
+        </div>
+      </div>
+      <div class="admin-section-body">
+        <div class="info-box">Ключ збережений тут діє лише на цьому пристрої. Щоб сервіс працював на всіх пристроях — впишіть ключ напряму у файл <b style="color:var(--blue);font-family:'JetBrains Mono',monospace">HARDCODED_API_KEY</b> у коді.</div>
+        <div class="admin-row">
+          <div class="admin-key-wrap">
+            <input type="password" class="admin-key-input" id="adminApiKeyInput" placeholder="AIzaSy...">
+          </div>
+          <button class="field-toggle" id="adminApiKeyToggle" style="position:static;transform:none;background:rgba(255,255,255,0.07);border:1px solid var(--border);border-radius:10px;width:40px;height:40px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px;" type="button"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+          <button class="btn-save" id="saveApiKeyBtn" type="button"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Зберегти</button>
+        </div>
+        <div class="admin-success-msg" id="apiKeySavedMsg"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> API ключ збережено!</div>
+      </div>
+    </div>
+
+    <!-- Models section -->
+    <div class="admin-section">
+      <div class="admin-section-header">
+        <div class="admin-section-title"><span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/><line x1="8" y1="16" x2="8" y2="16"/><line x1="16" y1="16" x2="16" y2="16"/></svg></span> Моделі Gemini</div>
+      </div>
+      <div class="admin-section-body">
+        <div class="models-list" id="modelsList"></div>
+        <div class="model-add-row">
+          <input type="text" class="model-add-input" id="newModelInput" placeholder="Додати модель: gemini-...">
+          <button class="btn-add-model" id="addModelBtn" type="button">+ Додати</button>
+        </div>
+        <div class="admin-success-msg" id="modelsSavedMsg"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Моделі збережено!</div>
+      </div>
+    </div>
+
+    <!-- Credentials section -->
+    <div class="admin-section">
+      <div class="admin-section-header">
+        <div class="admin-section-title"><span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span> Дані для входу в адмін-панель</div>
+      </div>
+      <div class="admin-section-body">
+        <div class="cred-grid">
+          <div>
+            <label class="field-label" for="newAdminLogin">Новий логін</label>
+            <input type="text" class="admin-key-input" id="newAdminLogin" placeholder="admin" autocomplete="off">
+          </div>
+          <div>
+            <label class="field-label" for="newAdminPass">Новий пароль</label>
+            <input type="password" class="admin-key-input" id="newAdminPass" placeholder="мінімум 6 символів" autocomplete="new-password">
+          </div>
+          <div>
+            <label class="field-label" for="newAdminPassConfirm">Підтвердити пароль</label>
+            <input type="password" class="admin-key-input" id="newAdminPassConfirm" placeholder="повторіть пароль" autocomplete="new-password">
+          </div>
+        </div>
+        <button class="btn-save" id="saveCredsBtn" type="button" style="align-self:flex-start"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Зберегти дані входу</button>
+        <div class="admin-success-msg" id="credsSavedMsg"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Дані для входу оновлено!</div>
+        <div class="error-box" id="credsErrorBox" style="display:none;margin-top:0"></div>
+      </div>
+    </div>
+
+
+      <!-- СТАТИСТИКА -->
+      <div class="admin-section">
+        <div class="admin-section-header">
+          <div class="admin-section-title"><span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span> Статистика</div>
+        </div>
+        <div class="admin-section-body">
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+            <div class="stat-box"><div class="stat-val" id="statTotal">—</div><div class="stat-label">Запитів сьогодні</div></div>
+            <div class="stat-box"><div class="stat-val" id="statChanges">—</div><div class="stat-label">Змін зроблено</div></div>
+            <div class="stat-box"><div class="stat-val" id="statNoChange">—</div><div class="stat-label">Без помилок</div></div>
+          </div>
+          <div style="background:rgba(52,211,153,0.08);border:1px solid rgba(52,211,153,0.2);border-radius:14px;padding:14px 16px;margin-top:4px">
+            <div style="font-size:11px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:var(--green);margin-bottom:8px;display:flex;align-items:center;gap:5px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9.5 9.5C9.5 8.1 10.6 7 12 7s2.5 1.1 2.5 2.5S12 12 12 12s-2.5 1.1-2.5 2.5S10.6 17 12 17s2.5-1.1 2.5-2.5"/></svg> Економія (якби платно)</div>
+            <div style="display:flex;gap:16px;flex-wrap:wrap">
+              <div><span style="font-size:20px;font-weight:900;color:var(--green)" id="statCostUsd">—</span> <span style="font-size:11px;color:var(--dim)">USD сьогодні</span></div>
+              <div><span style="font-size:20px;font-weight:900;color:var(--green)" id="statCostUah">—</span> <span style="font-size:11px;color:var(--dim)">грн сьогодні</span></div>
+            </div>
+            <div style="font-size:11px;color:var(--dim);margin-top:6px">Реальна ціна залежно від моделі • 1 USD = <span id="statUahRate">—</span> ₴</div><div id="statModelInfo" style="margin-top:8px;display:flex;flex-wrap:wrap;gap:4px">—</div>
+          </div>
+          <button class="btn-save" id="loadStatsBtn" type="button" style="align-self:flex-start"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg> Оновити</button>
+        </div>
+      </div>
+  </div>
+</div>
+
+<!-- ── APP ── -->
+<div id="app-screen">
+  <div class="app-header">
+    <div class="ct-logo ct-logo--header">
+      <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="nh" x1="0" y1="0" x2="36" y2="36" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="#34d399"/>
+            <stop offset="100%" stop-color="#60a5fa"/>
+          </linearGradient>
+        </defs>
+        <rect width="36" height="36" rx="9" fill="#0b1120"/>
+        <circle cx="18" cy="18" r="3" fill="url(#nh)"/>
+        <circle cx="18" cy="8"  r="2" fill="url(#nh)" opacity=".75"/>
+        <circle cx="26.6" cy="13" r="2" fill="url(#nh)" opacity=".75"/>
+        <circle cx="26.6" cy="23" r="2" fill="url(#nh)" opacity=".75"/>
+        <circle cx="18" cy="28" r="2" fill="url(#nh)" opacity=".75"/>
+        <circle cx="9.4"  cy="23" r="2" fill="url(#nh)" opacity=".75"/>
+        <circle cx="9.4"  cy="13" r="2" fill="url(#nh)" opacity=".75"/>
+        <line x1="18" y1="18" x2="18"   y2="8"    stroke="url(#nh)" stroke-width="1" stroke-opacity=".45"/>
+        <line x1="18" y1="18" x2="26.6" y2="13"   stroke="url(#nh)" stroke-width="1" stroke-opacity=".45"/>
+        <line x1="18" y1="18" x2="26.6" y2="23"   stroke="url(#nh)" stroke-width="1" stroke-opacity=".45"/>
+        <line x1="18" y1="18" x2="18"   y2="28"   stroke="url(#nh)" stroke-width="1" stroke-opacity=".45"/>
+        <line x1="18" y1="18" x2="9.4"  y2="23"   stroke="url(#nh)" stroke-width="1" stroke-opacity=".45"/>
+        <line x1="18" y1="18" x2="9.4"  y2="13"   stroke="url(#nh)" stroke-width="1" stroke-opacity=".45"/>
+      </svg>
+    </div>
+    <div class="app-header-info">
+      <div class="app-header-title">ClearText AI</div>
+      <div class="app-header-sub">Виправлення тексту</div>
+    </div>
+    <select class="model-sel" id="modelSelect"></select>
+  </div>
+
+  <div class="app-body">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title"><span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg></span> Ваш текст</div>
+        <div class="char-count" id="charCount">0 / 800</div>
+      </div>
+      <textarea id="text-input" placeholder="Напишіть речення яке хочете виправити…&#10;Наприклад: «я вчора ходив магазін купляв хліб і молоко»"></textarea>
+
+    </div>
+
+    <button class="btn-fix" id="fixBtn" type="button">
+      <span class="btn-label">✦ Виправити текст</span>
+      <div class="spinner"></div>
+    </button>
+
+    <div class="error-box" id="errorBox"></div>
+
+    <div class="card" id="result-card">
+      <div class="card-header">
+        <div class="card-title"><span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></span> Виправлений текст</div>
+      </div>
+      <div class="result-text" id="result-text"></div>
+      <div class="result-actions">
+        <button class="act-btn" id="copyBtn" type="button"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
+        <button class="act-btn" id="shareBtn" type="button"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg></button>
+        <button class="act-btn" id="useBtn" type="button"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+        <button class="act-btn" id="clearBtn" type="button"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
+      </div>
+      <div class="changes-header">
+        <span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span> Зміни
+        <div class="badge" id="changes-badge">0</div>
+      </div>
+      <div id="changes-list"></div>
+    </div>
+
+
+  </div>
+</div>
+
+<script type="module">
+// ══════════════════════════════════════════════
+// FIREBASE INIT
+// ══════════════════════════════════════════════
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
+import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAdhdpQno2Pe0lBoS1DlZySJeRzso_WlZE",
+  authDomain: "cleartext-ai-a34a6.firebaseapp.com",
+  databaseURL: "https://cleartext-ai-a34a6-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "cleartext-ai-a34a6",
+  storageBucket: "cleartext-ai-a34a6.firebasestorage.app",
+  messagingSenderId: "897219922207",
+  appId: "1:897219922207:web:4d449dbfdfef501a0c082a"
+};
+
+const fireApp = initializeApp(firebaseConfig);
+const db = getFirestore(fireApp);
+
+// ══════════════════════════════════════════════
+// FIRESTORE HELPERS — зберігають спільні дані
+// ══════════════════════════════════════════════
+async function fsGet(docId) {
+  try {
+    const snap = await getDoc(doc(db, 'app', docId));
+    return snap.exists() ? snap.data() : null;
+  } catch(e) {
+    console.warn('fsGet error:', e);
+    return null;
+  }
+}
+
+async function fsSet(docId, data) {
+  try {
+    await setDoc(doc(db, 'app', docId), data, { merge: true });
+    return true;
+  } catch(e) {
+    console.warn('fsSet error:', e);
+    return false;
+  }
+}
+
+
+// ══════════════════════════════════════════════
+// СТАТИСТИКА — анонімна, без тексту користувача
+// ══════════════════════════════════════════════
+
+// Ціни моделей Gemini (USD за 1 запит ~500 вхідних + 200 вихідних токенів)
+const MODEL_PRICES = {
+  'gemini-2.5-flash': 0.0006,
+  'gemini-2.5-flash-preview-04-17': 0.0006,
+  'gemini-2.0-flash': 0.0004,
+  'gemini-2.0-flash-lite': 0.0002,
+};
+function getModelPrice(modelId) {
+  if (!modelId) return 0.0006;
+  for (const key of Object.keys(MODEL_PRICES)) {
+    if (modelId.includes(key) || key.includes(modelId)) return MODEL_PRICES[key];
+  }
+  return 0.0006; // default
+}
+async function saveStats(changesCount, noChanges, modelId) {
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+    const statsRef = doc(db, 'stats', today);
+    const snap = await getDoc(statsRef);
+    const prev = snap.exists() ? snap.data() : { total: 0, noChanges: 0, totalChanges: 0, totalCostUsd: 0 };
+    const price = getModelPrice(modelId);
+    const modelKey = (modelId || 'unknown').replace(/[^a-z0-9.-]/g, '-');
+    const modelStats = prev.models || {};
+    modelStats[modelKey] = (modelStats[modelKey] || 0) + 1;
+    await setDoc(statsRef, {
+      total: (prev.total || 0) + 1,
+      noChanges: (prev.noChanges || 0) + (noChanges ? 1 : 0),
+      totalChanges: (prev.totalChanges || 0) + (changesCount || 0),
+      totalCostUsd: Math.round(((prev.totalCostUsd || 0) + price) * 1e8) / 1e8,
+      models: modelStats,
+      lastUpdated: new Date().toISOString()
+    });
+  } catch(e) {
+    console.error('saveStats error:', e);
+  }
+}
+// ══════════════════════════════════════════════
+// LOCAL STORAGE HELPERS — тільки для сесії адміна
+// ══════════════════════════════════════════════
+const KEYS = {
+  ADMIN_USER: 'ct_admin_user',
+  ADMIN_PASS: 'ct_admin_pass',
+  ADMIN_SES:  'ct_admin_session',
+};
+
+const DEFAULT_ADMIN = { user: 'admin', pass: 'admin123' };
+
+const DEFAULT_MODELS = [
+  { id: 'gemini-2.0-flash-lite', label: '2.0 Flash Lite', enabled: true  },
+  { id: 'gemini-2.5-flash', label: '2.5 Flash', enabled: true  },
+  { id: 'gemini-2.0-flash', label: '2.0 Flash', enabled: true  },
+  { id: 'gemini-2.5-pro',   label: '2.5 Pro',   enabled: false },
+];
+
+function lsGet(key, fallback = null) {
+  try { const v = localStorage.getItem(key); return v !== null ? JSON.parse(v) : fallback; }
+  catch { return fallback; }
+}
+function lsSet(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch {} }
+
+// Кеш щоб не робити зайвих запитів до Firestore
+let _cachedSettings = null;
+
+async function getSettings() {
+  if (_cachedSettings) return _cachedSettings;
+  const data = await fsGet('settings');
+  _cachedSettings = data || { apiKey: '', models: DEFAULT_MODELS };
+  return _cachedSettings;
+}
+
+function invalidateCache() { _cachedSettings = null; }
+
+function getAdminUser(){ return lsGet(KEYS.ADMIN_USER, DEFAULT_ADMIN.user); }
+function getAdminPass(){ return lsGet(KEYS.ADMIN_PASS, DEFAULT_ADMIN.pass); }
+
+function isAdminSession() { return sessionStorage.getItem(KEYS.ADMIN_SES) === 'ok'; }
+function setAdminSession(v) {
+  if (v) sessionStorage.setItem(KEYS.ADMIN_SES, 'ok');
+  else sessionStorage.removeItem(KEYS.ADMIN_SES);
+}
+
+function show(id, flex) {
+  const el = document.getElementById(id);
+  el.style.display = flex ? 'flex' : 'block';
+}
+function hide(id) { document.getElementById(id).style.display = 'none'; }
+
+// ══════════════════════════════════════════════
+// ROUTING
+// ══════════════════════════════════════════════
+async function route() {
+  // Перевірка інтернету
+  if (!navigator.onLine) { showOffline(); return; }
+
+  const url = window.location.href;
+  const goAdmin = window.location.search.includes('admin') ||
+                  window.location.hash === '#admin' ||
+                  url.includes('%3Fadmin');
+
+  if (goAdmin) {
+    if (isAdminSession()) {
+      await showAdmin();
+    } else {
+      showAdminLogin();
+    }
+  } else {
+    // Показуємо лоадер поки перевіряємо ключ
+    show('no-api-screen', true);
+    const settings = await getSettings();
+    if (settings.apiKey) {
+      showApp(settings);
+    } else {
+      // Залишаємо no-api-screen
+    }
+  }
+}
+
+window.addEventListener('online',  () => { hide('offline-screen'); route(); });
+window.addEventListener('offline', () => showOffline());
+window.addEventListener('hashchange', route);
+
+// ══════════════════════════════════════════════
+// SCREENS
+// ══════════════════════════════════════════════
+function showAdminLogin() {
+  hide('no-api-screen');
+  hide('admin-screen');
+  hide('app-screen');
+  show('admin-login-screen', true);
+}
+
+async function showAdmin() {
+  hide('no-api-screen');
+  hide('admin-login-screen');
+  hide('app-screen');
+  show('admin-screen', true);
+  await renderAdmin();
+}
+
+function showApp(settings) {
+  hide('no-api-screen');
+  hide('admin-login-screen');
+  hide('admin-screen');
+  hide('offline-screen');
+  show('app-screen', true);
+  renderAppModels(settings.models || DEFAULT_MODELS);
+  document.getElementById('text-input').focus();
+}
+
+function showOffline() {
+  hide('no-api-screen');
+  hide('admin-login-screen');
+  hide('admin-screen');
+  hide('app-screen');
+  show('offline-screen', true);
+}
+
+// ══════════════════════════════════════════════
+// ADMIN LOGIN
+// ══════════════════════════════════════════════
+document.getElementById('adminPassToggle').onclick = () => {
+  const inp = document.getElementById('adminPassInput');
+  const s = inp.type === 'password';
+  inp.type = s ? 'text' : 'password';
+  document.getElementById('adminPassToggle').innerHTML = s ? `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>` : `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`;
+};
+
+document.getElementById('adminLoginBtn').onclick = doAdminLogin;
+document.getElementById('adminPassInput').addEventListener('keydown', e => { if(e.key==='Enter') doAdminLogin(); });
+document.getElementById('adminLoginInput').addEventListener('keydown', e => { if(e.key==='Enter') document.getElementById('adminPassInput').focus(); });
+
+document.getElementById('adminBackLink').onclick = () => {
+  const base = window.location.href.split('?')[0].split('#')[0];
+  window.location.replace(base);
+};
+
+function doAdminLogin() {
+  const user = document.getElementById('adminLoginInput').value.trim();
+  const pass = document.getElementById('adminPassInput').value;
+  const errBox = document.getElementById('adminLoginError');
+
+  if (user === getAdminUser() && pass === getAdminPass()) {
+    errBox.style.display = 'none';
+    setAdminSession(true);
+    showAdmin();
+  } else {
+    errBox.style.display = 'block';
+    const card = document.querySelector('.admin-login-card');
+    card.animate([{transform:'translateX(-6px)'},{transform:'translateX(6px)'},{transform:'translateX(-4px)'},{transform:'translateX(0)'}],{duration:300});
+    document.getElementById('adminPassInput').value = '';
+    document.getElementById('adminPassInput').focus();
+  }
+}
+
+// ══════════════════════════════════════════════
+// ADMIN LOGOUT
+// ══════════════════════════════════════════════
+document.getElementById('adminLogoutBtn').onclick = () => {
+  setAdminSession(false);
+  const base = window.location.href.split('?')[0].split('#')[0];
+  window.location.replace(base);
+};
+
+// ══════════════════════════════════════════════
+// ADMIN PANEL
+// ══════════════════════════════════════════════
+async function renderAdmin() {
+  const settings = await getSettings();
+
+  // API key
+  const inp = document.getElementById('adminApiKeyInput');
+  inp.value = settings.apiKey || '';
+  const dot = document.getElementById('apiStatusDot');
+  dot.style.display = 'inline-block';
+  dot.className = 'status-dot' + (settings.apiKey ? '' : ' off');
+
+  renderAdminModels(settings.models || DEFAULT_MODELS);
+}
+
+function renderAdminModels(models) {
+  const list = document.getElementById('modelsList');
+  list.innerHTML = '';
+  models.forEach((m, i) => {
+    const item = document.createElement('div');
+    item.className = 'model-item';
+    item.innerHTML = `
+      <div style="flex:1">
+        <div class="model-item-name">${escHtml(m.id)}</div>
+        ${m.label ? `<div class="model-item-label">${escHtml(m.label)}</div>` : ''}
+      </div>
+      <label class="model-toggle">
+        <input type="checkbox" ${m.enabled ? 'checked' : ''} data-idx="${i}">
+        <span class="model-toggle-slider"></span>
+      </label>
+      <button class="btn-del-model" data-idx="${i}" title="Видалити"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>`;
+    list.appendChild(item);
+  });
+
+  list.querySelectorAll('.model-toggle input').forEach(cb => {
+    cb.addEventListener('change', async () => {
+      const settings = await getSettings();
+      const mods = settings.models || DEFAULT_MODELS;
+      mods[+cb.dataset.idx].enabled = cb.checked;
+      await fsSet('settings', { models: mods });
+      invalidateCache();
+      showTmpMsg('modelsSavedMsg');
+    });
+  });
+
+  list.querySelectorAll('.btn-del-model').forEach(btn => {
+    btn.onclick = async () => {
+      const settings = await getSettings();
+      const mods = settings.models || DEFAULT_MODELS;
+      mods.splice(+btn.dataset.idx, 1);
+      await fsSet('settings', { models: mods });
+      invalidateCache();
+      const s2 = await getSettings();
+      renderAdminModels(s2.models || DEFAULT_MODELS);
+      showTmpMsg('modelsSavedMsg');
+    };
+  });
+}
+
+// Toggle API key visibility
+document.getElementById('adminApiKeyToggle').onclick = () => {
+  const inp = document.getElementById('adminApiKeyInput');
+  const s = inp.type === 'password';
+  inp.type = s ? 'text' : 'password';
+  document.getElementById('adminApiKeyToggle').innerHTML = s ? `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>` : `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`;
+};
+
+// Save API key → Firestore
+document.getElementById('saveApiKeyBtn').onclick = async () => {
+  const val = document.getElementById('adminApiKeyInput').value.trim();
+  const btn = document.getElementById('saveApiKeyBtn');
+  btn.textContent = '⏳ Збереження...';
+  btn.disabled = true;
+
+  const ok = await fsSet('settings', { apiKey: val });
+  invalidateCache();
+
+  const dot = document.getElementById('apiStatusDot');
+  dot.className = 'status-dot' + (val ? '' : ' off');
+  btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Зберегти';
+  btn.disabled = false;
+
+  if (ok) showTmpMsg('apiKeySavedMsg');
+  else {
+    document.getElementById('apiKeySavedMsg').innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg> Помилка збереження. Перевір правила Firestore.';
+    document.getElementById('apiKeySavedMsg').style.color = 'var(--rose)';
+    document.getElementById('apiKeySavedMsg').style.display = 'block';
+    setTimeout(() => {
+      document.getElementById('apiKeySavedMsg').style.display = 'none';
+      document.getElementById('apiKeySavedMsg').style.color = '';
+      document.getElementById('apiKeySavedMsg').innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> API ключ збережено!';
+    }, 3000);
+  }
+};
+
+// Add model → Firestore
+document.getElementById('addModelBtn').onclick = async () => {
+  const inp = document.getElementById('newModelInput');
+  const val = inp.value.trim();
+  if (!val) return;
+
+  const settings = await getSettings();
+  const mods = settings.models || DEFAULT_MODELS;
+  if (mods.find(m => m.id === val)) { inp.value = ''; return; }
+  mods.push({ id: val, label: '', enabled: true });
+  await fsSet('settings', { models: mods });
+  invalidateCache();
+  renderAdminModels(mods);
+  inp.value = '';
+  showTmpMsg('modelsSavedMsg');
+};
+document.getElementById('newModelInput').addEventListener('keydown', e => { if(e.key==='Enter') document.getElementById('addModelBtn').click(); });
+
+// Save admin credentials → localStorage (тільки на пристрої адміна)
+document.getElementById('saveCredsBtn').onclick = () => {
+  const login = document.getElementById('newAdminLogin').value.trim();
+  const pass  = document.getElementById('newAdminPass').value;
+  const pass2 = document.getElementById('newAdminPassConfirm').value;
+  const errBox = document.getElementById('credsErrorBox');
+  errBox.style.display = 'none';
+
+  if (!login) { errBox.textContent = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Введіть логін'; errBox.style.display = 'block'; return; }
+  if (pass.length < 6) { errBox.textContent = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Пароль мінімум 6 символів'; errBox.style.display = 'block'; return; }
+  if (pass !== pass2) { errBox.textContent = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Паролі не збігаються'; errBox.style.display = 'block'; return; }
+
+  lsSet(KEYS.ADMIN_USER, login);
+  lsSet(KEYS.ADMIN_PASS, pass);
+  document.getElementById('newAdminLogin').value = '';
+  document.getElementById('newAdminPass').value = '';
+  document.getElementById('newAdminPassConfirm').value = '';
+  showTmpMsg('credsSavedMsg');
+};
+
+function showTmpMsg(id) {
+  const el = document.getElementById(id);
+  el.style.display = 'block';
+  setTimeout(() => { el.style.display = 'none'; }, 2500);
+}
+
+// ══════════════════════════════════════════════
+// MAIN APP
+// ══════════════════════════════════════════════
+let selectedLang = 'uk';
+
+function renderAppModels(models) {
+  const sel = document.getElementById('modelSelect');
+  sel.innerHTML = '';
+  models.filter(m => m.enabled).forEach(m => {
+    const opt = document.createElement('option');
+    opt.value = m.id;
+    opt.textContent = m.label || m.id;
+    sel.appendChild(opt);
+  });
+}
+
+document.querySelectorAll('.lang-btn').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    selectedLang = btn.dataset.lang;
+  };
+});
+
+const textInput = document.getElementById('text-input');
+textInput.addEventListener('input', () => {
+  const len = textInput.value.length;
+  document.getElementById('charCount').textContent = `${len} / 800`;
+  if (len > 800) textInput.value = textInput.value.slice(0, 800);
+});
+
+document.getElementById('fixBtn').onclick = fixText;
+textInput.addEventListener('keydown', e => { if (e.key==='Enter' && e.ctrlKey) fixText(); });
+
+async function fixText() {
+  const text = textInput.value.trim();
+  if (!text) {
+    textInput.animate([{borderColor:'rgba(251,113,133,0.5)'},{borderColor:''}],{duration:400});
+    return;
+  }
+
+  // Клієнтська перевірка — блокуємо одразу без запиту до API
+
+  const settings = await getSettings();
+  const apiKey = settings.apiKey;
+  if (!apiKey) {
+    document.getElementById('errorBox').textContent = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> API ключ не налаштовано. Зверніться до адміністратора.';
+    document.getElementById('errorBox').style.display = 'block';
+    return;
+  }
+
+  const btn = document.getElementById('fixBtn');
+  btn.classList.add('loading');
+  btn.disabled = true;
+  document.getElementById('result-card').style.display = 'none';
+  document.getElementById('errorBox').style.display = 'none';
+
+  const langNote = 'українською мовою';
+
+  const prompt = `Ти — асистент з виправлення тексту для людей з вадами слуху, які пишуть неграмотно.
+
+ПРАВИЛА ВИПРАВЛЕННЯ ПРОБЛЕМНОГО КОНТЕНТУ — НАЙВИЩИЙ ПРІОРИТЕТ:
+Замість блокування — виправляй проблемні місця за такими правилами:
+
+1. ПІДТРИМКА путіна або рф → замінити на правдиве твердження:
+   "путін молодець" → "путін є військовий злочинець"
+   "хороший путін" → "путін є військовий злочинець"
+   "путін крутий/герой/правий" → "путін є військовий злочинець"
+   "слава рф" → "ганьба рф"
+   "рф права" → "рф — держава-терорист"
+   "донатимо на армію рф" → "донатимо на армію України"
+   "підтримую путіна" → "засуджую путіна"
+
+2. ЗАПЕРЕЧЕННЯ воєнних злочинів рф → замінити на правду:
+   "рф не нападала" → "рф напала на Україну"
+   "крим російський" → "крим — українська земля"
+   "донбас сам відокремився" → "рф окупувала донбас"
+
+3. ЗАКЛИКИ до сексуального насильства → прибрати заклик, залишити нейтральний контекст або прибрати речення:
+   "давай зґвалтуємо її" → прибрати повністю
+   "зґвалтуй її" → прибрати повністю
+   Якщо жертва або факт ("мене зґвалтували", "він зґвалтував") — НЕ чіпати, лише виправити граматику.
+
+4. ЗАКЛИКИ до фізичного насильства щодо людей (не рф) → прибрати або нейтралізувати:
+   "вбиємо його" → прибрати
+   "поб'ємо її" → прибрати
+   Якщо про рф/путіна ("вбити путіна", "знищити армію рф") — НЕ чіпати.
+   Якщо жертва або факт ("мене побили") — НЕ чіпати.
+
+5. РАСИСТСЬКІ слова → замінити на нейтральний відповідник без образи.
+
+6. ЗАКЛИКИ до самоушкодження → прибрати або замінити на "зверніться по допомогу".
+
+ВАЖЛИВІ ПРАВИЛА ВИПРАВЛЕННЯ:
+1. Якщо текст англійською — виправити лише граматику, залишити англійською.
+2. Якщо текст будь-якою іншою мовою (російська, суржик, польська тощо) — перекласти та виправити УКРАЇНСЬКОЮ.
+3. Якщо є кальки з російської або суржик — виправити на літературну українську і пояснити що це кальки/суржик.
+4. Якщо текст вже українською — виправити граматику українською.
+5. Зроби речення граматично правильним, зрозумілим і природним.
+6. ОБОВ'ЯЗКОВО — БЕЗ ВИНЯТКІВ: слова "рф", "росія", "москва", "санкт-петербург", "кремль" та назви будь-яких російських міст — писати ВИКЛЮЧНО з малої літери. Навіть якщо це на початку речення.
+7. ОБОВ'ЯЗКОВО — БЕЗ ВИНЯТКІВ: "путін", "путин", "putin" та імена/прізвища будь-яких російських чиновників, політиків, військових (медведєв, лавров, шойгу, мішустін тощо) — писати ВИКЛЮЧНО з малої літери. Навіть якщо це на початку речення. Це політична позиція, не граматична помилка — не виправляй на велику.
+
+ТЕКСТ ДЛЯ ВИПРАВЛЕННЯ:
+"${text}"
+
+Відповідай ВИКЛЮЧНО у форматі JSON, без будь-яких пояснень поза JSON:
+{
+  "corrected": "виправлений текст",
+  "changes": [
+    {
+      "before": "помилкове слово або фраза",
+      "after": "правильний варіант",
+      "reason": "коротке пояснення (1 речення)"
+    }
+  ],
+  "noChanges": false
+}
+
+Якщо текст вже правильний українською, поверни: {"corrected": "${text}", "changes": [], "noChanges": true}
+ВАЖЛИВО: відповідай тільки валідним JSON, без markdown і додаткового тексту.`;
+
+  // ── AUTO-ROTATING MODEL CALL ──────────────────
+  // Builds ordered list: selected model first, then others, cycling forever
+  // until we get a valid result or hit a non-retriable error (SAFETY, bad key).
+  try {
+    const settings2 = await getSettings();
+    const enabledModels = (settings2.models || DEFAULT_MODELS).filter(m => m.enabled).map(m => m.id);
+    if (!enabledModels.length) {
+      document.getElementById('errorBox').innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Немає увімкнених моделей. Зверніться до адміністратора.`;
+      document.getElementById('errorBox').style.display = 'block';
+      return;
+    }
+
+    // Start from selected model, then rotate through the rest
+    const selectedModel = document.getElementById('modelSelect').value;
+    const startIdx = enabledModels.indexOf(selectedModel);
+    const orderedModels = startIdx >= 0
+      ? [...enabledModels.slice(startIdx), ...enabledModels.slice(0, startIdx)]
+      : enabledModels;
+
+    // Errors that mean "this model can't help" → try next model
+    function isRetriable(err) {
+      const msg = (err.message || err.status || '').toString().toLowerCase();
+      return (
+        err.code === 429 ||
+        err.code === 503 ||
+        err.code === 404 ||
+        msg.includes('quota') ||
+        msg.includes('rate') ||
+        msg.includes('limit') ||
+        msg.includes('not found') ||
+        msg.includes('deprecated') ||
+        msg.includes('unavailable') ||
+        msg.includes('overloaded') ||
+        msg.includes('invalid model') ||
+        msg.includes('does not exist') ||
+        msg.includes('no longer') ||
+        msg.includes('preview') ||
+        msg.includes('resource_exhausted') ||
+        msg.includes('service_unavailable')
+      );
+    }
+
+    let usedModel = null;
+    let parsed = null;
+    let lastErr = null;
+    let attempts = 0;
+
+    for (let round = 0; round < 3; round++) { // up to 3 full cycles
+      for (const model of orderedModels) {
+        attempts++;
+        try {
+          const res = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                contents: [{ role: 'user', parts: [{ text: prompt }] }],
+                generationConfig: { temperature: 0.3, maxOutputTokens: 1024 },
+                safetySettings: [
+                  { category: 'HARM_CATEGORY_HARASSMENT',        threshold: 'BLOCK_ONLY_HIGH' },
+                  { category: 'HARM_CATEGORY_HATE_SPEECH',       threshold: 'BLOCK_ONLY_HIGH' },
+                  { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_ONLY_HIGH' },
+                  { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH' }
+                ]
+              })
+            }
+          );
+
+          const data = await res.json();
+
+          // Non-retriable: bad API key
+          if (data.error?.code === 400 || data.error?.code === 401 || data.error?.code === 403) {
+            showError(data.error);
+            return;
+          }
+
+          // Retriable API error (quota, model not found, etc.)
+          if (data.error) {
+            lastErr = data.error;
+            if (isRetriable(data.error)) {
+              // Small delay before next model to avoid hammering
+              await new Promise(r => setTimeout(r, 400));
+              continue; // try next model
+            }
+            showError(data.error);
+            return;
+          }
+
+          // Safety block — not retriable, content issue
+          if (data.candidates?.[0]?.finishReason === 'SAFETY') {
+            showBlocked('Текст містить недопустимий контент і не може бути оброблений.');
+            return;
+          }
+
+          let raw = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+          raw = raw.replace(/```json|```/g, '').trim();
+
+          let tryParsed;
+          try { tryParsed = JSON.parse(raw); }
+          catch(e) {
+            const match = raw.match(/\{[\s\S]*\}/);
+            if (match) tryParsed = JSON.parse(match[0]);
+            else { lastErr = { message: 'Не вдалося розпізнати відповідь AI' }; continue; }
+          }
+
+          if (tryParsed.blocked) {
+            showBlocked(tryParsed.reason || 'Текст містить недопустимий контент.');
+            return;
+          }
+
+          // SUCCESS
+          usedModel = model;
+          parsed = tryParsed;
+          break;
+
+        } catch(err) {
+          lastErr = err;
+          if (isRetriable(err)) {
+            await new Promise(r => setTimeout(r, 400));
+            continue;
+          }
+          // Unexpected network error — still try next model
+          await new Promise(r => setTimeout(r, 400));
+          continue;
+        }
+      }
+      if (parsed) break;
+      // Brief pause between full cycles
+      if (round < 2) await new Promise(r => setTimeout(r, 1000));
+    }
+
+    if (!parsed) {
+      // All models exhausted
+      const errMsg = lastErr?.message || 'Усі моделі тимчасово недоступні. Спробуйте пізніше.';
+      document.getElementById('errorBox').innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> ${errMsg}`;
+      document.getElementById('errorBox').style.display = 'block';
+      return;
+    }
+
+    // Update the select UI to reflect which model actually responded
+    if (usedModel) {
+      const sel = document.getElementById('modelSelect');
+      if ([...sel.options].some(o => o.value === usedModel)) sel.value = usedModel;
+    }
+
+    showResult(parsed);
+    await saveStats(parsed.changes ? parsed.changes.length : 0, parsed.noChanges, usedModel || selectedModel);
+
+  } catch(err) {
+    document.getElementById('errorBox').innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> ${err.message}`;
+    document.getElementById('errorBox').style.display = 'block';
+  } finally {
+    btn.classList.remove('loading');
+    btn.disabled = false;
+  }
+}
+
+function showError(err) {
+  const box = document.getElementById('errorBox');
+  const isQuota = err.message?.toLowerCase().includes('quota');
+  const retry = err.message?.match(/retry in ([\d.]+)s/i);
+  const sec = retry ? Math.ceil(parseFloat(retry[1])) : null;
+  const timeStr = sec ? (sec >= 3600 ? `${Math.ceil(sec/3600)} год` : sec >= 60 ? `${Math.ceil(sec/60)} хв` : `${sec}с`) : null;
+  if (isQuota) box.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Ліміт вичерпано${timeStr ? ` — спробуйте через ${timeStr}` : ''}. Спробуйте пізніше.`;
+  else if (err.code === 400 || err.code === 403) box.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg> Невірний API ключ. Зверніться до адміністратора.';
+  else box.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> ${err.message}`;
+  box.style.display = 'block';
+}
+
+function showBlocked(reason) {
+  const box = document.getElementById('errorBox');
+  box.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg> <strong>Текст заблоковано.</strong> ${reason}`;
+  box.style.display = 'block';
+}
+
+function showResult(data) {
+  const card = document.getElementById('result-card');
+  const resultText = document.getElementById('result-text');
+  const changesList = document.getElementById('changes-list');
+  const badge = document.getElementById('changes-badge');
+  resultText.textContent = data.corrected;
+  changesList.innerHTML = '';
+  if (data.noChanges || data.changes.length === 0) {
+    badge.textContent = '0';
+    changesList.innerHTML = `<div class="no-changes"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Текст вже правильний! Помилок не знайдено.</div>`;
+  } else {
+    badge.textContent = data.changes.length;
+    data.changes.forEach(c => {
+      const item = document.createElement('div');
+      item.className = 'change-item';
+      item.innerHTML = `
+        <div class="change-row">
+          <span class="change-before">${escHtml(c.before)}</span>
+          <span class="change-arrow">→</span>
+          <span class="change-after">${escHtml(c.after)}</span>
+        </div>
+        <div class="change-reason">${escHtml(c.reason)}</div>`;
+      changesList.appendChild(item);
+    });
+  }
+  card.style.display = 'block';
+  card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+document.getElementById('shareBtn').onclick = async () => {
+  const text = document.getElementById('result-text').textContent;
+  if (!text) return;
+  // Використовуємо нативний Web Share API якщо доступний (iOS/Android)
+  if (navigator.share) {
+    try {
+      await navigator.share({ text });
+    } catch(e) {
+      // Користувач закрив меню — нічого не робимо
+    }
+    return; // завжди виходимо якщо є navigator.share
+  }
+  // Fallback — показуємо кастомне меню (тільки на ПК)
+  const menu = document.createElement('div');
+  menu.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,0.5);backdrop-filter:blur(8px);animation:fadeIn 0.2s ease';
+  const enc = encodeURIComponent(text);
+  menu.innerHTML = `
+    <div style="width:100%;max-width:480px;background:var(--bg);backdrop-filter:blur(40px);-webkit-backdrop-filter:blur(40px);border:1px solid var(--border);border-top:1px solid var(--border-top);border-radius:24px 24px 0 0;padding:16px 16px calc(env(safe-area-inset-bottom,0px) + 16px);margin:0">
+      <div style="width:36px;height:4px;background:rgba(255,255,255,0.2);border-radius:2px;margin:0 auto 20px"></div>
+      <div style="font-size:13px;font-weight:700;color:rgba(255,255,255,0.4);text-align:center;margin-bottom:14px;letter-spacing:0.08em;text-transform:uppercase">Поділитись через</div>
+      <div style="display:flex;gap:12px;justify-content:center;margin-bottom:16px">
+        <a href="https://t.me/share/url?url=&text=${enc}" target="_blank" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;padding:16px 8px;background:var(--glass2);backdrop-filter:blur(20px);border:1px solid var(--border);border-top:1px solid var(--border-top);border-radius:16px;text-decoration:none;color:var(--text);font-size:12px;font-weight:700">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="#29B6F6"><path d="M9.78 18.65l.28-4.23 7.68-6.92c.34-.31-.07-.46-.52-.19L7.74 13.3 3.64 12c-.88-.25-.89-.86.2-1.3l15.97-6.16c.73-.33 1.43.18 1.15 1.3l-2.72 12.81c-.19.91-.74 1.13-1.5.71L12.6 16.3l-1.99 1.93c-.23.23-.42.42-.83.42z"/></svg>
+          Telegram
+        </a>
+        <a href="https://wa.me/?text=${enc}" target="_blank" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;padding:16px 8px;background:var(--glass2);backdrop-filter:blur(20px);border:1px solid var(--border);border-top:1px solid var(--border-top);border-radius:16px;text-decoration:none;color:var(--text);font-size:12px;font-weight:700">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+          WhatsApp
+        </a>
+        <a href="viber://forward?text=${enc}" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;padding:16px 8px;background:var(--glass2);backdrop-filter:blur(20px);border:1px solid var(--border);border-top:1px solid var(--border-top);border-radius:16px;text-decoration:none;color:var(--text);font-size:12px;font-weight:700">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="#7360F2"><path d="M11.4 0C8.96-.03 3.96.46 1.65 2.46-.15 4.16-.77 6.66-.8 9.73c-.03 3.07-.06 8.83 5.4 10.36v2.38s-.04.93.58.93c.77 0 1.22-.79 1.96-1.63.4-.44.96-1.09 1.38-1.59 3.8.32 6.72-.41 7.05-.52.77-.25 5.12-1.6 5.83-6.55.74-5.1-.36-8.32-2.35-9.77C17.44-.13 15.4.03 14.4.03L11.4 0zm.1 2.5c.87 0 2.64-.1 4.27 1.07 1.5 1.08 2.36 3.72 1.73 7.96-.59 4.02-4.02 4.82-4.62 5.01-.28.09-2.89.74-6.2.5l-.6-.04-.43.5s-.56.65-.95 1.1c0-.52-.05-1.05-.05-1.05l-.38-.11C1.35 16.1 1.72 11.13 1.74 8.83c.02-2.47.5-4.46 1.96-5.82C5.5 1.34 9.74 2.5 11.5 2.5z"/></svg>
+          Viber
+        </a>
+      </div>
+      <button onclick="this.closest('div[style*=fixed]').remove()" style="width:100%;padding:14px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.1);border-radius:14px;color:rgba(255,255,255,0.6);font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;cursor:pointer;-webkit-appearance:none">Скасувати</button>
+    </div>`;
+  document.body.appendChild(menu);
+  menu.onclick = e => { if(e.target === menu) menu.remove(); };
+};
+
+document.getElementById('copyBtn').onclick = async () => {
+  const text = document.getElementById('result-text').textContent;
+  if (!text) return;
+  try { await navigator.clipboard.writeText(text); }
+  catch(e) {
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.position='fixed'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove();
+  }
+  const btn = document.getElementById('copyBtn');
+  btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`; btn.classList.add('success');
+  setTimeout(() => { btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>'; btn.classList.remove('success'); }, 2000);
+};
+
+document.getElementById('useBtn').onclick = () => {
+  const text = document.getElementById('result-text').textContent;
+  if (!text) return;
+  textInput.value = text;
+  textInput.dispatchEvent(new Event('input'));
+  document.getElementById('result-card').style.display = 'none';
+  textInput.focus();
+  textInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+};
+
+document.getElementById('clearBtn').onclick = () => {
+  textInput.value = '';
+  textInput.dispatchEvent(new Event('input'));
+  document.getElementById('result-card').style.display = 'none';
+  document.getElementById('errorBox').style.display = 'none';
+  textInput.focus();
+};
+
+// ══════════════════════════════════════════════
+// SMART ADMIN LINK
+// ══════════════════════════════════════════════
+function getAdminUrl() {
+  const base = window.location.href.split('?')[0].split('#')[0];
+  return window.location.protocol === 'file:' ? base + '#admin' : base + '?admin';
+}
+
+const _link = document.getElementById('goAdminLink');
+if (_link) _link.onclick = () => { window.location.href = getAdminUrl(); };
+
+// ══════════════════════════════════════════════
+
+// Завантаження статистики в адмін
+document.getElementById('loadStatsBtn').addEventListener('click', async () => {
+  const today = new Date().toISOString().slice(0, 10);
+  try {
+    const snap = await getDoc(doc(db, 'stats', today));
+    if (snap.exists()) {
+      const d = snap.data();
+      const total = d.total || 0;
+      const totalChanges = d.totalChanges || 0;
+      const noChanges = d.noChanges || 0;
+      let totalCostUsd = parseFloat(d.totalCostUsd) || 0;
+      // Якщо totalCostUsd не збереглось — рахуємо з моделей
+      if (totalCostUsd === 0 && Object.keys(d.models || {}).length > 0) {
+        totalCostUsd = Object.entries(d.models || {}).reduce((sum, [m, c]) => {
+          return sum + getModelPrice(m) * c;
+        }, 0);
+      }
+      // Якщо і моделей немає — рахуємо з total по дефолтній ціні
+      if (totalCostUsd === 0 && total > 0) {
+        totalCostUsd = total * 0.0006;
+      }
+      const models = d.models || {};
+      document.getElementById('statTotal').textContent = total;
+      document.getElementById('statChanges').textContent = totalChanges;
+      document.getElementById('statNoChange').textContent = noChanges;
+
+      // Автокурс USD/UAH
+      let uahRate = 41.5;
+      try {
+        const r = await fetch('https://open.er-api.com/v6/latest/USD');
+        const d = await r.json();
+        if (d?.rates?.UAH) uahRate = d.rates.UAH;
+      } catch(e) { console.warn('Rate fetch failed:', e); }
+      document.getElementById('statUahRate').textContent = uahRate.toFixed(2);
+
+      const costUah = (totalCostUsd * uahRate).toFixed(4);
+      const usdStr = totalCostUsd < 0.01 ? '$' + totalCostUsd.toFixed(6) : '$' + totalCostUsd.toFixed(4);
+      document.getElementById('statCostUsd').textContent = usdStr;
+      document.getElementById('statCostUah').textContent = costUah + ' ₴';
+
+      // Розбивка по моделях
+      const modelList = Object.entries(models).map(([m, c]) => `<span style="font-size:11px;background:rgba(52,211,153,0.1);border-radius:6px;padding:2px 6px;color:var(--green)">${m}: ${c}</span>`).join(' ');
+      const modelInfo = document.getElementById('statModelInfo');
+      if (modelInfo) modelInfo.innerHTML = modelList || '—';
+    } else {
+      document.getElementById('statTotal').textContent = '0';
+      document.getElementById('statChanges').textContent = '0';
+      document.getElementById('statNoChange').textContent = '0';
+      document.getElementById('statCostUsd').textContent = '$0.000000';
+      document.getElementById('statCostUah').textContent = '0.0000 ₴';
+    }
+  } catch(e) {
+    console.warn('Stats error:', e);
+  }
+});
+
+// START
+// ══════════════════════════════════════════════
+route();
+</script>
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
+}
+</script>
+</body>
+</html>
