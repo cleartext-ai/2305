@@ -262,6 +262,7 @@ async function renderAdmin() {
   dot.className = 'status-dot' + (settings.apiKey ? '' : ' off');
 
   renderAdminModels(settings.models || DEFAULT_MODELS);
+  renderAdminMessages();
 }
 
 function renderAdminModels(models) {
@@ -308,7 +309,78 @@ function renderAdminModels(models) {
   });
 }
 
-// Toggle API key visibility
+// ══════════════════════════════════════════════
+// ADMIN — ПОВІДОМЛЕННЯ КОРИСТУВАЧАМ
+// ══════════════════════════════════════════════
+async function renderAdminMessages() {
+  const list = document.getElementById('adminMessagesList');
+  if (!list) return;
+  list.innerHTML = `<div style="padding:10px;color:var(--dim);font-size:12px;font-weight:700">Завантаження…</div>`;
+  invalidateMessagesCache();
+  const items = await getMessages();
+  list.innerHTML = '';
+  if (!items.length) {
+    list.innerHTML = `<div style="padding:10px;color:var(--dim);font-size:12px;font-weight:700">Ще немає жодного повідомлення.</div>`;
+    return;
+  }
+  [...items].reverse().forEach((m) => {
+    const realIdx = items.indexOf(m);
+    const item = document.createElement('div');
+    item.className = 'model-item';
+    item.innerHTML = `
+      <div style="flex:1">
+        <div class="model-item-name">${m.tag ? escHtml(m.tag) + ' — ' : ''}${escHtml(m.text)}</div>
+        <div class="model-item-label">${escHtml(m.dateLabel || '')}</div>
+      </div>
+      <button class="btn-del-model" data-idx="${realIdx}" title="Видалити"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>`;
+    list.appendChild(item);
+  });
+
+  list.querySelectorAll('.btn-del-model').forEach(btn => {
+    btn.onclick = async () => {
+      const cur = await getMessages();
+      cur.splice(+btn.dataset.idx, 1);
+      await saveMessages(cur);
+      invalidateMessagesCache();
+      renderAdminMessages();
+      showTmpMsg('msgSavedMsg');
+    };
+  });
+}
+
+document.getElementById('addMsgBtn').onclick = async () => {
+  const tagInp = document.getElementById('newMsgTag');
+  const textInp = document.getElementById('newMsgText');
+  const tag = tagInp.value.trim();
+  const text = textInp.value.trim();
+  if (!text) { textInp.focus(); return; }
+
+  const btn = document.getElementById('addMsgBtn');
+  btn.disabled = true;
+
+  const cur = await getMessages();
+  const now = new Date();
+  cur.push({
+    id: Date.now().toString(),
+    tag,
+    text,
+    createdAt: now.toISOString(),
+    dateLabel: now.toLocaleDateString('uk-UA', { day: 'numeric', month: 'long' })
+  });
+  const ok = await saveMessages(cur);
+  invalidateMessagesCache();
+  btn.disabled = false;
+
+  if (ok) {
+    tagInp.value = '';
+    textInp.value = '';
+    showTmpMsg('msgSavedMsg');
+    renderAdminMessages();
+  }
+};
+document.getElementById('newMsgText').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('addMsgBtn').click(); });
+
+
 document.getElementById('adminApiKeyToggle').onclick = () => {
   const inp = document.getElementById('adminApiKeyInput');
   const s = inp.type === 'password';
@@ -412,6 +484,7 @@ function switchTab(tabId) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tabId));
   document.querySelector('.app-body')?.scrollTo?.({ top: 0, behavior: 'instant' });
   window.scrollTo({ top: 0, behavior: 'instant' });
+  if (tabId === 'tab-messages') { invalidateMessagesCache(); renderMessages(); }
 }
 
 document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -490,32 +563,44 @@ function renderTemplates() {
   });
 }
 
-// ── ПОВІДОМЛЕННЯ (ВІД НОВИН) ──
-// Короткі приклади на основі новинної тематики — для тренування виправлення тексту
-const NEWS_MESSAGES = [
-  { tag: 'Погода', time: 'сьогодні', text: 'завтра обіцяють дощ і сильний вітер вдягніться тепліше' },
-  { tag: 'Місто', time: 'сьогодні', text: 'у центрі міста перекрили дорогу через ремонтні роботи' },
-  { tag: 'Здоровʼя', time: 'вчора', text: 'лікарі радять робити щеплення від грипу восени' },
-  { tag: 'Транспорт', time: 'вчора', text: 'автобус номер сім змінив розклад руху з понеділка' },
-  { tag: 'Спорт', time: '2 дні тому', text: 'наша збірна перемогла у важливому матчі вчора ввечері' },
-  { tag: 'Технології', time: '3 дні тому', text: 'нова версія застосунку стала швидша і зрозуміліша' },
-];
+// ══════════════════════════════════════════════
+// ПОВІДОМЛЕННЯ ВІД АДМІНІСТРАЦІЇ — зберігаються у Firestore
+// ══════════════════════════════════════════════
+let _cachedMessages = null;
 
-function renderMessages() {
+async function getMessages() {
+  if (_cachedMessages) return _cachedMessages;
+  const data = await fsGet('messages');
+  _cachedMessages = (data && Array.isArray(data.items)) ? data.items : [];
+  return _cachedMessages;
+}
+
+function invalidateMessagesCache() { _cachedMessages = null; }
+
+async function saveMessages(items) {
+  return await fsSet('messages', { items });
+}
+
+async function renderMessages() {
   const list = document.getElementById('messages-list');
   if (!list) return;
+  list.innerHTML = `<div style="padding:20px;text-align:center;color:var(--dim);font-size:13px;font-weight:700">Завантаження…</div>`;
+  const items = await getMessages();
   list.innerHTML = '';
-  NEWS_MESSAGES.forEach(m => {
+  if (!items.length) {
+    list.innerHTML = `<div style="padding:30px 16px;text-align:center;color:var(--dim);font-size:13px;font-weight:700">Поки що немає повідомлень від адміністрації.</div>`;
+    return;
+  }
+  // Найновіші зверху
+  [...items].reverse().forEach(m => {
     const item = document.createElement('div');
     item.className = 'message-item';
     item.innerHTML = `
       <div class="message-top">
-        <span class="message-tag">${escHtml(m.tag)}</span>
-        <span class="message-time">${escHtml(m.time)}</span>
+        ${m.tag ? `<span class="message-tag">${escHtml(m.tag)}</span>` : ''}
+        <span class="message-time">${escHtml(m.dateLabel || '')}</span>
       </div>
-      <div class="message-text">${escHtml(m.text)}</div>
-      <div class="message-hint"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg> Натисніть, щоб перевірити або переказати своїми словами</div>`;
-    item.addEventListener('click', () => useTextInFixer(m.text));
+      <div class="message-text">${escHtml(m.text)}</div>`;
     list.appendChild(item);
   });
 }
