@@ -192,6 +192,15 @@ function showApp(settings) {
   show('app-screen', true);
   renderAppModels(settings.models || DEFAULT_MODELS);
   document.getElementById('text-input').focus();
+  requestAnimationFrame(() => {
+    const activeBtn = document.querySelector('.tab-btn.active');
+    const indicator = document.getElementById('tabIndicator');
+    if (activeBtn && indicator) {
+      indicator.style.transition = 'none';
+      moveTabIndicator(activeBtn);
+      requestAnimationFrame(() => { indicator.style.transition = ''; });
+    }
+  });
 }
 
 function showOffline() {
@@ -404,17 +413,35 @@ function renderAppModels(models) {
 }
 
 // ══════════════════════════════════════════════
-// TAB BAR — Виправлення / Шаблони / Повідомлення
+// TAB BAR — Виправлення / Шаблони (плаваючий острівець)
 // ══════════════════════════════════════════════
+function moveTabIndicator(btn) {
+  const nav = document.getElementById('tabBar');
+  const indicator = document.getElementById('tabIndicator');
+  if (!nav || !indicator || !btn) return;
+  const navRect = nav.getBoundingClientRect();
+  const btnRect = btn.getBoundingClientRect();
+  indicator.style.width = btnRect.width + 'px';
+  indicator.style.transform = `translateX(${btnRect.left - navRect.left}px)`;
+}
+
 function switchTab(tabId) {
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === tabId));
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tabId));
   document.querySelector('.app-body')?.scrollTo?.({ top: 0, behavior: 'instant' });
   window.scrollTo({ top: 0, behavior: 'instant' });
+  const activeBtn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
+  moveTabIndicator(activeBtn);
 }
 
 document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+});
+
+// Тримаємо індикатор під активною вкладкою і при зміні розміру вікна
+window.addEventListener('resize', () => {
+  const activeBtn = document.querySelector('.tab-btn.active');
+  if (activeBtn) moveTabIndicator(activeBtn);
 });
 
 // Бере текст (з шаблону чи новини), переносить у поле виправлення і перемикає вкладку
