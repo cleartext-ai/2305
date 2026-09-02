@@ -593,7 +593,7 @@ textInput.addEventListener('keydown', e => { if (e.key==='Enter' && e.ctrlKey) f
 async function fixText() {
   const text = textInput.value.trim();
   if (!text) {
-    textInput.animate([{borderColor:'rgba(255,69,58,0.5)'},{borderColor:''}],{duration:400});
+    textInput.animate([{borderColor:'rgba(251,113,133,0.5)'},{borderColor:''}],{duration:400});
     return;
   }
 
@@ -920,7 +920,7 @@ document.getElementById('shareBtn').onclick = async () => {
           Viber
         </a>
       </div>
-      <button onclick="this.closest('div[style*=fixed]').remove()" style="width:100%;padding:14px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.1);border-radius:14px;color:rgba(255,255,255,0.6);font-family:-apple-system,system-ui,sans-serif;font-size:14px;font-weight:700;cursor:pointer;-webkit-appearance:none">Скасувати</button>
+      <button onclick="this.closest('div[style*=fixed]').remove()" style="width:100%;padding:14px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.1);border-radius:14px;color:rgba(255,255,255,0.6);font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;cursor:pointer;-webkit-appearance:none">Скасувати</button>
     </div>`;
   document.body.appendChild(menu);
   menu.onclick = e => { if(e.target === menu) menu.remove(); };
@@ -1012,7 +1012,7 @@ document.getElementById('loadStatsBtn').addEventListener('click', async () => {
       document.getElementById('statCostUah').textContent = costUah + ' ₴';
 
       // Розбивка по моделях
-      const modelList = Object.entries(models).map(([m, c]) => `<span style="font-size:11px;background:rgba(50,215,75,0.1);border-radius:6px;padding:2px 6px;color:var(--green)">${m}: ${c}</span>`).join(' ');
+      const modelList = Object.entries(models).map(([m, c]) => `<span style="font-size:11px;background:rgba(45,212,191,0.1);border-radius:6px;padding:2px 6px;color:var(--green)">${m}: ${c}</span>`).join(' ');
       const modelInfo = document.getElementById('statModelInfo');
       if (modelInfo) modelInfo.innerHTML = modelList || '—';
     } else {

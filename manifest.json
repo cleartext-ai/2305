@@ -4,8 +4,8 @@
   "description": "Виправлення тексту для людей з вадами слуху",
   "start_url": ".",
   "display": "standalone",
-  "background_color": "#121214",
-  "theme_color": "#121214",
+  "background_color": "#05070d",
+  "theme_color": "#05070d",
   "orientation": "portrait",
   "lang": "uk",
   "icons": [

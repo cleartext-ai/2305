@@ -1,4 +1,4 @@
-const CACHE = 'cleartext-v4';
+const CACHE = 'cleartext-v3';
 
 self.addEventListener('install', e => {
   self.skipWaiting();
