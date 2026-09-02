@@ -1012,7 +1012,7 @@ document.getElementById('loadStatsBtn').addEventListener('click', async () => {
       document.getElementById('statCostUah').textContent = costUah + ' ₴';
 
       // Розбивка по моделях
-      const modelList = Object.entries(models).map(([m, c]) => `<span style="font-size:11px;background:rgba(45,212,191,0.1);border-radius:6px;padding:2px 6px;color:var(--green)">${m}: ${c}</span>`).join(' ');
+      const modelList = Object.entries(models).map(([m, c]) => `<span style="font-size:11px;background:rgba(52,211,153,0.1);border-radius:6px;padding:2px 6px;color:var(--green)">${m}: ${c}</span>`).join(' ');
       const modelInfo = document.getElementById('statModelInfo');
       if (modelInfo) modelInfo.innerHTML = modelList || '—';
     } else {
