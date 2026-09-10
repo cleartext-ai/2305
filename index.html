@@ -10,7 +10,7 @@
 <meta name="theme-color" content="#0e1320">
 <link rel="manifest" href="manifest.json">
 <title>ClearText AI</title>
-<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -95,6 +95,10 @@
 <!-- ── ADMIN LOGIN SCREEN ── -->
 <div id="admin-login-screen">
   <div class="admin-login-card">
+    <div class="term-titlebar">
+      <span class="term-dot term-dot--r"></span><span class="term-dot term-dot--y"></span><span class="term-dot term-dot--g"></span>
+      <span class="term-titlebar-path">cleartext@admin:~/auth</span>
+    </div>
     <div class="ct-logo ct-logo--admin">
       <svg width="68" height="68" viewBox="0 0 68 68" fill="none" xmlns="http://www.w3.org/2000/svg">
         <defs>
@@ -145,6 +149,7 @@
   <div class="admin-header">
     <div class="admin-header-badge">ADMIN</div>
     <div class="admin-header-title">ClearText AI — Керування</div>
+    <span class="admin-term-clock" id="admTermClock">--:--:--</span>
     <button class="btn-admin-logout" id="adminLogoutBtn" type="button">Вийти</button>
   </div>
 
@@ -256,6 +261,90 @@
           <button class="btn-save" id="loadStatsBtn" type="button" style="align-self:flex-start"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg> Оновити</button>
         </div>
       </div>
+    <!-- Diagnostics section -->
+    <div class="admin-section">
+      <div class="admin-section-header">
+        <div class="admin-section-title"><span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span> Діагностика системи</div>
+        <span class="term-chip" id="diagOverallStatus">CHECKING…</span>
+      </div>
+      <div class="admin-section-body">
+        <div class="diag-grid">
+          <div class="diag-item"><span class="diag-label">Firestore</span><span class="diag-value" id="diagFirebaseStatus">—</span></div>
+          <div class="diag-item"><span class="diag-label">Затримка БД</span><span class="diag-value" id="diagLatency">—</span></div>
+          <div class="diag-item"><span class="diag-label">Мережа</span><span class="diag-value" id="diagOnline">—</span></div>
+          <div class="diag-item"><span class="diag-label">Service Worker</span><span class="diag-value" id="diagSW">—</span></div>
+          <div class="diag-item"><span class="diag-label">Режим показу</span><span class="diag-value" id="diagDisplayMode">—</span></div>
+          <div class="diag-item"><span class="diag-label">Платформа</span><span class="diag-value" id="diagPlatform">—</span></div>
+          <div class="diag-item"><span class="diag-label">Сесія триває</span><span class="diag-value" id="diagSessionSince">00:00</span></div>
+          <div class="diag-item"><span class="diag-label">Локальний час</span><span class="diag-value" id="diagClock">—</span></div>
+        </div>
+        <div class="diag-ua" id="diagUA">—</div>
+        <button class="btn-save btn-term" id="diagRefreshBtn" type="button"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg> Оновити діагностику</button>
+      </div>
+    </div>
+
+    <!-- API connection tester -->
+    <div class="admin-section">
+      <div class="admin-section-header">
+        <div class="admin-section-title"><span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></span> Тест Gemini API</div>
+      </div>
+      <div class="admin-section-body">
+        <div class="info-box">Перевіряє ключ із поля вище окремим легким запитом (список моделей). Не використовує і не змінює логіку виправлення тексту для користувачів.</div>
+        <button class="btn-save btn-term" id="testApiKeyBtn" type="button"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg> Перевірити з'єднання</button>
+        <div class="term-console" id="apiTestResult" style="display:none"></div>
+      </div>
+    </div>
+
+    <!-- Raw settings JSON -->
+    <div class="admin-section">
+      <div class="admin-section-header">
+        <div class="admin-section-title"><span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></span> Сирі дані налаштувань (JSON)</div>
+      </div>
+      <div class="admin-section-body">
+        <div class="info-box">Технічний перегляд і резервне копіювання поточних налаштувань Firestore. Імпорт повністю перезаписує документ налаштувань.</div>
+        <textarea class="json-view" id="rawSettingsJson" readonly spellcheck="false"></textarea>
+        <div class="admin-row" style="gap:8px">
+          <button class="btn-save btn-term" id="refreshJsonBtn" type="button">Оновити</button>
+          <button class="btn-save btn-term" id="exportJsonBtn" type="button">Експорт .json</button>
+          <label class="btn-save btn-term" id="importJsonLabel" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px;margin:0">Імпорт .json<input type="file" id="importJsonInput" accept="application/json" style="display:none"></label>
+        </div>
+        <div class="admin-success-msg" id="jsonSavedMsg"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Налаштування імпортовано!</div>
+      </div>
+    </div>
+
+    <!-- Activity log -->
+    <div class="admin-section">
+      <div class="admin-section-header">
+        <div class="admin-section-title"><span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg></span> Журнал подій сесії</div>
+        <span class="term-chip term-chip--btn" id="clearLogBtn">clear</span>
+      </div>
+      <div class="admin-section-body">
+        <div class="term-console" id="activityLog"></div>
+      </div>
+    </div>
+
+    <!-- Danger zone -->
+    <div class="admin-section admin-section--danger">
+      <div class="admin-section-header">
+        <div class="admin-section-title"><span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span> Небезпечна зона</div>
+      </div>
+      <div class="admin-section-body">
+        <div class="info-box info-box--danger">Дії нижче незворотні та стосуються лише даних (Firestore / цей пристрій) — код застосунку для користувачів вони не змінюють.</div>
+        <div class="danger-row">
+          <div><div class="danger-title">Скинути статистику за сьогодні</div><div class="danger-sub">Обнулить лічильники запитів і вартості за поточну дату</div></div>
+          <button class="btn-danger" id="resetStatsBtn" type="button">Скинути</button>
+        </div>
+        <div class="danger-row">
+          <div><div class="danger-title">Відновити моделі за замовчуванням</div><div class="danger-sub">Перезапише список моделей стандартним набором</div></div>
+          <button class="btn-danger" id="resetModelsBtn" type="button">Відновити</button>
+        </div>
+        <div class="danger-row">
+          <div><div class="danger-title">Скинути дані входу адміна</div><div class="danger-sub">Логін/пароль повернуться до admin / admin123 на цьому пристрої</div></div>
+          <button class="btn-danger" id="resetCredsBtn" type="button">Скинути</button>
+        </div>
+      </div>
+    </div>
+
   </div>
 </div>
 

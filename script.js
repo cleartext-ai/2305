@@ -255,6 +255,7 @@ function doAdminLogin() {
   if (user === getAdminUser() && pass === getAdminPass()) {
     errBox.style.display = 'none';
     setAdminSession(true);
+    _adminSessionStart = Date.now();
     showAdmin();
   } else {
     errBox.style.display = 'block';
@@ -295,6 +296,12 @@ async function renderAdmin() {
   dot.className = 'status-dot' + (settings.apiKey ? '' : ' off');
 
   renderAdminModels(settings.models || DEFAULT_MODELS);
+
+  // Tech panel (diagnostics / log / json) — admin-only, no effect on user app
+  if (!_adminSessionStart) _adminSessionStart = Date.now();
+  restoreLog();
+  runDiagnostics();
+  refreshRawJson();
 }
 
 function updateMaintenanceUI(isOn) {
@@ -320,6 +327,7 @@ document.getElementById('maintenanceToggle').addEventListener('change', async (e
   if (ok) {
     updateMaintenanceUI(checked);
     showTmpMsg('maintenanceSavedMsg');
+    logEvent('Режим технічних робіт: ' + (checked ? 'УВІМКНЕНО' : 'вимкнено'), checked ? 'fail' : 'ok');
   } else {
     // Відкат чекбокса якщо збереження не вдалось
     toggle.checked = !checked;
@@ -392,7 +400,7 @@ document.getElementById('saveApiKeyBtn').onclick = async () => {
   btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Зберегти';
   btn.disabled = false;
 
-  if (ok) showTmpMsg('apiKeySavedMsg');
+  if (ok) { showTmpMsg('apiKeySavedMsg'); logEvent('API ключ збережено', 'ok'); refreshRawJson(); }
   else {
     document.getElementById('apiKeySavedMsg').innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg> Помилка збереження. Перевір правила Firestore.';
     document.getElementById('apiKeySavedMsg').style.color = 'var(--rose)';
@@ -441,6 +449,7 @@ document.getElementById('saveCredsBtn').onclick = () => {
   document.getElementById('newAdminPass').value = '';
   document.getElementById('newAdminPassConfirm').value = '';
   showTmpMsg('credsSavedMsg');
+  logEvent('Дані входу адміна оновлено (логін: ' + login + ')', 'ok');
 };
 
 function showTmpMsg(id) {
@@ -448,6 +457,237 @@ function showTmpMsg(id) {
   el.style.display = 'block';
   setTimeout(() => { el.style.display = 'none'; }, 2500);
 }
+
+// ══════════════════════════════════════════════
+// ADMIN — TECH PANEL (diagnostics / api tester / raw json / log / danger zone)
+// Everything below is admin-only: it does not touch fixText(), the Gemini
+// prompt, renderAppModels(), or anything rendered inside #app-screen.
+// ══════════════════════════════════════════════
+let _adminSessionStart = null;
+
+function logEvent(msg, type) {
+  const time = new Date().toLocaleTimeString('uk-UA', { hour12: false });
+  const log = JSON.parse(sessionStorage.getItem('ct_admin_log') || '[]');
+  log.push({ time, msg, type });
+  sessionStorage.setItem('ct_admin_log', JSON.stringify(log.slice(-200)));
+  const box = document.getElementById('activityLog');
+  if (!box) return;
+  const line = document.createElement('div');
+  line.className = 'term-log-line' + (type ? ' term-log-line--' + type : '');
+  line.textContent = `[${time}] ${msg}`;
+  box.appendChild(line);
+  box.scrollTop = box.scrollHeight;
+}
+
+function restoreLog() {
+  const box = document.getElementById('activityLog');
+  if (!box) return;
+  box.innerHTML = '';
+  const log = JSON.parse(sessionStorage.getItem('ct_admin_log') || '[]');
+  if (!log.length) { box.innerHTML = '<div class="term-log-line term-log-line--dim">// журнал порожній</div>'; return; }
+  log.forEach(e => {
+    const line = document.createElement('div');
+    line.className = 'term-log-line' + (e.type ? ' term-log-line--' + e.type : '');
+    line.textContent = `[${e.time}] ${e.msg}`;
+    box.appendChild(line);
+  });
+  box.scrollTop = box.scrollHeight;
+}
+
+document.getElementById('clearLogBtn')?.addEventListener('click', () => {
+  sessionStorage.removeItem('ct_admin_log');
+  restoreLog();
+});
+
+// Live clock + session uptime (admin header + diagnostics card)
+function tickAdminClock() {
+  const now = new Date().toLocaleTimeString('uk-UA', { hour12: false });
+  const clockEl = document.getElementById('diagClock');
+  if (clockEl) clockEl.textContent = now;
+  const termClock = document.getElementById('admTermClock');
+  if (termClock) termClock.textContent = now;
+  const sinceEl = document.getElementById('diagSessionSince');
+  if (sinceEl && _adminSessionStart) {
+    const diff = Math.floor((Date.now() - _adminSessionStart) / 1000);
+    const m = String(Math.floor(diff / 60)).padStart(2, '0');
+    const s = String(diff % 60).padStart(2, '0');
+    sinceEl.textContent = `${m}:${s}`;
+  }
+}
+setInterval(tickAdminClock, 1000);
+
+async function runDiagnostics() {
+  const statusEl = document.getElementById('diagOverallStatus');
+  const fbEl = document.getElementById('diagFirebaseStatus');
+  const latEl = document.getElementById('diagLatency');
+  const onlineEl = document.getElementById('diagOnline');
+  const swEl = document.getElementById('diagSW');
+  const dispEl = document.getElementById('diagDisplayMode');
+  const platEl = document.getElementById('diagPlatform');
+  const uaEl = document.getElementById('diagUA');
+  if (!statusEl) return;
+  statusEl.textContent = 'CHECKING…';
+  statusEl.className = 'term-chip';
+
+  if (onlineEl) { onlineEl.textContent = navigator.onLine ? 'ONLINE' : 'OFFLINE'; onlineEl.className = 'diag-value ' + (navigator.onLine ? 'ok' : 'fail'); }
+
+  if (swEl) {
+    try {
+      const regs = navigator.serviceWorker ? await navigator.serviceWorker.getRegistrations() : [];
+      swEl.textContent = regs.length ? `АКТИВНИЙ ×${regs.length}` : 'НЕ ЗАРЕЄСТРОВАНО';
+      swEl.className = 'diag-value ' + (regs.length ? 'ok' : 'warn');
+    } catch { swEl.textContent = 'N/A'; }
+  }
+
+  if (dispEl) {
+    const standalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+    dispEl.textContent = standalone ? 'STANDALONE' : 'BROWSER';
+  }
+  if (platEl) platEl.textContent = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || '—';
+  if (uaEl) uaEl.textContent = navigator.userAgent;
+
+  const t0 = performance.now();
+  try {
+    await fsGet('settings');
+    const ms = Math.round(performance.now() - t0);
+    if (fbEl) { fbEl.textContent = 'OK'; fbEl.className = 'diag-value ok'; }
+    if (latEl) latEl.textContent = ms + ' ms';
+    statusEl.textContent = 'OK';
+    statusEl.className = 'term-chip term-chip--ok';
+  } catch (e) {
+    if (fbEl) { fbEl.textContent = 'ПОМИЛКА'; fbEl.className = 'diag-value fail'; }
+    if (latEl) latEl.textContent = '—';
+    statusEl.textContent = 'FAIL';
+    statusEl.className = 'term-chip term-chip--fail';
+  }
+}
+document.getElementById('diagRefreshBtn')?.addEventListener('click', () => {
+  logEvent('Запущено оновлення діагностики', 'info');
+  runDiagnostics();
+});
+
+// API key tester — isolated GET request, separate from the user-facing generateContent call
+document.getElementById('testApiKeyBtn')?.addEventListener('click', async () => {
+  const btn = document.getElementById('testApiKeyBtn');
+  const resBox = document.getElementById('apiTestResult');
+  const key = document.getElementById('adminApiKeyInput').value.trim();
+  resBox.style.display = 'block';
+  if (!key) {
+    resBox.innerHTML = '<div class="term-log-line term-log-line--fail">// помилка: ключ порожній</div>';
+    return;
+  }
+  btn.disabled = true;
+  const origHtml = btn.innerHTML;
+  btn.innerHTML = '⏳ Перевірка…';
+  resBox.innerHTML = '<div class="term-log-line term-log-line--dim">// надсилання запиту...</div>';
+  const t0 = performance.now();
+  try {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(key)}`);
+    const ms = Math.round(performance.now() - t0);
+    const data = await res.json();
+    if (res.ok) {
+      const count = (data.models || []).length;
+      resBox.innerHTML =
+        `<div class="term-log-line term-log-line--ok">// HTTP ${res.status} OK</div>` +
+        `<div class="term-log-line">// затримка: ${ms} ms</div>` +
+        `<div class="term-log-line">// доступно моделей: ${count}</div>`;
+      logEvent(`Тест API ключа: успішно (${ms} ms, ${count} моделей)`, 'ok');
+    } else {
+      resBox.innerHTML =
+        `<div class="term-log-line term-log-line--fail">// HTTP ${res.status}</div>` +
+        `<div class="term-log-line term-log-line--fail">// ${escHtml((data.error && data.error.message) || 'невідома помилка')}</div>`;
+      logEvent(`Тест API ключа: помилка HTTP ${res.status}`, 'fail');
+    }
+  } catch (e) {
+    resBox.innerHTML = `<div class="term-log-line term-log-line--fail">// мережева помилка: ${escHtml(e.message)}</div>`;
+    logEvent('Тест API ключа: мережева помилка', 'fail');
+  }
+  btn.disabled = false;
+  btn.innerHTML = origHtml;
+});
+
+// Raw JSON settings — view / export / import
+async function refreshRawJson() {
+  const ta = document.getElementById('rawSettingsJson');
+  if (!ta) return;
+  const settings = await getSettings();
+  ta.value = JSON.stringify(settings, null, 2);
+}
+document.getElementById('refreshJsonBtn')?.addEventListener('click', () => {
+  invalidateCache();
+  refreshRawJson();
+  logEvent('Оновлено перегляд JSON налаштувань', 'info');
+});
+
+document.getElementById('exportJsonBtn')?.addEventListener('click', async () => {
+  const settings = await getSettings();
+  const blob = new Blob([JSON.stringify(settings, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `cleartext-settings-${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+  logEvent('Експортовано settings.json', 'info');
+});
+
+document.getElementById('importJsonInput')?.addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  try {
+    const text = await file.text();
+    const obj = JSON.parse(text);
+    if (typeof obj !== 'object' || obj === null || Array.isArray(obj)) throw new Error('Очікується JSON-об\u2019єкт');
+    if (!confirm('Перезаписати поточні налаштування вмістом файлу? Цю дію не можна скасувати.')) { e.target.value = ''; return; }
+    const ok = await fsSet('settings', obj);
+    invalidateCache();
+    if (ok) {
+      await renderAdmin();
+      showTmpMsg('jsonSavedMsg');
+      logEvent('Імпортовано налаштування з файлу ' + file.name, 'ok');
+    } else {
+      logEvent('Помилка запису імпортованих налаштувань', 'fail');
+    }
+  } catch (err) {
+    alert('Помилка імпорту: ' + err.message);
+    logEvent('Помилка імпорту JSON: ' + err.message, 'fail');
+  }
+  e.target.value = '';
+});
+
+// Danger zone
+document.getElementById('resetStatsBtn')?.addEventListener('click', async () => {
+  if (!confirm('Скинути статистику за сьогодні? Дію неможливо скасувати.')) return;
+  const today = new Date().toISOString().slice(0, 10);
+  try {
+    await setDoc(doc(db, 'stats', today), { total: 0, noChanges: 0, totalChanges: 0, totalCostUsd: 0, models: {}, lastUpdated: new Date().toISOString() });
+    logEvent('Статистику за ' + today + ' скинуто', 'ok');
+  } catch (e) {
+    logEvent('Помилка скидання статистики: ' + e.message, 'fail');
+    alert('Помилка: ' + e.message);
+  }
+});
+
+document.getElementById('resetModelsBtn')?.addEventListener('click', async () => {
+  if (!confirm('Відновити список моделей за замовчуванням?')) return;
+  await fsSet('settings', { models: DEFAULT_MODELS });
+  invalidateCache();
+  const s = await getSettings();
+  renderAdminModels(s.models || DEFAULT_MODELS);
+  refreshRawJson();
+  logEvent('Моделі відновлено до значень за замовчуванням', 'ok');
+});
+
+document.getElementById('resetCredsBtn')?.addEventListener('click', () => {
+  if (!confirm('Скинути логін і пароль адміна до значень за замовчуванням на цьому пристрої?')) return;
+  lsSet(KEYS.ADMIN_USER, DEFAULT_ADMIN.user);
+  lsSet(KEYS.ADMIN_PASS, DEFAULT_ADMIN.pass);
+  logEvent('Дані входу адміна скинуто до значень за замовчуванням', 'ok');
+  alert('Дані входу скинуто до admin / admin123.');
+});
+
 
 // ══════════════════════════════════════════════
 // MAIN APP
