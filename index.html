@@ -176,6 +176,32 @@
       </div>
     </div>
 
+    <!-- Daily limit section -->
+    <div class="admin-section">
+      <div class="admin-section-header">
+        <div class="admin-section-title"><span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span> Денний ліміт запитів
+          <span class="status-dot off" id="limitStatusDot" style="display:none"></span>
+        </div>
+      </div>
+      <div class="admin-section-body">
+        <div class="info-box">Коли увімкнено — після досягнення ліміту запитів за поточну добу користувачі бачитимуть повідомлення про вичерпаний ліміт замість виправлення тексту. За замовчуванням вимкнено, ліміту немає.</div>
+        <div class="admin-row" style="align-items:center;justify-content:space-between">
+          <div id="limitStatusLabel" style="font-weight:800;font-size:14px">Вимкнено — без обмежень</div>
+          <label class="model-toggle">
+            <input type="checkbox" id="limitToggle">
+            <span class="model-toggle-slider"></span>
+          </label>
+        </div>
+        <div class="admin-row">
+          <div class="admin-key-wrap" style="flex:1;min-width:120px">
+            <input type="number" class="admin-key-input" id="limitValueInput" min="1" step="1" placeholder="напр. 500">
+          </div>
+          <button class="btn-save" id="saveLimitBtn" type="button">Зберегти</button>
+        </div>
+        <div class="admin-success-msg" id="limitSavedMsg"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Ліміт збережено!</div>
+      </div>
+    </div>
+
     <!-- API Key section -->
     <div class="admin-section">
       <div class="admin-section-header">
@@ -261,6 +287,30 @@
           <button class="btn-save" id="loadStatsBtn" type="button" style="align-self:flex-start"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg> Оновити</button>
         </div>
       </div>
+
+    <!-- Period stats section -->
+    <div class="admin-section">
+      <div class="admin-section-header">
+        <div class="admin-section-title"><span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg></span> Статистика за період</div>
+      </div>
+      <div class="admin-section-body">
+        <div class="period-tabs">
+          <button class="period-tab active" data-days="1" type="button">Сьогодні</button>
+          <button class="period-tab" data-days="7" type="button">7 днів</button>
+          <button class="period-tab" data-days="30" type="button">30 днів</button>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+          <div class="stat-box"><div class="stat-val" id="periodTotal">—</div><div class="stat-label">Запитів за період</div></div>
+          <div class="stat-box"><div class="stat-val" id="periodAvg">—</div><div class="stat-label">В середньому/день</div></div>
+          <div class="stat-box"><div class="stat-val" id="periodCost">—</div><div class="stat-label">Витрати (USD)</div></div>
+        </div>
+        <div class="bar-chart" id="periodBarChart"></div>
+        <div class="admin-row" style="gap:8px">
+          <button class="btn-save btn-term" id="periodExportBtn" type="button">Експорт CSV</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Diagnostics section -->
     <div class="admin-section">
       <div class="admin-section-header">
@@ -277,9 +327,30 @@
           <div class="diag-item"><span class="diag-label">Платформа</span><span class="diag-value" id="diagPlatform">—</span></div>
           <div class="diag-item"><span class="diag-label">Сесія триває</span><span class="diag-value" id="diagSessionSince">00:00</span></div>
           <div class="diag-item"><span class="diag-label">Локальний час</span><span class="diag-value" id="diagClock">—</span></div>
+          <div class="diag-item"><span class="diag-label">Версія SW кешу</span><span class="diag-value" id="diagSWVersion">—</span></div>
         </div>
         <div class="diag-ua" id="diagUA">—</div>
-        <button class="btn-save btn-term" id="diagRefreshBtn" type="button"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg> Оновити діагностику</button>
+        <div class="admin-row" style="gap:8px">
+          <button class="btn-save btn-term" id="diagRefreshBtn" type="button"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg> Оновити діагностику</button>
+          <button class="btn-save btn-term" id="diagUpdateSwBtn" type="button"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg> Оновити SW</button>
+          <button class="btn-save btn-term" id="diagCopyBtn" type="button"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Копіювати</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Admin test corrector -->
+    <div class="admin-section">
+      <div class="admin-section-header">
+        <div class="admin-section-title"><span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg></span> Тест виправлення тексту</div>
+      </div>
+      <div class="admin-section-body">
+        <div class="info-box">Прогонить речення крізь ту саму AI-логіку, що й застосунок користувача, але результат ніде не зберігається і не впливає на публічну статистику чи вигляд застосунку.</div>
+        <textarea class="json-view" id="adminTestInput" style="min-height:70px;color:var(--adm-text)" placeholder="я вчора ходив магазін купляв хліб"></textarea>
+        <div class="admin-row" style="gap:8px">
+          <select class="admin-key-input" id="adminTestModelSelect" style="flex:1;min-width:160px"></select>
+          <button class="btn-save btn-term" id="adminTestRunBtn" type="button"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg> Запустити тест</button>
+        </div>
+        <div class="term-console" id="adminTestResult" style="display:none"></div>
       </div>
     </div>
 
@@ -316,9 +387,21 @@
     <div class="admin-section">
       <div class="admin-section-header">
         <div class="admin-section-title"><span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg></span> Журнал подій сесії</div>
-        <span class="term-chip term-chip--btn" id="clearLogBtn">clear</span>
+        <div style="display:flex;gap:6px;align-items:center">
+          <span class="term-chip term-chip--btn" id="exportLogBtn">export</span>
+          <span class="term-chip term-chip--btn" id="clearLogBtn">clear</span>
+        </div>
       </div>
       <div class="admin-section-body">
+        <div class="admin-row" style="gap:8px">
+          <input type="text" class="model-add-input" id="logSearchInput" placeholder="Пошук у журналі…" style="flex:1;min-width:140px">
+          <select class="model-add-input" id="logFilterSelect" style="max-width:150px">
+            <option value="">Усі типи</option>
+            <option value="ok">Успіх</option>
+            <option value="fail">Помилка</option>
+            <option value="info">Інфо</option>
+          </select>
+        </div>
         <div class="term-console" id="activityLog"></div>
       </div>
     </div>

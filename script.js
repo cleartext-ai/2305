@@ -59,13 +59,20 @@ function getModelPrice(modelId) {
   }
   return 0.0006; // default
 }
-async function saveStats(changesCount, noChanges, modelId) {
+// Адмін може перевизначити ціну моделі в Firestore (settings.models[i].price).
+// Якщо перевизначення немає — падаємо назад на стандартну таблицю цін вище.
+function getModelPriceFromList(modelId, modelsList) {
+  const m = (modelsList || []).find(x => x.id === modelId);
+  if (m && typeof m.price === 'number' && !isNaN(m.price) && m.price > 0) return m.price;
+  return getModelPrice(modelId);
+}
+async function saveStats(changesCount, noChanges, modelId, modelsList) {
   try {
     const today = new Date().toISOString().slice(0, 10);
     const statsRef = doc(db, 'stats', today);
     const snap = await getDoc(statsRef);
     const prev = snap.exists() ? snap.data() : { total: 0, noChanges: 0, totalChanges: 0, totalCostUsd: 0 };
-    const price = getModelPrice(modelId);
+    const price = getModelPriceFromList(modelId, modelsList);
     const modelKey = (modelId || 'unknown').replace(/[^a-z0-9.-]/g, '-');
     const modelStats = prev.models || {};
     modelStats[modelKey] = (modelStats[modelKey] || 0) + 1;
@@ -111,7 +118,7 @@ let _cachedSettings = null;
 async function getSettings() {
   if (_cachedSettings) return _cachedSettings;
   const data = await fsGet('settings');
-  _cachedSettings = data || { apiKey: '', models: DEFAULT_MODELS, maintenanceMode: false };
+  _cachedSettings = data || { apiKey: '', models: DEFAULT_MODELS, maintenanceMode: false, dailyLimitEnabled: false, dailyLimit: 0 };
   return _cachedSettings;
 }
 
@@ -296,12 +303,37 @@ async function renderAdmin() {
   dot.className = 'status-dot' + (settings.apiKey ? '' : ' off');
 
   renderAdminModels(settings.models || DEFAULT_MODELS);
+  renderAdminTestModelSelect(settings.models || DEFAULT_MODELS);
+
+  // Daily request limit
+  const limitToggle = document.getElementById('limitToggle');
+  const limitInput = document.getElementById('limitValueInput');
+  if (limitToggle) {
+    limitToggle.checked = !!settings.dailyLimitEnabled;
+    updateLimitUI(!!settings.dailyLimitEnabled);
+  }
+  if (limitInput) limitInput.value = settings.dailyLimit ? settings.dailyLimit : '';
 
   // Tech panel (diagnostics / log / json) — admin-only, no effect on user app
   if (!_adminSessionStart) _adminSessionStart = Date.now();
   restoreLog();
   runDiagnostics();
   refreshRawJson();
+  loadPeriodStats(_currentPeriodDays || 1);
+}
+
+function renderAdminTestModelSelect(models) {
+  const sel = document.getElementById('adminTestModelSelect');
+  if (!sel) return;
+  const prevVal = sel.value;
+  sel.innerHTML = '';
+  models.forEach(m => {
+    const opt = document.createElement('option');
+    opt.value = m.id;
+    opt.textContent = (m.label || m.id) + (m.enabled ? '' : ' (вимкнена)');
+    sel.appendChild(opt);
+  });
+  if ([...sel.options].some(o => o.value === prevVal)) sel.value = prevVal;
 }
 
 function updateMaintenanceUI(isOn) {
@@ -334,6 +366,47 @@ document.getElementById('maintenanceToggle').addEventListener('change', async (e
   }
 });
 
+// ══════════════════════════════════════════════
+// ADMIN — ДЕННИЙ ЛІМІТ ЗАПИТІВ (опційно, вимкнено за замовчуванням)
+// ══════════════════════════════════════════════
+function updateLimitUI(isOn) {
+  const label = document.getElementById('limitStatusLabel');
+  const dot = document.getElementById('limitStatusDot');
+  if (label) {
+    label.textContent = isOn ? 'Увімкнено — застосунок обмежує кількість запитів' : 'Вимкнено — без обмежень';
+    label.style.color = isOn ? 'var(--rose)' : 'var(--text)';
+  }
+  if (dot) {
+    dot.style.display = 'inline-block';
+    dot.className = 'status-dot' + (isOn ? '' : ' off');
+  }
+}
+
+document.getElementById('limitToggle')?.addEventListener('change', async (e) => {
+  const checked = e.target.checked;
+  const toggle = e.target;
+  toggle.disabled = true;
+  const ok = await fsSet('settings', { dailyLimitEnabled: checked });
+  invalidateCache();
+  toggle.disabled = false;
+  if (ok) {
+    updateLimitUI(checked);
+    showTmpMsg('limitSavedMsg');
+    logEvent('Денний ліміт запитів: ' + (checked ? 'УВІМКНЕНО' : 'вимкнено'), checked ? 'info' : 'ok');
+  } else {
+    toggle.checked = !checked;
+  }
+});
+
+document.getElementById('saveLimitBtn')?.addEventListener('click', async () => {
+  const inp = document.getElementById('limitValueInput');
+  const val = parseInt(inp.value, 10);
+  if (isNaN(val) || val < 1) { inp.animate([{borderColor:'rgba(251,113,133,0.6)'},{borderColor:''}],{duration:400}); return; }
+  const ok = await fsSet('settings', { dailyLimit: val });
+  invalidateCache();
+  if (ok) { showTmpMsg('limitSavedMsg'); logEvent(`Денний ліміт запитів встановлено: ${val}`, 'ok'); }
+});
+
 function renderAdminModels(models) {
   const list = document.getElementById('modelsList');
   list.innerHTML = '';
@@ -345,6 +418,7 @@ function renderAdminModels(models) {
         <div class="model-item-name">${escHtml(m.id)}</div>
         ${m.label ? `<div class="model-item-label">${escHtml(m.label)}</div>` : ''}
       </div>
+      <input type="number" class="model-price-input" data-idx="${i}" value="${typeof m.price === 'number' && m.price > 0 ? m.price : ''}" placeholder="${getModelPrice(m.id).toFixed(4)}" step="0.0001" min="0" title="Ціна за запит (USD), порожньо = за замовчуванням">
       <label class="model-toggle">
         <input type="checkbox" ${m.enabled ? 'checked' : ''} data-idx="${i}">
         <span class="model-toggle-slider"></span>
@@ -361,6 +435,21 @@ function renderAdminModels(models) {
       await fsSet('settings', { models: mods });
       invalidateCache();
       showTmpMsg('modelsSavedMsg');
+    });
+  });
+
+  list.querySelectorAll('.model-price-input').forEach(inp => {
+    inp.addEventListener('change', async () => {
+      const settings = await getSettings();
+      const mods = settings.models || DEFAULT_MODELS;
+      const raw = inp.value.trim();
+      const val = raw === '' ? null : parseFloat(raw);
+      if (val === null || isNaN(val) || val <= 0) delete mods[+inp.dataset.idx].price;
+      else mods[+inp.dataset.idx].price = val;
+      await fsSet('settings', { models: mods });
+      invalidateCache();
+      showTmpMsg('modelsSavedMsg');
+      logEvent(`Ціну моделі ${mods[+inp.dataset.idx].id} оновлено`, 'ok');
     });
   });
 
@@ -470,21 +559,20 @@ function logEvent(msg, type) {
   const log = JSON.parse(sessionStorage.getItem('ct_admin_log') || '[]');
   log.push({ time, msg, type });
   sessionStorage.setItem('ct_admin_log', JSON.stringify(log.slice(-200)));
-  const box = document.getElementById('activityLog');
-  if (!box) return;
-  const line = document.createElement('div');
-  line.className = 'term-log-line' + (type ? ' term-log-line--' + type : '');
-  line.textContent = `[${time}] ${msg}`;
-  box.appendChild(line);
-  box.scrollTop = box.scrollHeight;
+  restoreLog();
 }
 
+// Пошук + фільтр за типом застосовуються тут же, при кожному рендері журналу
 function restoreLog() {
   const box = document.getElementById('activityLog');
   if (!box) return;
+  const search = (document.getElementById('logSearchInput')?.value || '').trim().toLowerCase();
+  const typeFilter = document.getElementById('logFilterSelect')?.value || '';
   box.innerHTML = '';
-  const log = JSON.parse(sessionStorage.getItem('ct_admin_log') || '[]');
-  if (!log.length) { box.innerHTML = '<div class="term-log-line term-log-line--dim">// журнал порожній</div>'; return; }
+  let log = JSON.parse(sessionStorage.getItem('ct_admin_log') || '[]');
+  if (typeFilter) log = log.filter(e => e.type === typeFilter);
+  if (search) log = log.filter(e => e.msg.toLowerCase().includes(search));
+  if (!log.length) { box.innerHTML = '<div class="term-log-line term-log-line--dim">// журнал порожній або нічого не знайдено</div>'; return; }
   log.forEach(e => {
     const line = document.createElement('div');
     line.className = 'term-log-line' + (e.type ? ' term-log-line--' + e.type : '');
@@ -498,6 +586,23 @@ document.getElementById('clearLogBtn')?.addEventListener('click', () => {
   sessionStorage.removeItem('ct_admin_log');
   restoreLog();
 });
+
+document.getElementById('exportLogBtn')?.addEventListener('click', () => {
+  const log = JSON.parse(sessionStorage.getItem('ct_admin_log') || '[]');
+  const text = log.length ? log.map(e => `[${e.time}] ${e.type ? '[' + e.type + '] ' : ''}${e.msg}`).join('\n') : '// журнал порожній';
+  const blob = new Blob([text], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `cleartext-log-${new Date().toISOString().slice(0,10)}.txt`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+});
+
+document.getElementById('logSearchInput')?.addEventListener('input', () => restoreLog());
+document.getElementById('logFilterSelect')?.addEventListener('change', () => restoreLog());
 
 // Live clock + session uptime (admin header + diagnostics card)
 function tickAdminClock() {
@@ -546,6 +651,16 @@ async function runDiagnostics() {
   if (platEl) platEl.textContent = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || '—';
   if (uaEl) uaEl.textContent = navigator.userAgent;
 
+  const swVerEl = document.getElementById('diagSWVersion');
+  if (swVerEl) {
+    try {
+      const res = await fetch('sw.js', { cache: 'no-store' });
+      const txt = await res.text();
+      const m = txt.match(/CACHE\s*=\s*['"]([^'"]+)['"]/);
+      swVerEl.textContent = m ? m[1] : 'невідомо';
+    } catch { swVerEl.textContent = 'N/A'; }
+  }
+
   const t0 = performance.now();
   try {
     await fsGet('settings');
@@ -564,6 +679,47 @@ async function runDiagnostics() {
 document.getElementById('diagRefreshBtn')?.addEventListener('click', () => {
   logEvent('Запущено оновлення діагностики', 'info');
   runDiagnostics();
+});
+
+document.getElementById('diagUpdateSwBtn')?.addEventListener('click', async () => {
+  const btn = document.getElementById('diagUpdateSwBtn');
+  const orig = btn.innerHTML;
+  btn.disabled = true;
+  btn.textContent = '⏳ Оновлення…';
+  try {
+    if ('serviceWorker' in navigator) {
+      const reg = await navigator.serviceWorker.getRegistration();
+      if (reg) { await reg.update(); logEvent('Service Worker: примусове оновлення виконано', 'ok'); }
+      else logEvent('Service Worker: реєстрацію не знайдено', 'fail');
+    } else {
+      logEvent('Service Worker недоступний у цьому браузері', 'fail');
+    }
+  } catch (e) {
+    logEvent('Помилка оновлення Service Worker: ' + e.message, 'fail');
+  }
+  btn.disabled = false;
+  btn.innerHTML = orig;
+  runDiagnostics();
+});
+
+document.getElementById('diagCopyBtn')?.addEventListener('click', async () => {
+  const lines = [
+    `Firestore: ${document.getElementById('diagFirebaseStatus')?.textContent}`,
+    `Затримка БД: ${document.getElementById('diagLatency')?.textContent}`,
+    `Мережа: ${document.getElementById('diagOnline')?.textContent}`,
+    `Service Worker: ${document.getElementById('diagSW')?.textContent}`,
+    `Версія SW кешу: ${document.getElementById('diagSWVersion')?.textContent}`,
+    `Режим показу: ${document.getElementById('diagDisplayMode')?.textContent}`,
+    `Платформа: ${document.getElementById('diagPlatform')?.textContent}`,
+    `Локальний час: ${document.getElementById('diagClock')?.textContent}`,
+    `User-Agent: ${document.getElementById('diagUA')?.textContent}`,
+  ].join('\n');
+  try {
+    await navigator.clipboard.writeText(lines);
+    logEvent('Діагностику скопійовано в буфер обміну', 'info');
+  } catch (e) {
+    logEvent('Не вдалося скопіювати діагностику: ' + e.message, 'fail');
+  }
 });
 
 // API key tester — isolated GET request, separate from the user-facing generateContent call
@@ -601,6 +757,80 @@ document.getElementById('testApiKeyBtn')?.addEventListener('click', async () => 
   } catch (e) {
     resBox.innerHTML = `<div class="term-log-line term-log-line--fail">// мережева помилка: ${escHtml(e.message)}</div>`;
     logEvent('Тест API ключа: мережева помилка', 'fail');
+  }
+  btn.disabled = false;
+  btn.innerHTML = origHtml;
+});
+
+// AI corrector tester — runs buildFixPrompt() through the selected model once,
+// isolated from fixText(): does not save stats, does not touch the user app screen.
+document.getElementById('adminTestRunBtn')?.addEventListener('click', async () => {
+  const btn = document.getElementById('adminTestRunBtn');
+  const resBox = document.getElementById('adminTestResult');
+  const text = document.getElementById('adminTestInput').value.trim();
+  const model = document.getElementById('adminTestModelSelect').value;
+  const key = (document.getElementById('adminApiKeyInput').value.trim()) || (await getSettings()).apiKey;
+  resBox.style.display = 'block';
+
+  if (!text) { resBox.innerHTML = '<div class="term-log-line term-log-line--fail">// помилка: введіть текст для тесту</div>'; return; }
+  if (!key) { resBox.innerHTML = '<div class="term-log-line term-log-line--fail">// помилка: немає API ключа (заповніть поле вище)</div>'; return; }
+  if (!model) { resBox.innerHTML = '<div class="term-log-line term-log-line--fail">// помилка: немає доступних моделей</div>'; return; }
+
+  btn.disabled = true;
+  const origHtml = btn.innerHTML;
+  btn.innerHTML = '⏳ Тестування…';
+  resBox.innerHTML = `<div class="term-log-line term-log-line--dim">// надсилання запиту до ${escHtml(model)}...</div>`;
+  const t0 = performance.now();
+  try {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ role: 'user', parts: [{ text: buildFixPrompt(text) }] }],
+          generationConfig: { temperature: 0.3, maxOutputTokens: 1024 },
+          safetySettings: [
+            { category: 'HARM_CATEGORY_HARASSMENT',        threshold: 'BLOCK_ONLY_HIGH' },
+            { category: 'HARM_CATEGORY_HATE_SPEECH',       threshold: 'BLOCK_ONLY_HIGH' },
+            { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_ONLY_HIGH' },
+            { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH' }
+          ]
+        })
+      }
+    );
+    const ms = Math.round(performance.now() - t0);
+    const data = await res.json();
+    if (!res.ok || data.error) {
+      resBox.innerHTML = `<div class="term-log-line term-log-line--fail">// HTTP ${res.status}</div><div class="term-log-line term-log-line--fail">// ${escHtml((data.error && data.error.message) || 'невідома помилка')}</div>`;
+      logEvent(`Тест виправлення: помилка HTTP ${res.status} (${model})`, 'fail');
+      return;
+    }
+    if (data.candidates?.[0]?.finishReason === 'SAFETY') {
+      resBox.innerHTML = `<div class="term-log-line term-log-line--fail">// заблоковано фільтром безпеки (SAFETY)</div>`;
+      logEvent(`Тест виправлення: заблоковано SAFETY (${model})`, 'fail');
+      return;
+    }
+    let raw = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    raw = raw.replace(/```json|```/g, '').trim();
+    let parsed;
+    try { parsed = JSON.parse(raw); }
+    catch(e) { const m = raw.match(/\{[\s\S]*\}/); if (m) parsed = JSON.parse(m[0]); }
+
+    if (parsed) {
+      resBox.innerHTML =
+        `<div class="term-log-line term-log-line--ok">// HTTP ${res.status} OK · ${ms} ms · модель: ${escHtml(model)}</div>` +
+        `<div class="term-log-line">// виправлено: ${escHtml(parsed.corrected || '—')}</div>` +
+        `<div class="term-log-line">// змін: ${(parsed.changes || []).length}${parsed.noChanges ? ' (текст без помилок)' : ''}</div>` +
+        (parsed.changes && parsed.changes.length ? parsed.changes.map(c => `<div class="term-log-line term-log-line--dim">//  "${escHtml(c.before)}" → "${escHtml(c.after)}" — ${escHtml(c.reason || '')}</div>`).join('') : '');
+      logEvent(`Тест виправлення успішний (${ms} ms, модель: ${model})`, 'ok');
+    } else {
+      resBox.innerHTML = `<div class="term-log-line term-log-line--fail">// не вдалося розпізнати відповідь моделі</div><div class="term-log-line term-log-line--dim">// сира відповідь: ${escHtml(raw.slice(0, 300))}</div>`;
+      logEvent('Тест виправлення: не вдалося розпізнати JSON-відповідь', 'fail');
+    }
+  } catch (e) {
+    resBox.innerHTML = `<div class="term-log-line term-log-line--fail">// мережева помилка: ${escHtml(e.message)}</div>`;
+    logEvent('Тест виправлення: мережева помилка', 'fail');
   }
   btn.disabled = false;
   btn.innerHTML = origHtml;
@@ -655,6 +885,93 @@ document.getElementById('importJsonInput')?.addEventListener('change', async (e)
     logEvent('Помилка імпорту JSON: ' + err.message, 'fail');
   }
   e.target.value = '';
+});
+
+// ══════════════════════════════════════════════
+// ADMIN — СТАТИСТИКА ЗА ПЕРІОД (сьогодні / 7 днів / 30 днів)
+// Читає ті самі документи 'stats/{date}', що й основна статистика,
+// нічого не пише і не впливає на застосунок для користувачів.
+// ══════════════════════════════════════════════
+let _currentPeriodDays = 1;
+let _lastPeriodData = [];
+
+function isoDateMinus(n) {
+  const d = new Date();
+  d.setDate(d.getDate() - n);
+  return d.toISOString().slice(0, 10);
+}
+
+async function loadPeriodStats(days) {
+  _currentPeriodDays = days;
+  document.querySelectorAll('.period-tab').forEach(t => t.classList.toggle('active', +t.dataset.days === days));
+
+  const totalEl = document.getElementById('periodTotal');
+  const avgEl = document.getElementById('periodAvg');
+  const costEl = document.getElementById('periodCost');
+  const chartEl = document.getElementById('periodBarChart');
+  if (!totalEl || !chartEl) return;
+
+  totalEl.textContent = '…';
+  avgEl.textContent = '…';
+  costEl.textContent = '…';
+  chartEl.innerHTML = '<div class="bar-chart-empty">Завантаження…</div>';
+
+  const settingsForPrice = await getSettings();
+  const dates = [];
+  for (let i = days - 1; i >= 0; i--) dates.push(isoDateMinus(i));
+
+  const results = await Promise.all(dates.map(async d => {
+    try {
+      const snap = await getDoc(doc(db, 'stats', d));
+      if (!snap.exists()) return { date: d, total: 0, cost: 0 };
+      const data = snap.data();
+      let cost = parseFloat(data.totalCostUsd) || 0;
+      if (!cost && data.models) {
+        cost = Object.entries(data.models).reduce((sum, [m, c]) => sum + getModelPriceFromList(m, settingsForPrice.models) * c, 0);
+      }
+      return { date: d, total: data.total || 0, cost };
+    } catch(e) {
+      return { date: d, total: 0, cost: 0 };
+    }
+  }));
+
+  _lastPeriodData = results;
+  const totalSum = results.reduce((s, r) => s + r.total, 0);
+  const costSum = results.reduce((s, r) => s + r.cost, 0);
+  totalEl.textContent = totalSum;
+  avgEl.textContent = (totalSum / days).toFixed(1);
+  costEl.textContent = costSum < 0.01 ? '$' + costSum.toFixed(6) : '$' + costSum.toFixed(4);
+
+  const max = Math.max(1, ...results.map(r => r.total));
+  chartEl.innerHTML = '';
+  results.forEach(r => {
+    const col = document.createElement('div');
+    col.className = 'bar-chart-col';
+    const dayLabel = r.date.slice(5).replace('-', '/');
+    col.title = `${r.date}: ${r.total} запитів`;
+    col.innerHTML = `<div class="bar-chart-bar" style="height:${Math.max(2, Math.round((r.total / max) * 100))}%"></div>` +
+      (days <= 7 ? `<div style="font-size:9px;color:var(--adm-dim);writing-mode:vertical-rl">${dayLabel}</div>` : '');
+    chartEl.appendChild(col);
+  });
+}
+
+document.querySelectorAll('.period-tab').forEach(btn => {
+  btn.addEventListener('click', () => loadPeriodStats(+btn.dataset.days));
+});
+
+document.getElementById('periodExportBtn')?.addEventListener('click', () => {
+  if (!_lastPeriodData.length) return;
+  const rows = ['date,total_requests,cost_usd', ...(_lastPeriodData.map(r => `${r.date},${r.total},${r.cost.toFixed(6)}`))];
+  const blob = new Blob([rows.join('\n')], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `cleartext-stats-${_currentPeriodDays}d-${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+  logEvent(`Експортовано CSV статистики (${_currentPeriodDays} дн.)`, 'info');
 });
 
 // Danger zone
@@ -830,32 +1147,10 @@ textInput.addEventListener('input', () => {
 document.getElementById('fixBtn').onclick = fixText;
 textInput.addEventListener('keydown', e => { if (e.key==='Enter' && e.ctrlKey) fixText(); });
 
-async function fixText() {
-  const text = textInput.value.trim();
-  if (!text) {
-    textInput.animate([{borderColor:'rgba(251,113,133,0.5)'},{borderColor:''}],{duration:400});
-    return;
-  }
-
-  // Клієнтська перевірка — блокуємо одразу без запиту до API
-
-  const settings = await getSettings();
-  const apiKey = settings.apiKey;
-  if (!apiKey) {
-    document.getElementById('errorBox').textContent = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> API ключ не налаштовано. Зверніться до адміністратора.';
-    document.getElementById('errorBox').style.display = 'block';
-    return;
-  }
-
-  const btn = document.getElementById('fixBtn');
-  btn.classList.add('loading');
-  btn.disabled = true;
-  document.getElementById('result-card').style.display = 'none';
-  document.getElementById('errorBox').style.display = 'none';
-
-  const langNote = 'українською мовою';
-
-  const prompt = `Ти — асистент з виправлення тексту для людей з вадами слуху, які пишуть неграмотно.
+// Промпт винесено в окрему функцію, щоб її міг використати і тестер AI в адмінці
+// (без впливу на логіку чи вигляд застосунку для користувачів).
+function buildFixPrompt(text) {
+  return `Ти — асистент з виправлення тексту для людей з вадами слуху, які пишуть неграмотно.
 
 ПРАВИЛА ВИПРАВЛЕННЯ ПРОБЛЕМНОГО КОНТЕНТУ — НАЙВИЩИЙ ПРІОРИТЕТ:
 Замість блокування — виправляй проблемні місця за такими правилами:
@@ -916,6 +1211,46 @@ async function fixText() {
 
 Якщо текст вже правильний українською, поверни: {"corrected": "${text}", "changes": [], "noChanges": true}
 ВАЖЛИВО: відповідай тільки валідним JSON, без markdown і додаткового тексту.`;
+}
+
+async function fixText() {
+  const text = textInput.value.trim();
+  if (!text) {
+    textInput.animate([{borderColor:'rgba(251,113,133,0.5)'},{borderColor:''}],{duration:400});
+    return;
+  }
+
+  // Клієнтська перевірка — блокуємо одразу без запиту до API
+
+  const settings = await getSettings();
+  const apiKey = settings.apiKey;
+  if (!apiKey) {
+    document.getElementById('errorBox').textContent = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> API ключ не налаштовано. Зверніться до адміністратора.';
+    document.getElementById('errorBox').style.display = 'block';
+    return;
+  }
+
+  // Денний ліміт запитів — вмикається лише вручну адміном, за замовчуванням вимкнено
+  if (settings.dailyLimitEnabled && settings.dailyLimit > 0) {
+    try {
+      const today = new Date().toISOString().slice(0, 10);
+      const snap = await getDoc(doc(db, 'stats', today));
+      const totalToday = snap.exists() ? (snap.data().total || 0) : 0;
+      if (totalToday >= settings.dailyLimit) {
+        document.getElementById('errorBox').innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Денний ліміт запитів вичерпано (${settings.dailyLimit}). Спробуйте завтра.`;
+        document.getElementById('errorBox').style.display = 'block';
+        return;
+      }
+    } catch(e) { /* при помилці перевірки — не блокуємо користувача */ }
+  }
+
+  const btn = document.getElementById('fixBtn');
+  btn.classList.add('loading');
+  btn.disabled = true;
+  document.getElementById('result-card').style.display = 'none';
+  document.getElementById('errorBox').style.display = 'none';
+
+  const prompt = buildFixPrompt(text);
 
   // ── AUTO-ROTATING MODEL CALL ──────────────────
   // Builds ordered list: selected model first, then others, cycling forever
@@ -1064,7 +1399,7 @@ async function fixText() {
     }
 
     showResult(parsed);
-    await saveStats(parsed.changes ? parsed.changes.length : 0, parsed.noChanges, usedModel || selectedModel);
+    await saveStats(parsed.changes ? parsed.changes.length : 0, parsed.noChanges, usedModel || selectedModel, settings2.models);
 
   } catch(err) {
     document.getElementById('errorBox').innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> ${err.message}`;
@@ -1222,10 +1557,11 @@ document.getElementById('loadStatsBtn').addEventListener('click', async () => {
       const totalChanges = d.totalChanges || 0;
       const noChanges = d.noChanges || 0;
       let totalCostUsd = parseFloat(d.totalCostUsd) || 0;
-      // Якщо totalCostUsd не збереглось — рахуємо з моделей
+      // Якщо totalCostUsd не збереглось — рахуємо з моделей (з урахуванням цін адміна)
       if (totalCostUsd === 0 && Object.keys(d.models || {}).length > 0) {
+        const settingsForPrice = await getSettings();
         totalCostUsd = Object.entries(d.models || {}).reduce((sum, [m, c]) => {
-          return sum + getModelPrice(m) * c;
+          return sum + getModelPriceFromList(m, settingsForPrice.models) * c;
         }, 0);
       }
       // Якщо і моделей немає — рахуємо з total по дефолтній ціні
