@@ -11,7 +11,7 @@
 <link rel="manifest" href="manifest.json">
 <title>ClearText AI</title>
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20260911b">
+<link rel="stylesheet" href="style.css?v=20260911c">
 </head>
 <body>
 
@@ -611,18 +611,9 @@
         </div>
         <textarea class="speak-textarea" id="speakText" placeholder="Напишіть текст тут або перенесіть його з вкладки «Виправлення»…"></textarea>
 
-        <div class="speak-actions">
-          <button class="speak-action-btn speak-action-btn--primary" id="speakReadBtn" type="button">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
-            <span id="speakReadBtnLabel">Прочитати вголос</span>
-          </button>
-          <button class="speak-action-btn" id="speakCopyBtn" type="button">
-            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-            <span>Копіювати</span>
-          </button>
-          <button class="speak-action-btn" id="speakShareBtn" type="button">
-            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-            <span>Поділитися</span>
+        <div class="speak-actions speak-actions--icon">
+          <button class="speak-action-btn speak-action-btn--primary speak-action-btn--icon-only" id="speakReadBtn" type="button" title="Прочитати вголос" aria-label="Прочитати вголос">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
           </button>
         </div>
       </div>
@@ -689,7 +680,7 @@
   </nav>
 </div>
 
-<script type="module" src="script.js?v=20260911"></script>
+<script type="module" src="script.js?v=20260911c"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {

@@ -1025,6 +1025,8 @@ body.admin-light-theme .model-add-input option.opt-disabled-model {
 .speak-textarea::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 .speak-textarea::placeholder { color: var(--dim); font-weight: 500; }
 .speak-actions { padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+.speak-actions--icon { align-items: center; padding: 20px 14px; }
+.speak-action-btn--icon-only { width: 68px; height: 68px; border-radius: 50%; padding: 0; flex: none; }
 .speak-action-btn {
   width: 100%; padding: 15px 16px;
   background: var(--glass2); backdrop-filter: var(--blur-sm); -webkit-backdrop-filter: var(--blur-sm);
