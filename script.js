@@ -1413,7 +1413,7 @@ function switchTab(tabId) {
   const activeBtn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
   moveTabIndicator(activeBtn);
   if (tabId === 'tab-speak') renderSpeakTab();
-  else stopSpeaking();
+  else { stopSpeaking(); stopListening(); }
 }
 
 document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -1963,6 +1963,126 @@ document.getElementById('speakGotoFixBtn')?.addEventListener('click', () => swit
 document.getElementById('speakReadBtn')?.addEventListener('click', (e) => speakText(_lastFixedText, e.currentTarget));
 document.getElementById('speakCopyBtn')?.addEventListener('click', (e) => copyText(_lastFixedText, e.currentTarget));
 document.getElementById('speakShareBtn')?.addEventListener('click', () => shareText(_lastFixedText));
+
+// ══════════════════════════════════════════════
+// РОЗПІЗНАВАННЯ МОВИ СПІВРОЗМОВНИКА (Web Speech API, browser-native STT)
+// Працює локально в браузері — нічого не надсилається на наш сервер чи в Gemini,
+// поки людина сама не натисне «Виправити цей текст».
+// ══════════════════════════════════════════════
+const SpeechRecognitionApi = window.SpeechRecognition || window.webkitSpeechRecognition;
+let _recognition = null;
+let _listenShouldContinue = false;
+let _finalTranscript = '';
+
+function initSpeechRecognition() {
+  const micBtn = document.getElementById('listenMicBtn');
+  const unsupportedBox = document.getElementById('listenUnsupported');
+  if (!SpeechRecognitionApi) {
+    if (micBtn) micBtn.style.display = 'none';
+    if (unsupportedBox) unsupportedBox.style.display = 'flex';
+    return;
+  }
+  _recognition = new SpeechRecognitionApi();
+  _recognition.lang = 'uk-UA';
+  _recognition.continuous = true;
+  _recognition.interimResults = true;
+
+  _recognition.onresult = (event) => {
+    let interim = '';
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      const chunk = event.results[i][0].transcript;
+      if (event.results[i].isFinal) _finalTranscript += chunk + ' ';
+      else interim += chunk;
+    }
+    renderListenTranscript(interim);
+  };
+
+  _recognition.onerror = (event) => {
+    if (event.error === 'no-speech' || event.error === 'aborted') return; // не критично, продовжуємо/перезапустимо
+    if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+      setListenStatus(false);
+      _listenShouldContinue = false;
+      document.getElementById('listenStatusText').textContent = 'Немає доступу до мікрофона';
+      return;
+    }
+    // Мережеві та інші помилки — зупиняємось, щоб не зациклюватись
+    _listenShouldContinue = false;
+    setListenStatus(false);
+  };
+
+  _recognition.onend = () => {
+    // Деякі браузери самі зупиняють сесію після паузи в мовленні —
+    // перезапускаємо, поки людина явно не натиснула "стоп".
+    if (_listenShouldContinue) {
+      try { _recognition.start(); } catch(e) { /* вже запущено */ }
+    } else {
+      setListenStatus(false);
+    }
+  };
+}
+
+function setListenStatus(isListening) {
+  const micBtn = document.getElementById('listenMicBtn');
+  const dot = document.getElementById('listenStatusDot');
+  const statusText = document.getElementById('listenStatusText');
+  if (micBtn) micBtn.classList.toggle('listening', isListening);
+  if (dot) dot.classList.toggle('live', isListening);
+  if (statusText) statusText.textContent = isListening ? 'Слухаю…' : 'Не слухає';
+}
+
+function renderListenTranscript(interim) {
+  const box = document.getElementById('listenTranscript');
+  if (!box) return;
+  const finalText = _finalTranscript.trim();
+  if (!finalText && !interim) {
+    box.innerHTML = '<span class="listen-placeholder" id="listenPlaceholder">Тут з\'явиться розпізнаний текст…</span>';
+  } else {
+    box.innerHTML = `${escHtml(finalText)}${interim ? ' <span class="interim">' + escHtml(interim) + '</span>' : ''}`;
+  }
+  box.scrollTop = box.scrollHeight;
+  document.getElementById('listenActions').style.display = finalText ? 'flex' : 'none';
+}
+
+function startListening() {
+  if (!_recognition) return;
+  stopSpeaking(); // не озвучувати й слухати одночасно
+  _listenShouldContinue = true;
+  try { _recognition.start(); setListenStatus(true); }
+  catch(e) { /* вже запущено — ігноруємо */ }
+}
+
+function stopListening() {
+  if (!_recognition) return;
+  _listenShouldContinue = false;
+  try { _recognition.stop(); } catch(e) { /* не запущено */ }
+  setListenStatus(false);
+}
+
+document.getElementById('listenMicBtn')?.addEventListener('click', () => {
+  if (_listenShouldContinue) stopListening();
+  else startListening();
+});
+
+document.getElementById('listenUseBtn')?.addEventListener('click', () => {
+  const text = _finalTranscript.trim();
+  if (!text) return;
+  stopListening();
+  textInput.value = text;
+  textInput.dispatchEvent(new Event('input'));
+  switchTab('tab-fix');
+  textInput.focus();
+});
+
+document.getElementById('listenCopyBtn')?.addEventListener('click', (e) => {
+  copyText(_finalTranscript.trim(), e.currentTarget);
+});
+
+document.getElementById('listenClearBtn')?.addEventListener('click', () => {
+  _finalTranscript = '';
+  renderListenTranscript('');
+});
+
+initSpeechRecognition();
 
 document.getElementById('shareBtn').onclick = () => shareText(document.getElementById('result-text').textContent);
 
