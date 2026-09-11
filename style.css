@@ -1045,7 +1045,7 @@ body.admin-light-theme .model-add-input option.opt-disabled-model {
 }
 .speak-action-btn--primary:hover { box-shadow: 0 8px 32px rgba(52,211,153,0.3); }
 .speak-action-btn--primary.speaking { background: linear-gradient(135deg, rgba(96,165,250,0.4), rgba(52,211,153,0.3)); animation: pulseSpeak 1.4s ease-in-out infinite; }
-@keyframes pulseSpeak { 0%,100% { box-shadow: 0 8px 28px rgba(96,165,250,0.25); } 50% { box-shadow: 0 8px 40px rgba(96,165,250,0.45); } }
+@keyframes pulseSpeak { 0%,100% { box-shadow: 0 8px 28px rgba(96,165,250,0.25), inset 0 1px 0 rgba(255,255,255,0.3); } 50% { box-shadow: 0 8px 44px rgba(96,165,250,0.5), inset 0 1px 0 rgba(255,255,255,0.3); } }
 .speak-action-btn.success { background: rgba(52,211,153,0.18); border-color: rgba(52,211,153,0.4); color: var(--green); }
 .speak-action-btn--icon-only { width: 68px; height: 68px; border-radius: 50%; padding: 0; flex: none; }
 
