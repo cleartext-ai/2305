@@ -233,6 +233,43 @@ body {
   background: repeating-linear-gradient(0deg, rgba(255,255,255,0.025) 0px, rgba(255,255,255,0.025) 1px, transparent 1px, transparent 3px);
   mix-blend-mode: overlay; opacity: .5;
 }
+
+/* Manual light theme toggle for the admin panel only (localStorage 'ct_admin_theme').
+   Independent of OS prefers-color-scheme — uses fixed colors so it's deterministic. */
+body.admin-light-theme #admin-login-screen,
+body.admin-light-theme #admin-screen {
+  --adm-bg: #eef2f6;
+  --adm-panel: rgba(255,255,255,0.85);
+  --adm-panel-solid: #ffffff;
+  --adm-line: rgba(5,150,105,0.25);
+  --adm-line-soft: rgba(15,23,32,0.12);
+  --adm-text: #0b1220;
+  --adm-dim: #5b6b7a;
+  --adm-accent: #059669;
+  --adm-accent2: #2563eb;
+  --adm-amber: #b45309;
+  --adm-rose: #e11d48;
+  background:
+    linear-gradient(180deg, rgba(238,242,246,0.92), rgba(238,242,246,0.97)),
+    repeating-linear-gradient(0deg, rgba(5,150,105,0.05) 0px, rgba(5,150,105,0.05) 1px, transparent 1px, transparent 26px),
+    repeating-linear-gradient(90deg, rgba(5,150,105,0.05) 0px, rgba(5,150,105,0.05) 1px, transparent 1px, transparent 26px),
+    var(--adm-bg);
+}
+body.admin-light-theme #admin-login-screen::before,
+body.admin-light-theme #admin-screen::before { opacity: 0.15; }
+body.admin-light-theme .term-console,
+body.admin-light-theme .json-view,
+body.admin-light-theme .admin-key-input,
+body.admin-light-theme .model-add-input,
+body.admin-light-theme .model-price-input,
+body.admin-light-theme .field-input {
+  background: rgba(255,255,255,0.65) !important;
+  color: var(--adm-text) !important;
+}
+body.admin-light-theme .term-titlebar { background: rgba(0,0,0,0.03) !important; }
+body.admin-light-theme .model-item,
+body.admin-light-theme .admin-section-header,
+body.admin-light-theme .tpl-cat-block { background: rgba(0,0,0,0.025) !important; }
 #admin-login-screen *, #admin-screen * { font-family: 'JetBrains Mono', monospace; }
 
 /* ── shared terminal chrome ── */
@@ -614,6 +651,12 @@ body {
 }
 .bar-chart-empty { font-size: 11px; color: var(--adm-dim); text-align: center; width: 100%; padding: 20px 0; }
 
+/* Templates editor */
+#templatesEditorList { display: flex; flex-direction: column; gap: 12px; }
+.tpl-cat-block { border: 1px solid var(--adm-line-soft); border-radius: 4px; padding: 12px; display: flex; flex-direction: column; gap: 8px; background: rgba(255,255,255,0.015); }
+.tpl-items { display: flex; flex-direction: column; gap: 6px; }
+.tpl-cat-title-input { font-weight: 700; color: var(--adm-accent) !important; }
+
 /* Small model price input inside model-item */
 .model-price-input {
   width: 64px; flex-shrink: 0;
@@ -667,6 +710,21 @@ body {
 .app-header-info { flex: 1; }
 .app-header-title { font-size: 17px; font-weight: 900; letter-spacing: -0.02em; color: #ffffff; -webkit-text-fill-color: #ffffff; }
 .app-header-sub { font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.7); letter-spacing: 0.1em; text-transform: uppercase; }
+
+/* Announcement banner — hidden unless admin enables it (settings.bannerEnabled) */
+.app-banner {
+  display: flex; align-items: center; gap: 9px;
+  margin: 0 16px; padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 12.5px; font-weight: 700; line-height: 1.4;
+  background: rgba(96,165,250,0.12); border: 1px solid rgba(96,165,250,0.3); color: #cfe3ff;
+  animation: fadeIn 0.4s ease;
+}
+.app-banner--warn { background: rgba(251,191,36,0.12); border-color: rgba(251,191,36,0.35); color: #ffe4ad; }
+.app-banner--ok   { background: rgba(52,211,153,0.12); border-color: rgba(52,211,153,0.35); color: #bdf5dd; }
+.app-banner-icon { flex-shrink: 0; display: flex; }
+.app-banner-text { flex: 1; }
+@media(min-width:640px) { .app-banner { max-width: 720px; margin: 0 auto; } }
 
 .model-sel { display: none !important; } .model-sel-hidden {
   background: rgba(255,255,255,0.07); border: 1px solid var(--border);

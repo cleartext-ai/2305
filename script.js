@@ -66,7 +66,7 @@ function getModelPriceFromList(modelId, modelsList) {
   if (m && typeof m.price === 'number' && !isNaN(m.price) && m.price > 0) return m.price;
   return getModelPrice(modelId);
 }
-async function saveStats(changesCount, noChanges, modelId, modelsList) {
+async function saveStats(changesCount, noChanges, modelId, modelsList, latencyMs) {
   try {
     const today = new Date().toISOString().slice(0, 10);
     const statsRef = doc(db, 'stats', today);
@@ -76,17 +76,48 @@ async function saveStats(changesCount, noChanges, modelId, modelsList) {
     const modelKey = (modelId || 'unknown').replace(/[^a-z0-9.-]/g, '-');
     const modelStats = prev.models || {};
     modelStats[modelKey] = (modelStats[modelKey] || 0) + 1;
-    await setDoc(statsRef, {
+    const hourKey = String(new Date().getHours()).padStart(2, '0');
+    const hourStats = prev.hours || {};
+    hourStats[hourKey] = (hourStats[hourKey] || 0) + 1;
+    const payload = {
       total: (prev.total || 0) + 1,
       noChanges: (prev.noChanges || 0) + (noChanges ? 1 : 0),
       totalChanges: (prev.totalChanges || 0) + (changesCount || 0),
       totalCostUsd: Math.round(((prev.totalCostUsd || 0) + price) * 1e8) / 1e8,
       models: modelStats,
+      hours: hourStats,
       lastUpdated: new Date().toISOString()
-    });
+    };
+    if (typeof latencyMs === 'number' && latencyMs > 0) {
+      payload.latencyTotalMs = (prev.latencyTotalMs || 0) + latencyMs;
+      payload.latencyCount = (prev.latencyCount || 0) + 1;
+    }
+    await setDoc(statsRef, payload, { merge: true });
   } catch(e) {
     console.error('saveStats error:', e);
   }
+}
+
+// Лічильник фактичних помилок API (усі спроби/моделі не спрацювали) — для ALERT-чіпа в адмінці.
+async function saveErrorStat() {
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+    const statsRef = doc(db, 'stats', today);
+    const snap = await getDoc(statsRef);
+    const prev = snap.exists() ? snap.data() : {};
+    await setDoc(statsRef, { errors: (prev.errors || 0) + 1, lastUpdated: new Date().toISOString() }, { merge: true });
+  } catch(e) { /* телеметрія не критична */ }
+}
+
+// Лічильник анонімних блокувань SAFETY-фільтром — без збереження самого тексту.
+async function saveBlockedStat() {
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+    const statsRef = doc(db, 'stats', today);
+    const snap = await getDoc(statsRef);
+    const prev = snap.exists() ? snap.data() : {};
+    await setDoc(statsRef, { blockedCount: (prev.blockedCount || 0) + 1, lastUpdated: new Date().toISOString() }, { merge: true });
+  } catch(e) { /* телеметрія не критична */ }
 }
 // ══════════════════════════════════════════════
 // LOCAL STORAGE HELPERS — тільки для сесії адміна
@@ -95,9 +126,12 @@ const KEYS = {
   ADMIN_USER: 'ct_admin_user',
   ADMIN_PASS: 'ct_admin_pass',
   ADMIN_SES:  'ct_admin_session',
+  ADMIN_LOCKOUT: 'ct_admin_lockout',
 };
 
 const DEFAULT_ADMIN = { user: 'admin', pass: 'admin123' };
+const LOGIN_LOCKOUT_THRESHOLD = 5;   // невдалих спроб поспіль
+const LOGIN_LOCKOUT_MS = 60 * 1000;  // 1 хвилина блокування
 
 const DEFAULT_MODELS = [
   { id: 'gemini-2.0-flash-lite', label: '2.0 Flash Lite', enabled: true  },
@@ -183,6 +217,7 @@ function showAdminLogin() {
   hide('admin-screen');
   hide('app-screen');
   show('admin-login-screen', true);
+  applyLockoutUI();
 }
 
 async function showAdmin() {
@@ -200,6 +235,8 @@ function showApp(settings) {
   hide('offline-screen');
   show('app-screen', true);
   renderAppModels(settings.models || DEFAULT_MODELS);
+  renderTemplates(settings.templates);
+  renderBanner(settings);
   document.getElementById('text-input').focus();
   requestAnimationFrame(() => {
     const activeBtn = document.querySelector('.tab-btn.active');
@@ -254,18 +291,81 @@ document.getElementById('adminBackLink').onclick = () => {
   window.location.replace(base);
 };
 
+// ══════════════════════════════════════════════
+// АВТОБЛОКУВАННЯ ПІСЛЯ НЕВДАЛИХ СПРОБ ВХОДУ (на цьому пристрої)
+// ══════════════════════════════════════════════
+function getLockoutState() {
+  return lsGet(KEYS.ADMIN_LOCKOUT, { fails: 0, lockedUntil: 0 });
+}
+function setLockoutState(state) { lsSet(KEYS.ADMIN_LOCKOUT, state); }
+
+function registerFailedLogin() {
+  const state = getLockoutState();
+  state.fails = (state.fails || 0) + 1;
+  if (state.fails >= LOGIN_LOCKOUT_THRESHOLD) {
+    state.lockedUntil = Date.now() + LOGIN_LOCKOUT_MS;
+    state.fails = 0;
+  }
+  setLockoutState(state);
+  return state;
+}
+function clearLockoutState() { setLockoutState({ fails: 0, lockedUntil: 0 }); }
+
+function isLockedOut() {
+  const state = getLockoutState();
+  return state.lockedUntil && Date.now() < state.lockedUntil;
+}
+
+let _lockoutInterval = null;
+function applyLockoutUI() {
+  const btn = document.getElementById('adminLoginBtn');
+  const errBox = document.getElementById('adminLoginError');
+  if (_lockoutInterval) { clearInterval(_lockoutInterval); _lockoutInterval = null; }
+  if (!isLockedOut()) {
+    if (btn) btn.disabled = false;
+    return;
+  }
+  if (btn) btn.disabled = true;
+  const tick = () => {
+    const state = getLockoutState();
+    const remaining = Math.max(0, Math.ceil((state.lockedUntil - Date.now()) / 1000));
+    if (remaining <= 0) {
+      clearInterval(_lockoutInterval);
+      _lockoutInterval = null;
+      if (btn) btn.disabled = false;
+      errBox.style.display = 'none';
+      return;
+    }
+    errBox.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Забагато невдалих спроб. Спробуйте через ${remaining}с.`;
+    errBox.style.display = 'block';
+  };
+  tick();
+  _lockoutInterval = setInterval(tick, 1000);
+}
+
 function doAdminLogin() {
+  if (isLockedOut()) { applyLockoutUI(); return; }
   const user = document.getElementById('adminLoginInput').value.trim();
   const pass = document.getElementById('adminPassInput').value;
   const errBox = document.getElementById('adminLoginError');
 
   if (user === getAdminUser() && pass === getAdminPass()) {
     errBox.style.display = 'none';
+    clearLockoutState();
     setAdminSession(true);
     _adminSessionStart = Date.now();
+    logEvent('Успішний вхід в адмінку (логін: ' + user + ')', 'ok');
+    pushAudit('Успішний вхід в адмінку (логін: ' + user + ')');
     showAdmin();
   } else {
-    errBox.style.display = 'block';
+    logEvent('Невдала спроба входу (логін: ' + (user || '—') + ')', 'fail');
+    const state = registerFailedLogin();
+    if (state.lockedUntil && Date.now() < state.lockedUntil) {
+      pushAudit('Автоблокування входу після кількох невдалих спроб (логін: ' + (user || '—') + ')');
+      applyLockoutUI();
+    } else {
+      errBox.style.display = 'block';
+    }
     const card = document.querySelector('.admin-login-card');
     card.animate([{transform:'translateX(-6px)'},{transform:'translateX(6px)'},{transform:'translateX(-4px)'},{transform:'translateX(0)'}],{duration:300});
     document.getElementById('adminPassInput').value = '';
@@ -305,6 +405,21 @@ async function renderAdmin() {
   renderAdminModels(settings.models || DEFAULT_MODELS);
   renderAdminTestModelSelect(settings.models || DEFAULT_MODELS);
 
+  // Templates editor draft
+  _templatesDraft = JSON.parse(JSON.stringify((settings.templates && settings.templates.length) ? settings.templates : DEFAULT_TEMPLATES));
+  renderTemplatesEditor();
+
+  // Announcement banner
+  const bannerToggle = document.getElementById('bannerToggle');
+  if (bannerToggle) {
+    bannerToggle.checked = !!settings.bannerEnabled;
+    updateBannerUI(!!settings.bannerEnabled);
+  }
+  const bannerTextInput = document.getElementById('bannerTextInput');
+  if (bannerTextInput) bannerTextInput.value = settings.bannerText || '';
+  const bannerTypeSelect = document.getElementById('bannerTypeSelect');
+  if (bannerTypeSelect) bannerTypeSelect.value = settings.bannerType || 'info';
+
   // Daily request limit
   const limitToggle = document.getElementById('limitToggle');
   const limitInput = document.getElementById('limitValueInput');
@@ -317,10 +432,62 @@ async function renderAdmin() {
   // Tech panel (diagnostics / log / json) — admin-only, no effect on user app
   if (!_adminSessionStart) _adminSessionStart = Date.now();
   restoreLog();
+  renderAuditLog(settings.auditLog);
   runDiagnostics();
   refreshRawJson();
   loadPeriodStats(_currentPeriodDays || 1);
+  checkErrorAlert();
+  loadHourlyBreakdown();
 }
+
+// ALERT-чіп у шапці адмінки, якщо сьогодні були помилки API
+async function checkErrorAlert() {
+  const chip = document.getElementById('adminAlertChip');
+  if (!chip) return;
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+    const snap = await getDoc(doc(db, 'stats', today));
+    const errors = snap.exists() ? (snap.data().errors || 0) : 0;
+    if (errors > 0) {
+      chip.textContent = `⚠ Помилки сьогодні: ${errors}`;
+      chip.style.display = 'inline-flex';
+    } else {
+      chip.style.display = 'none';
+    }
+  } catch(e) {
+    chip.style.display = 'none';
+  }
+}
+
+// Погодинний розподіл запитів за сьогодні
+async function loadHourlyBreakdown() {
+  const chartEl = document.getElementById('hourlyBarChart');
+  if (!chartEl) return;
+  chartEl.innerHTML = '<div class="bar-chart-empty">Завантаження…</div>';
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+    const snap = await getDoc(doc(db, 'stats', today));
+    const hours = snap.exists() ? (snap.data().hours || {}) : {};
+    const data = [];
+    for (let h = 0; h < 24; h++) {
+      const key = String(h).padStart(2, '0');
+      data.push({ hour: key, total: hours[key] || 0 });
+    }
+    const max = Math.max(1, ...data.map(d => d.total));
+    chartEl.innerHTML = '';
+    data.forEach(d => {
+      const col = document.createElement('div');
+      col.className = 'bar-chart-col';
+      col.title = `${d.hour}:00 — ${d.total} запитів`;
+      col.innerHTML = `<div class="bar-chart-bar" style="height:${Math.max(2, Math.round((d.total / max) * 100))}%"></div>`;
+      chartEl.appendChild(col);
+    });
+  } catch(e) {
+    chartEl.innerHTML = '<div class="bar-chart-empty">Помилка завантаження</div>';
+  }
+}
+
+document.getElementById('hourlyRefreshBtn')?.addEventListener('click', loadHourlyBreakdown);
 
 function renderAdminTestModelSelect(models) {
   const sel = document.getElementById('adminTestModelSelect');
@@ -335,6 +502,98 @@ function renderAdminTestModelSelect(models) {
   });
   if ([...sel.options].some(o => o.value === prevVal)) sel.value = prevVal;
 }
+
+// ══════════════════════════════════════════════
+// ADMIN — РЕДАКТОР ШАБЛОНІВ (settings.templates у Firestore)
+// Впливає на вкладку "Шаблони" у користувачів лише після натискання
+// "Зберегти шаблони"; за замовчуванням користувач бачить DEFAULT_TEMPLATES.
+// ══════════════════════════════════════════════
+let _templatesDraft = [];
+
+function renderTemplatesEditor() {
+  const list = document.getElementById('templatesEditorList');
+  if (!list) return;
+  list.innerHTML = '';
+  _templatesDraft.forEach((cat, ci) => {
+    const block = document.createElement('div');
+    block.className = 'tpl-cat-block';
+    const header = document.createElement('div');
+    header.className = 'admin-row';
+    header.style.gap = '8px';
+    header.innerHTML = `
+      <input type="text" class="model-add-input tpl-cat-title-input" data-cat="${ci}" value="${escHtml(cat.title || '')}" placeholder="Назва категорії" style="flex:1">
+      <button class="btn-del-model" data-cat="${ci}" data-action="delcat" title="Видалити категорію"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>`;
+    block.appendChild(header);
+
+    const itemsWrap = document.createElement('div');
+    itemsWrap.className = 'tpl-items';
+    (cat.items || []).forEach((phrase, ii) => {
+      const row = document.createElement('div');
+      row.className = 'admin-row';
+      row.style.gap = '8px';
+      row.innerHTML = `
+        <input type="text" class="model-add-input" data-cat="${ci}" data-item="${ii}" value="${escHtml(phrase)}" style="flex:1">
+        <button class="btn-del-model" data-cat="${ci}" data-item="${ii}" data-action="delitem" title="Видалити фразу"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>`;
+      itemsWrap.appendChild(row);
+    });
+    block.appendChild(itemsWrap);
+
+    const addBtn = document.createElement('button');
+    addBtn.className = 'btn-add-model';
+    addBtn.type = 'button';
+    addBtn.dataset.cat = ci;
+    addBtn.dataset.action = 'additem';
+    addBtn.textContent = '+ Фраза';
+    addBtn.style.alignSelf = 'flex-start';
+    block.appendChild(addBtn);
+
+    list.appendChild(block);
+  });
+
+  // Category title edits
+  list.querySelectorAll('.tpl-cat-title-input').forEach(inp => {
+    inp.addEventListener('input', () => { _templatesDraft[+inp.dataset.cat].title = inp.value; });
+  });
+  // Phrase edits
+  list.querySelectorAll('.tpl-items input').forEach(inp => {
+    inp.addEventListener('input', () => { _templatesDraft[+inp.dataset.cat].items[+inp.dataset.item] = inp.value; });
+  });
+  // Delete category
+  list.querySelectorAll('[data-action="delcat"]').forEach(btn => {
+    btn.addEventListener('click', () => { _templatesDraft.splice(+btn.dataset.cat, 1); renderTemplatesEditor(); });
+  });
+  // Delete phrase
+  list.querySelectorAll('[data-action="delitem"]').forEach(btn => {
+    btn.addEventListener('click', () => { _templatesDraft[+btn.dataset.cat].items.splice(+btn.dataset.item, 1); renderTemplatesEditor(); });
+  });
+  // Add phrase
+  list.querySelectorAll('[data-action="additem"]').forEach(btn => {
+    btn.addEventListener('click', () => { _templatesDraft[+btn.dataset.cat].items.push(''); renderTemplatesEditor(); });
+  });
+}
+
+document.getElementById('addTemplateCatBtn')?.addEventListener('click', () => {
+  _templatesDraft.push({ title: '', items: [''] });
+  renderTemplatesEditor();
+});
+
+document.getElementById('saveTemplatesBtn')?.addEventListener('click', async () => {
+  // Прибираємо порожні категорії/фрази перед збереженням
+  const cleaned = _templatesDraft
+    .map(c => ({ title: (c.title || '').trim(), items: (c.items || []).map(i => i.trim()).filter(Boolean) }))
+    .filter(c => c.title && c.items.length);
+  const ok = await fsSet('settings', { templates: cleaned });
+  invalidateCache();
+  if (ok) {
+    _templatesDraft = JSON.parse(JSON.stringify(cleaned));
+    renderTemplatesEditor();
+    showTmpMsg('templatesSavedMsg');
+    logEvent(`Шаблони збережено (${cleaned.length} категорій)`, 'ok');
+    pushAudit(`Оновлено шаблони (${cleaned.length} категорій)`);
+  } else {
+    logEvent('Помилка збереження шаблонів', 'fail');
+  }
+});
 
 function updateMaintenanceUI(isOn) {
   const label = document.getElementById('maintenanceStatusLabel');
@@ -360,6 +619,7 @@ document.getElementById('maintenanceToggle').addEventListener('change', async (e
     updateMaintenanceUI(checked);
     showTmpMsg('maintenanceSavedMsg');
     logEvent('Режим технічних робіт: ' + (checked ? 'УВІМКНЕНО' : 'вимкнено'), checked ? 'fail' : 'ok');
+    pushAudit('Режим технічних робіт: ' + (checked ? 'увімкнено' : 'вимкнено'));
   } else {
     // Відкат чекбокса якщо збереження не вдалось
     toggle.checked = !checked;
@@ -404,8 +664,68 @@ document.getElementById('saveLimitBtn')?.addEventListener('click', async () => {
   if (isNaN(val) || val < 1) { inp.animate([{borderColor:'rgba(251,113,133,0.6)'},{borderColor:''}],{duration:400}); return; }
   const ok = await fsSet('settings', { dailyLimit: val });
   invalidateCache();
-  if (ok) { showTmpMsg('limitSavedMsg'); logEvent(`Денний ліміт запитів встановлено: ${val}`, 'ok'); }
+  if (ok) { showTmpMsg('limitSavedMsg'); logEvent(`Денний ліміт запитів встановлено: ${val}`, 'ok'); pushAudit(`Денний ліміт запитів встановлено: ${val}`); }
 });
+
+// ══════════════════════════════════════════════
+// ADMIN — ОГОЛОШЕННЯ (БАНЕР ДЛЯ КОРИСТУВАЧІВ)
+// Вимкнено за замовчуванням. Коли увімкнено — показується у #app-screen.
+// ══════════════════════════════════════════════
+function updateBannerUI(isOn) {
+  const label = document.getElementById('bannerStatusLabel');
+  const dot = document.getElementById('bannerStatusDot');
+  if (label) {
+    label.textContent = isOn ? 'Увімкнено — банер видно користувачам' : 'Вимкнено — банер не показується';
+    label.style.color = isOn ? 'var(--rose)' : 'var(--text)';
+  }
+  if (dot) {
+    dot.style.display = 'inline-block';
+    dot.className = 'status-dot' + (isOn ? '' : ' off');
+  }
+}
+
+document.getElementById('bannerToggle')?.addEventListener('change', async (e) => {
+  const checked = e.target.checked;
+  const toggle = e.target;
+  toggle.disabled = true;
+  const ok = await fsSet('settings', { bannerEnabled: checked });
+  invalidateCache();
+  toggle.disabled = false;
+  if (ok) {
+    updateBannerUI(checked);
+    showTmpMsg('bannerSavedMsg');
+    logEvent('Банер оголошення: ' + (checked ? 'УВІМКНЕНО' : 'вимкнено'), checked ? 'info' : 'ok');
+    pushAudit('Банер оголошення: ' + (checked ? 'увімкнено' : 'вимкнено'));
+  } else {
+    toggle.checked = !checked;
+  }
+});
+
+document.getElementById('saveBannerBtn')?.addEventListener('click', async () => {
+  const text = document.getElementById('bannerTextInput').value.trim().slice(0, 140);
+  const type = document.getElementById('bannerTypeSelect').value || 'info';
+  const ok = await fsSet('settings', { bannerText: text, bannerType: type });
+  invalidateCache();
+  if (ok) {
+    showTmpMsg('bannerSavedMsg');
+    logEvent('Текст банера оновлено', 'ok');
+    pushAudit('Текст банера оновлено: "' + text.slice(0, 60) + '"');
+  }
+});
+
+// Показ банера в застосунку користувача (викликається з showApp())
+function renderBanner(settings) {
+  const el = document.getElementById('appBanner');
+  const textEl = document.getElementById('appBannerText');
+  if (!el || !textEl) return;
+  if (settings.bannerEnabled && settings.bannerText) {
+    textEl.textContent = settings.bannerText;
+    el.className = 'app-banner' + (settings.bannerType && settings.bannerType !== 'info' ? ' app-banner--' + settings.bannerType : '');
+    el.style.display = 'flex';
+  } else {
+    el.style.display = 'none';
+  }
+}
 
 function renderAdminModels(models) {
   const list = document.getElementById('modelsList');
@@ -435,6 +755,7 @@ function renderAdminModels(models) {
       await fsSet('settings', { models: mods });
       invalidateCache();
       showTmpMsg('modelsSavedMsg');
+      pushAudit(`Модель ${mods[+cb.dataset.idx].id}: ${cb.checked ? 'увімкнено' : 'вимкнено'}`);
     });
   });
 
@@ -450,6 +771,7 @@ function renderAdminModels(models) {
       invalidateCache();
       showTmpMsg('modelsSavedMsg');
       logEvent(`Ціну моделі ${mods[+inp.dataset.idx].id} оновлено`, 'ok');
+      pushAudit(`Ціну моделі ${mods[+inp.dataset.idx].id} оновлено`);
     });
   });
 
@@ -457,12 +779,14 @@ function renderAdminModels(models) {
     btn.onclick = async () => {
       const settings = await getSettings();
       const mods = settings.models || DEFAULT_MODELS;
+      const removedId = mods[+btn.dataset.idx]?.id;
       mods.splice(+btn.dataset.idx, 1);
       await fsSet('settings', { models: mods });
       invalidateCache();
       const s2 = await getSettings();
       renderAdminModels(s2.models || DEFAULT_MODELS);
       showTmpMsg('modelsSavedMsg');
+      pushAudit(`Модель видалено: ${removedId}`);
     };
   });
 }
@@ -489,7 +813,7 @@ document.getElementById('saveApiKeyBtn').onclick = async () => {
   btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Зберегти';
   btn.disabled = false;
 
-  if (ok) { showTmpMsg('apiKeySavedMsg'); logEvent('API ключ збережено', 'ok'); refreshRawJson(); }
+  if (ok) { showTmpMsg('apiKeySavedMsg'); logEvent('API ключ збережено', 'ok'); pushAudit('API ключ оновлено'); refreshRawJson(); }
   else {
     document.getElementById('apiKeySavedMsg').innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg> Помилка збереження. Перевір правила Firestore.';
     document.getElementById('apiKeySavedMsg').style.color = 'var(--rose)';
@@ -517,6 +841,7 @@ document.getElementById('addModelBtn').onclick = async () => {
   renderAdminModels(mods);
   inp.value = '';
   showTmpMsg('modelsSavedMsg');
+  pushAudit(`Додано модель: ${val}`);
 };
 document.getElementById('newModelInput').addEventListener('keydown', e => { if(e.key==='Enter') document.getElementById('addModelBtn').click(); });
 
@@ -539,6 +864,7 @@ document.getElementById('saveCredsBtn').onclick = () => {
   document.getElementById('newAdminPassConfirm').value = '';
   showTmpMsg('credsSavedMsg');
   logEvent('Дані входу адміна оновлено (логін: ' + login + ')', 'ok');
+  pushAudit('Дані входу адміна оновлено (логін: ' + login + ')');
 };
 
 function showTmpMsg(id) {
@@ -553,6 +879,34 @@ function showTmpMsg(id) {
 // prompt, renderAppModels(), or anything rendered inside #app-screen.
 // ══════════════════════════════════════════════
 let _adminSessionStart = null;
+
+// Персистентний аудит-журнал (зберігається у Firestore settings.auditLog,
+// на відміну від logEvent()/sessionStorage — переживає перезавантаження і видно на всіх пристроях).
+async function pushAudit(action) {
+  try {
+    const settings = await getSettings();
+    const log = Array.isArray(settings.auditLog) ? settings.auditLog.slice(-99) : [];
+    log.push({ time: new Date().toISOString(), user: getAdminUser(), action });
+    await fsSet('settings', { auditLog: log });
+    invalidateCache();
+    renderAuditLog(log);
+  } catch(e) { /* аудит не критичний — тихо ігноруємо помилку */ }
+}
+
+function renderAuditLog(log) {
+  const box = document.getElementById('auditLog');
+  if (!box) return;
+  if (!log || !log.length) { box.innerHTML = '<div class="term-log-line term-log-line--dim">// історія порожня</div>'; return; }
+  box.innerHTML = '';
+  log.slice().reverse().forEach(e => {
+    const line = document.createElement('div');
+    line.className = 'term-log-line';
+    const dt = new Date(e.time);
+    const dtStr = isNaN(dt) ? e.time : dt.toLocaleString('uk-UA', { hour12: false });
+    line.textContent = `[${dtStr}] (${e.user || '?'}) ${e.action}`;
+    box.appendChild(line);
+  });
+}
 
 function logEvent(msg, type) {
   const time = new Date().toLocaleTimeString('uk-UA', { hour12: false });
@@ -877,6 +1231,7 @@ document.getElementById('importJsonInput')?.addEventListener('change', async (e)
       await renderAdmin();
       showTmpMsg('jsonSavedMsg');
       logEvent('Імпортовано налаштування з файлу ' + file.name, 'ok');
+      pushAudit('Імпортовано налаштування з файлу ' + file.name);
     } else {
       logEvent('Помилка запису імпортованих налаштувань', 'fail');
     }
@@ -981,6 +1336,7 @@ document.getElementById('resetStatsBtn')?.addEventListener('click', async () => 
   try {
     await setDoc(doc(db, 'stats', today), { total: 0, noChanges: 0, totalChanges: 0, totalCostUsd: 0, models: {}, lastUpdated: new Date().toISOString() });
     logEvent('Статистику за ' + today + ' скинуто', 'ok');
+    pushAudit('Статистику за ' + today + ' скинуто');
   } catch (e) {
     logEvent('Помилка скидання статистики: ' + e.message, 'fail');
     alert('Помилка: ' + e.message);
@@ -995,6 +1351,18 @@ document.getElementById('resetModelsBtn')?.addEventListener('click', async () =>
   renderAdminModels(s.models || DEFAULT_MODELS);
   refreshRawJson();
   logEvent('Моделі відновлено до значень за замовчуванням', 'ok');
+  pushAudit('Моделі відновлено до значень за замовчуванням');
+});
+
+document.getElementById('resetTemplatesBtn')?.addEventListener('click', async () => {
+  if (!confirm('Відновити шаблони за замовчуванням? Кастомні фрази буде втрачено.')) return;
+  await fsSet('settings', { templates: DEFAULT_TEMPLATES });
+  invalidateCache();
+  _templatesDraft = JSON.parse(JSON.stringify(DEFAULT_TEMPLATES));
+  renderTemplatesEditor();
+  refreshRawJson();
+  logEvent('Шаблони відновлено до значень за замовчуванням', 'ok');
+  pushAudit('Шаблони відновлено до значень за замовчуванням');
 });
 
 document.getElementById('resetCredsBtn')?.addEventListener('click', () => {
@@ -1002,6 +1370,7 @@ document.getElementById('resetCredsBtn')?.addEventListener('click', () => {
   lsSet(KEYS.ADMIN_USER, DEFAULT_ADMIN.user);
   lsSet(KEYS.ADMIN_PASS, DEFAULT_ADMIN.pass);
   logEvent('Дані входу адміна скинуто до значень за замовчуванням', 'ok');
+  pushAudit('Дані входу адміна скинуто до значень за замовчуванням (цей пристрій)');
   alert('Дані входу скинуто до admin / admin123.');
 });
 
@@ -1066,7 +1435,9 @@ function useTextInFixer(text) {
 }
 
 // ── ШАБЛОНИ ──
-const TEMPLATE_CATEGORIES = [
+// DEFAULT_TEMPLATES — використовується, якщо в Firestore (settings.templates)
+// ще немає кастомних шаблонів, або як основа для "Відновити за замовчуванням".
+const DEFAULT_TEMPLATES = [
   {
     title: 'Привітання',
     items: [
@@ -1101,18 +1472,19 @@ const TEMPLATE_CATEGORIES = [
   }
 ];
 
-function renderTemplates() {
+function renderTemplates(categories) {
   const list = document.getElementById('templates-list');
   if (!list) return;
+  const cats = (categories && categories.length) ? categories : DEFAULT_TEMPLATES;
   list.innerHTML = '';
-  TEMPLATE_CATEGORIES.forEach(cat => {
+  cats.forEach(cat => {
     const block = document.createElement('div');
     block.className = 'template-cat';
     const catTitle = document.createElement('div');
     catTitle.className = 'template-cat-title';
     catTitle.textContent = cat.title;
     block.appendChild(catTitle);
-    cat.items.forEach(phrase => {
+    (cat.items || []).forEach(phrase => {
       const item = document.createElement('div');
       item.className = 'template-item';
       item.innerHTML = `
@@ -1126,7 +1498,6 @@ function renderTemplates() {
   });
 }
 
-renderTemplates();
 
 
 document.querySelectorAll('.lang-btn').forEach(btn => {
@@ -1251,6 +1622,7 @@ async function fixText() {
   document.getElementById('errorBox').style.display = 'none';
 
   const prompt = buildFixPrompt(text);
+  const _fixStart = performance.now();
 
   // ── AUTO-ROTATING MODEL CALL ──────────────────
   // Builds ordered list: selected model first, then others, cycling forever
@@ -1326,6 +1698,7 @@ async function fixText() {
           // Non-retriable: bad API key
           if (data.error?.code === 400 || data.error?.code === 401 || data.error?.code === 403) {
             showError(data.error);
+            saveErrorStat();
             return;
           }
 
@@ -1338,12 +1711,14 @@ async function fixText() {
               continue; // try next model
             }
             showError(data.error);
+            saveErrorStat();
             return;
           }
 
           // Safety block — not retriable, content issue
           if (data.candidates?.[0]?.finishReason === 'SAFETY') {
             showBlocked('Текст містить недопустимий контент і не може бути оброблений.');
+            saveBlockedStat();
             return;
           }
 
@@ -1360,6 +1735,7 @@ async function fixText() {
 
           if (tryParsed.blocked) {
             showBlocked(tryParsed.reason || 'Текст містить недопустимий контент.');
+            saveBlockedStat();
             return;
           }
 
@@ -1389,6 +1765,7 @@ async function fixText() {
       const errMsg = lastErr?.message || 'Усі моделі тимчасово недоступні. Спробуйте пізніше.';
       document.getElementById('errorBox').innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> ${errMsg}`;
       document.getElementById('errorBox').style.display = 'block';
+      saveErrorStat();
       return;
     }
 
@@ -1399,11 +1776,13 @@ async function fixText() {
     }
 
     showResult(parsed);
-    await saveStats(parsed.changes ? parsed.changes.length : 0, parsed.noChanges, usedModel || selectedModel, settings2.models);
+    const _latencyMs = Math.round(performance.now() - _fixStart);
+    await saveStats(parsed.changes ? parsed.changes.length : 0, parsed.noChanges, usedModel || selectedModel, settings2.models, _latencyMs);
 
   } catch(err) {
     document.getElementById('errorBox').innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> ${err.message}`;
     document.getElementById('errorBox').style.display = 'block';
+    saveErrorStat();
   } finally {
     btn.classList.remove('loading');
     btn.disabled = false;
@@ -1572,6 +1951,10 @@ document.getElementById('loadStatsBtn').addEventListener('click', async () => {
       document.getElementById('statTotal').textContent = total;
       document.getElementById('statChanges').textContent = totalChanges;
       document.getElementById('statNoChange').textContent = noChanges;
+      document.getElementById('statBlocked').textContent = d.blockedCount || 0;
+      document.getElementById('statLatency').textContent = (d.latencyCount > 0)
+        ? Math.round(d.latencyTotalMs / d.latencyCount) + ' мс'
+        : '—';
 
       // Автокурс USD/UAH
       let uahRate = 41.5;
@@ -1597,9 +1980,53 @@ document.getElementById('loadStatsBtn').addEventListener('click', async () => {
       document.getElementById('statNoChange').textContent = '0';
       document.getElementById('statCostUsd').textContent = '$0.000000';
       document.getElementById('statCostUah').textContent = '0.0000 ₴';
+      document.getElementById('statBlocked').textContent = '0';
+      document.getElementById('statLatency').textContent = '—';
     }
   } catch(e) {
     console.warn('Stats error:', e);
+  }
+});
+
+// ══════════════════════════════════════════════
+// ADMIN — СВІТЛА/ТЕМНА ТЕМА АДМІНКИ (косметика, лише для адміна)
+// ══════════════════════════════════════════════
+const THEME_KEY = 'ct_admin_theme';
+function applyAdminTheme(theme) {
+  document.body.classList.toggle('admin-light-theme', theme === 'light');
+  const icon = document.getElementById('adminThemeIcon');
+  if (icon) {
+    icon.innerHTML = theme === 'light'
+      ? '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>'
+      : '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
+  }
+}
+applyAdminTheme(localStorage.getItem(THEME_KEY) || 'dark');
+
+document.getElementById('adminThemeBtn')?.addEventListener('click', () => {
+  const next = document.body.classList.contains('admin-light-theme') ? 'dark' : 'light';
+  localStorage.setItem(THEME_KEY, next);
+  applyAdminTheme(next);
+});
+
+// ══════════════════════════════════════════════
+// ADMIN — ГАРЯЧІ КЛАВІШІ (лише коли відкрита адмінка)
+// Ctrl/Cmd+S — зберегти API ключ · Ctrl/Cmd+L — вийти · Ctrl/Cmd+F — фокус пошуку в журналі
+// ══════════════════════════════════════════════
+document.addEventListener('keydown', (e) => {
+  const adminScreen = document.getElementById('admin-screen');
+  if (!adminScreen || adminScreen.style.display === 'none' || adminScreen.style.display === '') return;
+  const mod = e.ctrlKey || e.metaKey;
+  if (!mod) return;
+  if (e.key === 's' || e.key === 'S') {
+    e.preventDefault();
+    document.getElementById('saveApiKeyBtn')?.click();
+  } else if (e.key === 'l' || e.key === 'L') {
+    e.preventDefault();
+    document.getElementById('adminLogoutBtn')?.click();
+  } else if (e.key === 'f' || e.key === 'F') {
+    e.preventDefault();
+    document.getElementById('logSearchInput')?.focus();
   }
 });
 

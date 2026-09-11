@@ -149,6 +149,8 @@
   <div class="admin-header">
     <div class="admin-header-badge">ADMIN</div>
     <div class="admin-header-title">ClearText AI — Керування</div>
+    <span class="term-chip term-chip--fail" id="adminAlertChip" style="display:none"></span>
+    <button class="btn-admin-logout" id="adminThemeBtn" type="button" title="Світла/темна тема адмінки" style="background:rgba(96,165,250,0.08);border-color:rgba(96,165,250,0.3);color:var(--adm-accent2)"><svg id="adminThemeIcon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg></button>
     <span class="admin-term-clock" id="admTermClock">--:--:--</span>
     <button class="btn-admin-logout" id="adminLogoutBtn" type="button">Вийти</button>
   </div>
@@ -202,6 +204,37 @@
       </div>
     </div>
 
+    <!-- Announcement banner section -->
+    <div class="admin-section">
+      <div class="admin-section-header">
+        <div class="admin-section-title"><span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l18-5v12L3 14v-3z"/><path d="M11.6 16.8a2 2 0 1 1-3.2 2.4"/></svg></span> Оголошення (банер)
+          <span class="status-dot off" id="bannerStatusDot" style="display:none"></span>
+        </div>
+      </div>
+      <div class="admin-section-body">
+        <div class="info-box">Коли увімкнено — коротке повідомлення показується вгорі застосунку для всіх користувачів (наприклад, про технічні роботи чи оновлення). За замовчуванням вимкнено — нічого не показується.</div>
+        <div class="admin-row" style="align-items:center;justify-content:space-between">
+          <div id="bannerStatusLabel" style="font-weight:800;font-size:14px">Вимкнено — банер не показується</div>
+          <label class="model-toggle">
+            <input type="checkbox" id="bannerToggle">
+            <span class="model-toggle-slider"></span>
+          </label>
+        </div>
+        <div class="admin-row">
+          <div class="admin-key-wrap" style="flex:1;min-width:160px">
+            <input type="text" class="admin-key-input" id="bannerTextInput" placeholder="Текст оголошення…" maxlength="140">
+          </div>
+          <select class="admin-key-input" id="bannerTypeSelect" style="max-width:130px">
+            <option value="info">Інфо</option>
+            <option value="warn">Попередження</option>
+            <option value="ok">Успіх</option>
+          </select>
+          <button class="btn-save" id="saveBannerBtn" type="button">Зберегти</button>
+        </div>
+        <div class="admin-success-msg" id="bannerSavedMsg"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Банер збережено!</div>
+      </div>
+    </div>
+
     <!-- API Key section -->
     <div class="admin-section">
       <div class="admin-section-header">
@@ -235,6 +268,22 @@
           <button class="btn-add-model" id="addModelBtn" type="button">+ Додати</button>
         </div>
         <div class="admin-success-msg" id="modelsSavedMsg"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Моделі збережено!</div>
+      </div>
+    </div>
+
+    <!-- Templates editor section -->
+    <div class="admin-section">
+      <div class="admin-section-header">
+        <div class="admin-section-title"><span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></span> Редактор шаблонів</div>
+      </div>
+      <div class="admin-section-body">
+        <div class="info-box">Готові фрази, які користувачі бачать на вкладці «Шаблони». Зміни зберігаються централізовано — оновлюються для всіх без нового деплою коду.</div>
+        <div id="templatesEditorList"></div>
+        <div class="admin-row" style="gap:8px">
+          <button class="btn-save btn-term" id="addTemplateCatBtn" type="button">+ Додати категорію</button>
+          <button class="btn-save" id="saveTemplatesBtn" type="button">Зберегти шаблони</button>
+        </div>
+        <div class="admin-success-msg" id="templatesSavedMsg"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Шаблони збережено!</div>
       </div>
     </div>
 
@@ -276,6 +325,10 @@
             <div class="stat-box"><div class="stat-val" id="statChanges">—</div><div class="stat-label">Змін зроблено</div></div>
             <div class="stat-box"><div class="stat-val" id="statNoChange">—</div><div class="stat-label">Без помилок</div></div>
           </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div class="stat-box"><div class="stat-val" id="statLatency">—</div><div class="stat-label">Сер. затримка</div></div>
+            <div class="stat-box"><div class="stat-val" id="statBlocked">—</div><div class="stat-label">Заблоковано (SAFETY)</div></div>
+          </div>
           <div style="background:rgba(52,211,153,0.08);border:1px solid rgba(52,211,153,0.2);border-radius:14px;padding:14px 16px;margin-top:4px">
             <div style="font-size:11px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:var(--green);margin-bottom:8px;display:flex;align-items:center;gap:5px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9.5 9.5C9.5 8.1 10.6 7 12 7s2.5 1.1 2.5 2.5S12 12 12 12s-2.5 1.1-2.5 2.5S10.6 17 12 17s2.5-1.1 2.5-2.5"/></svg> Економія (якби платно)</div>
             <div style="display:flex;gap:16px;flex-wrap:wrap">
@@ -308,6 +361,17 @@
         <div class="admin-row" style="gap:8px">
           <button class="btn-save btn-term" id="periodExportBtn" type="button">Експорт CSV</button>
         </div>
+      </div>
+    </div>
+
+    <!-- Hourly breakdown -->
+    <div class="admin-section">
+      <div class="admin-section-header">
+        <div class="admin-section-title"><span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span> Погодинний розподіл (сьогодні)</div>
+        <span class="term-chip term-chip--btn" id="hourlyRefreshBtn">оновити</span>
+      </div>
+      <div class="admin-section-body">
+        <div class="bar-chart" id="hourlyBarChart"></div>
       </div>
     </div>
 
@@ -383,6 +447,17 @@
       </div>
     </div>
 
+    <!-- Persistent audit log -->
+    <div class="admin-section">
+      <div class="admin-section-header">
+        <div class="admin-section-title"><span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4"/><path d="M12 18v4"/><path d="M4.93 4.93l2.83 2.83"/><path d="M16.24 16.24l2.83 2.83"/><path d="M2 12h4"/><path d="M18 12h4"/><path d="M4.93 19.07l2.83-2.83"/><path d="M16.24 7.76l2.83-2.83"/></svg></span> Історія змін налаштувань</div>
+      </div>
+      <div class="admin-section-body">
+        <div class="info-box">Постійний журнал (Firestore) — хто і коли змінював налаштування. На відміну від журналу подій сесії нижче, зберігається назавжди і видно з будь-якого пристрою.</div>
+        <div class="term-console" id="auditLog"></div>
+      </div>
+    </div>
+
     <!-- Activity log -->
     <div class="admin-section">
       <div class="admin-section-header">
@@ -420,6 +495,10 @@
         <div class="danger-row">
           <div><div class="danger-title">Відновити моделі за замовчуванням</div><div class="danger-sub">Перезапише список моделей стандартним набором</div></div>
           <button class="btn-danger" id="resetModelsBtn" type="button">Відновити</button>
+        </div>
+        <div class="danger-row">
+          <div><div class="danger-title">Відновити шаблони за замовчуванням</div><div class="danger-sub">Перезапише фрази на вкладці «Шаблони» стандартним набором</div></div>
+          <button class="btn-danger" id="resetTemplatesBtn" type="button">Відновити</button>
         </div>
         <div class="danger-row">
           <div><div class="danger-title">Скинути дані входу адміна</div><div class="danger-sub">Логін/пароль повернуться до admin / admin123 на цьому пристрої</div></div>
@@ -463,6 +542,11 @@
       <div class="app-header-sub">Виправлення тексту</div>
     </div>
     <select class="model-sel" id="modelSelect"></select>
+  </div>
+
+  <div class="app-banner" id="appBanner" style="display:none">
+    <span class="app-banner-icon" id="appBannerIcon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></span>
+    <span class="app-banner-text" id="appBannerText"></span>
   </div>
 
   <div class="app-body">
