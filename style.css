@@ -477,6 +477,27 @@ body.admin-light-theme .tpl-cat-block { background: rgba(0,0,0,0.025) !important
 .admin-key-input::placeholder { color: rgba(125,147,168,0.55); font-family: 'JetBrains Mono', monospace; }
 .admin-key-input:focus { border-color: rgba(52,211,153,0.5); box-shadow: 0 0 0 3px rgba(52,211,153,0.12); }
 
+/* Нативний popup <select> ігнорує напівпрозорий фон предка — задаємо
+   непрозорий фон/контраст явно на option, інакше текст губиться на сірому. */
+.admin-key-input option,
+.model-add-input option {
+  background-color: #0c141f;
+  color: #d7ecdf;
+}
+.admin-key-input option.opt-disabled-model,
+.model-add-input option.opt-disabled-model {
+  color: #6b8073;
+}
+body.admin-light-theme .admin-key-input option,
+body.admin-light-theme .model-add-input option {
+  background-color: #ffffff;
+  color: #0b1220;
+}
+body.admin-light-theme .admin-key-input option.opt-disabled-model,
+body.admin-light-theme .model-add-input option.opt-disabled-model {
+  color: #94a3b8;
+}
+
 .btn-save {
   padding: 11px 18px;
   background: rgba(52,211,153,0.1);

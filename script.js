@@ -498,6 +498,7 @@ function renderAdminTestModelSelect(models) {
     const opt = document.createElement('option');
     opt.value = m.id;
     opt.textContent = (m.label || m.id) + (m.enabled ? '' : ' (вимкнена)');
+    if (!m.enabled) opt.className = 'opt-disabled-model';
     sel.appendChild(opt);
   });
   if ([...sel.options].some(o => o.value === prevVal)) sel.value = prevVal;
