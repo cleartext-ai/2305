@@ -1016,8 +1016,8 @@ body.admin-light-theme .model-add-input option.opt-disabled-model {
 .speak-goto-fix-link:hover { opacity: 1; text-decoration: underline; }
 .speak-textarea {
   width: 100%; background: none; border: none; outline: none; resize: none;
-  color: var(--text); font-family: 'Nunito', sans-serif; font-size: 18px; font-weight: 600;
-  line-height: 1.75; padding: 14px 18px 18px; min-height: 110px; max-height: 260px;
+  color: var(--text); font-family: 'Nunito', sans-serif; font-size: 15px; font-weight: 600;
+  line-height: 1.7; padding: 14px 18px 18px; min-height: 130px; max-height: 260px;
   overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--border) transparent;
   border-bottom: 1px solid rgba(255,255,255,0.06); -webkit-appearance: none;
 }
@@ -1102,6 +1102,7 @@ body.admin-light-theme .model-add-input option.opt-disabled-model {
   .app-body { padding: 14px 12px calc(var(--safe-bottom) + 92px); gap: 12px; }
   #text-input { font-size: 16px; min-height: 110px; }
   .result-text { font-size: 17px; }
+  .speak-textarea { font-size: 16px; min-height: 110px; }
   .change-item { margin: 0 8px 8px; }
   .admin-body { padding: 16px 12px; }
 }
