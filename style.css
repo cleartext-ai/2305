@@ -94,6 +94,8 @@
   }
 
   .result-text { border-bottom: 1px solid rgba(0,0,0,0.06); }
+  .speak-textarea { border-bottom: 1px solid rgba(0,0,0,0.06); }
+  .speak-textarea::placeholder { color: rgba(0,0,0,0.35); }
 
   .act-btn {
     background: rgba(255,255,255,0.7);
@@ -1005,6 +1007,23 @@ body.admin-light-theme .model-add-input option.opt-disabled-model {
 .speak-goto-btn:hover { background: rgba(52,211,153,0.22); }
 
 .speak-card { animation: fadeUp 0.35s cubic-bezier(0.34,1.2,0.64,1) forwards; }
+.speak-goto-fix-link {
+  background: none; border: none; padding: 2px 4px;
+  font-family: 'Nunito', sans-serif; font-size: 11px; font-weight: 800;
+  color: var(--green); cursor: pointer; -webkit-appearance: none;
+  letter-spacing: 0.02em; opacity: 0.85; transition: opacity 0.2s;
+}
+.speak-goto-fix-link:hover { opacity: 1; text-decoration: underline; }
+.speak-textarea {
+  width: 100%; background: none; border: none; outline: none; resize: none;
+  color: var(--text); font-family: 'Nunito', sans-serif; font-size: 18px; font-weight: 600;
+  line-height: 1.75; padding: 14px 18px 18px; min-height: 110px; max-height: 260px;
+  overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--border) transparent;
+  border-bottom: 1px solid rgba(255,255,255,0.06); -webkit-appearance: none;
+}
+.speak-textarea::-webkit-scrollbar { width: 3px; }
+.speak-textarea::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+.speak-textarea::placeholder { color: var(--dim); font-weight: 500; }
 .speak-actions { padding: 14px; display: flex; flex-direction: column; gap: 10px; }
 .speak-action-btn {
   width: 100%; padding: 15px 16px;

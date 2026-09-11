@@ -1944,25 +1944,26 @@ if ('speechSynthesis' in window) {
 }
 
 // ── Вкладка «Спілкування» ──────────────────
+// Текст можна або написати самостійно прямо тут, або підтягнути
+// останній виправлений варіант з вкладки «Виправлення».
+let _speakTextSynced = ''; // останнє значення, яке ми самі підставили з _lastFixedText
+
 function renderSpeakTab() {
-  const empty = document.getElementById('speakEmptyState');
-  const content = document.getElementById('speakContent');
   const textEl = document.getElementById('speakText');
-  if (!empty || !content || !textEl) return;
-  if (_lastFixedText) {
-    textEl.textContent = _lastFixedText;
-    empty.style.display = 'none';
-    content.style.display = 'block';
-  } else {
-    empty.style.display = 'flex';
-    content.style.display = 'none';
+  if (!textEl) return;
+  // Підставляємо свіжий виправлений текст лише якщо користувач
+  // ще не написав у полі щось своє (поле порожнє або містить
+  // те саме значення, яке ми підставили минулого разу).
+  if (_lastFixedText && (textEl.value === '' || textEl.value === _speakTextSynced)) {
+    textEl.value = _lastFixedText;
+    _speakTextSynced = _lastFixedText;
   }
 }
 
 document.getElementById('speakGotoFixBtn')?.addEventListener('click', () => switchTab('tab-fix'));
-document.getElementById('speakReadBtn')?.addEventListener('click', (e) => speakText(_lastFixedText, e.currentTarget));
-document.getElementById('speakCopyBtn')?.addEventListener('click', (e) => copyText(_lastFixedText, e.currentTarget));
-document.getElementById('speakShareBtn')?.addEventListener('click', () => shareText(_lastFixedText));
+document.getElementById('speakReadBtn')?.addEventListener('click', (e) => speakText(document.getElementById('speakText')?.value.trim() || '', e.currentTarget));
+document.getElementById('speakCopyBtn')?.addEventListener('click', (e) => copyText(document.getElementById('speakText')?.value.trim() || '', e.currentTarget));
+document.getElementById('speakShareBtn')?.addEventListener('click', () => shareText(document.getElementById('speakText')?.value.trim() || ''));
 
 // ══════════════════════════════════════════════
 // РОЗПІЗНАВАННЯ МОВИ СПІВРОЗМОВНИКА (Web Speech API, browser-native STT)
