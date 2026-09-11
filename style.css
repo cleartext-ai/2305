@@ -1024,6 +1024,11 @@ body.admin-light-theme .model-add-input option.opt-disabled-model {
 .speak-textarea::-webkit-scrollbar { width: 3px; }
 .speak-textarea::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 .speak-textarea::placeholder { color: var(--dim); font-weight: 500; }
+.speak-textarea--empty-flash { animation: speakEmptyFlash 0.9s ease; }
+@keyframes speakEmptyFlash {
+  0%, 100% { box-shadow: none; }
+  20%, 60% { box-shadow: inset 0 0 0 1.5px rgba(251,113,133,0.7); }
+}
 .speak-actions { padding: 14px; display: flex; flex-direction: column; gap: 10px; }
 .speak-actions--icon { align-items: center; padding: 20px 14px; }
 .speak-action-btn {

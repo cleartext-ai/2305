@@ -1961,7 +1961,18 @@ function renderSpeakTab() {
 }
 
 document.getElementById('speakGotoFixBtn')?.addEventListener('click', () => switchTab('tab-fix'));
-document.getElementById('speakReadBtn')?.addEventListener('click', (e) => speakText(document.getElementById('speakText')?.value.trim() || '', e.currentTarget));
+document.getElementById('speakReadBtn')?.addEventListener('click', (e) => {
+  const el = document.getElementById('speakText');
+  const text = el?.value.trim() || '';
+  if (!text) {
+    // Порожнє поле — не мовчимо, а показуємо користувачу, що саме треба зробити
+    el?.focus();
+    el?.classList.add('speak-textarea--empty-flash');
+    setTimeout(() => el?.classList.remove('speak-textarea--empty-flash'), 900);
+    return;
+  }
+  speakText(text, e.currentTarget);
+});
 
 // ══════════════════════════════════════════════
 // РОЗПІЗНАВАННЯ МОВИ СПІВРОЗМОВНИКА (Web Speech API, browser-native STT)
