@@ -24,7 +24,6 @@
   --dim: rgba(255,255,255,0.5);
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
-  --text-scale: 1;
 }
 
 
@@ -771,19 +770,6 @@ body.admin-light-theme .model-add-input option.opt-disabled-model {
 }
 .model-sel-hidden option { background: #0f172a; }
 
-.font-scale-ctrl { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
-.font-scale-ctrl button {
-  width: 32px; height: 32px; border-radius: 10px;
-  background: rgba(255,255,255,0.07); border: 1px solid var(--border);
-  color: var(--muted); font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 12px;
-  cursor: pointer; -webkit-appearance: none; transition: all 0.15s;
-  display: flex; align-items: center; justify-content: center;
-}
-.font-scale-ctrl button:hover { background: rgba(255,255,255,0.14); color: var(--text); }
-.font-scale-ctrl button:active { transform: scale(0.92); }
-.font-scale-ctrl button:disabled { opacity: 0.35; cursor: default; }
-#fontScaleUp { font-size: 15px; }
-
 .app-body {
   flex: 1; padding: 20px 16px calc(var(--safe-bottom) + 110px);
   display: flex; flex-direction: column; gap: 16px;
@@ -817,7 +803,7 @@ body.admin-light-theme .model-add-input option.opt-disabled-model {
   border: 1px solid rgba(52,211,153,0.3);
   display: flex; align-items: center; justify-content: center; color: var(--green);
 }
-.template-text { flex: 1; font-size: calc(14px * var(--text-scale)); font-weight: 700; color: var(--text); line-height: 1.4; }
+.template-text { flex: 1; font-size: 14px; font-weight: 700; color: var(--text); line-height: 1.4; }
 .template-arrow { flex-shrink: 0; color: var(--dim); }
 
 /* ── TAB BAR — ПЛАВАЮЧИЙ ОСТРІВЕЦЬ (iOS Liquid Glass) ── */
@@ -930,18 +916,11 @@ body.admin-light-theme .model-add-input option.opt-disabled-model {
 
 #text-input {
   width: 100%; background: none; border: none; outline: none; resize: none;
-  color: var(--text); font-family: 'Nunito', sans-serif; font-size: calc(15px * var(--text-scale)); font-weight: 600;
+  color: var(--text); font-family: 'Nunito', sans-serif; font-size: 15px; font-weight: 600;
   line-height: 1.7; padding: 14px 18px 18px; min-height: 130px; max-height: 260px;
   overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--border) transparent;
   -webkit-appearance: none;
 }
-.input-hint { padding: 0 18px 12px; font-size: 11px; font-weight: 700; color: var(--dim); letter-spacing: 0.02em; }
-.draft-saved-hint {
-  display: none; padding: 0 18px 12px; font-size: 11px; font-weight: 800; color: var(--green);
-  align-items: center; gap: 5px;
-}
-.draft-saved-hint.show { display: flex; animation: draftFade 1.6s ease forwards; }
-@keyframes draftFade { 0%{opacity:0} 15%{opacity:1} 75%{opacity:1} 100%{opacity:0} }
 #text-input::-webkit-scrollbar { width: 3px; }
 #text-input::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 #text-input::placeholder { color: var(--dim); font-weight: 500; }
@@ -987,37 +966,17 @@ body.admin-light-theme .model-add-input option.opt-disabled-model {
 #result-card { display: none; animation: fadeUp 0.4s cubic-bezier(0.34,1.2,0.64,1) forwards; }
 @keyframes fadeUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
 
-.result-text { padding: 16px 18px; font-size: calc(18px * var(--text-scale)); font-weight: 600; line-height: 1.75; color: var(--text); border-bottom: 1px solid rgba(255,255,255,0.06); }
-
-/* Вбудований діф — показує саме змінені слова прямо в тексті результату */
-.diff-change { display: inline; }
-.diff-old { color: var(--rose); text-decoration: line-through; opacity: 0.75; font-weight: 700; margin-right: 3px; }
-.diff-new { color: var(--green); font-weight: 800; background: rgba(52,211,153,0.14); border-radius: 5px; padding: 0 4px; }
+.result-text { padding: 16px 18px; font-size: 18px; font-weight: 600; line-height: 1.75; color: var(--text); border-bottom: 1px solid rgba(255,255,255,0.06); }
 
 .changes-header { padding: 12px 18px 8px; font-size: 12px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); display: flex; align-items: center; gap: 6px; }
 .badge { background: rgba(251,191,36,0.2); border: 1px solid rgba(251,191,36,0.3); border-radius: 20px; padding: 2px 8px; font-size: 10px; font-weight: 800; color: var(--amber); }
 
 .change-item { margin: 0 12px 10px; background: var(--glass); backdrop-filter: var(--blur-sm); -webkit-backdrop-filter: var(--blur-sm); border: 1px solid rgba(255,255,255,0.12); border-top: 1px solid rgba(255,255,255,0.22); border-radius: 14px; padding: 11px 14px; display: flex; flex-direction: column; gap: 5px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.15), 0 2px 6px rgba(0,0,0,0.1); }
 .change-row { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; line-height: 1.4; }
-.change-before { color: var(--rose); font-weight: 700; font-family: 'JetBrains Mono', monospace; font-size: calc(15px * var(--text-scale)); text-decoration: line-through; opacity: 0.8; }
+.change-before { color: var(--rose); font-weight: 700; font-family: 'JetBrains Mono', monospace; font-size: 15px; text-decoration: line-through; opacity: 0.8; }
 .change-arrow { color: var(--dim); font-size: 14px; margin-top: 1px; flex-shrink: 0; }
-.change-after { color: var(--green); font-weight: 700; font-family: 'JetBrains Mono', monospace; font-size: calc(15px * var(--text-scale)); }
-.change-reason { font-size: calc(15px * var(--text-scale)); font-weight: 600; color: var(--muted); padding-left: 2px; }
-
-/* 👍/👎 фідбек під кожним виправленням */
-.change-feedback { display: flex; align-items: center; gap: 8px; margin-top: 4px; padding-left: 2px; }
-.feedback-label { font-size: 11px; font-weight: 700; color: var(--dim); margin-right: 2px; }
-.feedback-btn {
-  background: rgba(255,255,255,0.06); border: 1px solid var(--border); border-radius: 10px;
-  width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;
-  color: var(--dim); cursor: pointer; transition: all 0.15s; -webkit-appearance: none;
-}
-.feedback-btn:hover { background: rgba(255,255,255,0.12); color: var(--text); }
-.feedback-btn:active { transform: scale(0.92); }
-.feedback-btn.feedback-btn--up.selected { background: rgba(52,211,153,0.18); border-color: rgba(52,211,153,0.4); color: var(--green); }
-.feedback-btn.feedback-btn--down.selected { background: rgba(251,113,133,0.18); border-color: rgba(251,113,133,0.4); color: var(--rose); }
-.feedback-btn:disabled { cursor: default; opacity: 0.55; }
-.feedback-thanks { font-size: 11px; font-weight: 700; color: var(--green); }
+.change-after { color: var(--green); font-weight: 700; font-family: 'JetBrains Mono', monospace; font-size: 15px; }
+.change-reason { font-size: 15px; font-weight: 600; color: var(--muted); padding-left: 2px; }
 
 .no-changes { padding: 16px 18px; display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 700; color: var(--green); }
 
@@ -1122,8 +1081,8 @@ body.admin-light-theme .model-add-input option.opt-disabled-model {
   .no-api-card { padding: 28px 20px; border-radius: 22px; }
   .app-header { padding: calc(var(--safe-top) + 10px) 14px 10px; }
   .app-body { padding: 14px 12px calc(var(--safe-bottom) + 92px); gap: 12px; }
-  #text-input { font-size: calc(16px * var(--text-scale)); min-height: 110px; }
-  .result-text { font-size: calc(17px * var(--text-scale)); }
+  #text-input { font-size: 16px; min-height: 110px; }
+  .result-text { font-size: 17px; }
   .change-item { margin: 0 8px 8px; }
   .admin-body { padding: 16px 12px; }
 }
@@ -1141,64 +1100,3 @@ body.admin-light-theme .model-add-input option.opt-disabled-model {
 .ct-logo--splash { width: 80px; height: 80px; margin: 0 auto 20px; }
 /* Admin login logo */
 .ct-logo--admin { width: 68px; height: 68px; margin: 0 auto 18px; }
-
-/* ── МОЇ ФРАЗИ (особисті шаблони, зберігаються локально) ── */
-.my-phrases-card { margin-bottom: 4px; }
-.my-phrases-body { padding: 4px 16px 16px; display: flex; flex-direction: column; gap: 10px; }
-.my-phrase-add-row { display: flex; gap: 8px; }
-.my-phrase-input {
-  flex: 1; background: rgba(255,255,255,0.06); border: 1px solid var(--border);
-  border-radius: 12px; padding: 11px 14px; color: var(--text);
-  font-family: 'Nunito', sans-serif; font-size: 14px; font-weight: 600; outline: none;
-  -webkit-appearance: none; transition: border-color 0.2s;
-}
-.my-phrase-input::placeholder { color: var(--dim); font-weight: 500; }
-.my-phrase-input:focus { border-color: rgba(52,211,153,0.5); }
-.my-phrase-add-btn {
-  width: 42px; flex-shrink: 0; border-radius: 12px;
-  background: linear-gradient(135deg, rgba(52,211,153,0.35), rgba(96,165,250,0.3));
-  border: 1px solid rgba(52,211,153,0.4); color: #fff; cursor: pointer; -webkit-appearance: none;
-  display: flex; align-items: center; justify-content: center; transition: all 0.15s;
-}
-.my-phrase-add-btn:hover { transform: translateY(-1px); }
-.my-phrase-add-btn:active { transform: scale(0.94); }
-.my-phrase-item {
-  background: var(--glass2); border: 1px solid var(--border); border-radius: 14px;
-  padding: 11px 12px 11px 14px; display: flex; align-items: center; gap: 10px;
-}
-.my-phrase-text {
-  flex: 1; font-size: calc(14px * var(--text-scale)); font-weight: 700; color: var(--text);
-  line-height: 1.4; cursor: pointer;
-}
-.my-phrase-del-btn {
-  flex-shrink: 0; width: 28px; height: 28px; border-radius: 9px;
-  background: rgba(251,113,133,0.1); border: 1px solid rgba(251,113,133,0.25);
-  color: var(--rose); cursor: pointer; -webkit-appearance: none;
-  display: flex; align-items: center; justify-content: center; transition: all 0.15s;
-}
-.my-phrase-del-btn:hover { background: rgba(251,113,133,0.2); }
-.my-phrases-empty { display: none; font-size: 12.5px; font-weight: 600; color: var(--dim); line-height: 1.5; padding: 2px 2px 4px; }
-.my-phrases-empty.show { display: block; }
-
-/* ── ІСТОРІЯ ВИПРАВЛЕНЬ (локально, останні 8) ── */
-.history-clear-btn {
-  font-size: 11px; font-weight: 700; color: var(--dim); cursor: pointer;
-  padding: 4px 8px; border-radius: 8px; transition: all 0.15s;
-}
-.history-clear-btn:hover { background: rgba(255,255,255,0.08); color: var(--rose); }
-.history-item {
-  margin: 0 12px 10px; padding: 11px 14px; border-radius: 14px;
-  background: var(--glass); border: 1px solid rgba(255,255,255,0.12); border-top: 1px solid rgba(255,255,255,0.22);
-  display: flex; flex-direction: column; gap: 6px; cursor: pointer; transition: all 0.15s;
-}
-.history-item:hover { background: var(--glass2); }
-.history-item:last-child { margin-bottom: 14px; }
-.history-item-text { font-size: 13.5px; font-weight: 700; color: var(--text); line-height: 1.45; }
-.history-item-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.history-item-time { font-size: 10.5px; font-weight: 700; color: var(--dim); font-family: 'JetBrains Mono', monospace; }
-.history-item-copy {
-  font-size: 11px; font-weight: 800; color: var(--green); background: rgba(52,211,153,0.12);
-  border: 1px solid rgba(52,211,153,0.3); border-radius: 8px; padding: 3px 9px; cursor: pointer; -webkit-appearance: none;
-}
-.history-item-copy:hover { background: rgba(52,211,153,0.2); }
-.history-empty { padding: 16px 18px; font-size: 12.5px; font-weight: 600; color: var(--dim); }

@@ -1512,61 +1512,14 @@ document.querySelectorAll('.lang-btn').forEach(btn => {
 });
 
 const textInput = document.getElementById('text-input');
-
-// ══════════════════════════════════════════════
-// ЧЕРНЕТКА — автозбереження тексту, що вводиться, щоб не втратити
-// його при випадковому закритті вкладки чи втраті зв'язку.
-// ══════════════════════════════════════════════
-const DRAFT_KEY = 'ct_draft_text';
-let _draftSaveTimer = null;
-function saveDraft(text) {
-  clearTimeout(_draftSaveTimer);
-  _draftSaveTimer = setTimeout(() => {
-    try {
-      if (text && text.trim()) {
-        localStorage.setItem(DRAFT_KEY, text);
-        const hint = document.getElementById('draftSavedHint');
-        if (hint) {
-          hint.classList.remove('show');
-          void hint.offsetWidth; // restart animation
-          hint.classList.add('show');
-        }
-      } else {
-        localStorage.removeItem(DRAFT_KEY);
-      }
-    } catch(e) { /* сховище недоступне — не критично */ }
-  }, 500);
-}
-function restoreDraft() {
-  try {
-    const draft = localStorage.getItem(DRAFT_KEY);
-    if (draft) {
-      textInput.value = draft;
-      textInput.dispatchEvent(new Event('input'));
-    }
-  } catch(e) { /* сховище недоступне */ }
-}
-function clearDraft() {
-  clearTimeout(_draftSaveTimer);
-  try { localStorage.removeItem(DRAFT_KEY); } catch(e) {}
-}
-
 textInput.addEventListener('input', () => {
   const len = textInput.value.length;
   document.getElementById('charCount').textContent = `${len} / 800`;
   if (len > 800) textInput.value = textInput.value.slice(0, 800);
-  saveDraft(textInput.value);
 });
-restoreDraft();
 
 document.getElementById('fixBtn').onclick = fixText;
-// Enter — надіслати текст; Shift+Enter — новий рядок; Ctrl/Cmd+Enter теж надсилає.
-textInput.addEventListener('keydown', e => {
-  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey || !e.shiftKey)) {
-    e.preventDefault();
-    fixText();
-  }
-});
+textInput.addEventListener('keydown', e => { if (e.key==='Enter' && e.ctrlKey) fixText(); });
 
 // Промпт винесено в окрему функцію, щоб її міг використати і тестер AI в адмінці
 // (без впливу на логіку чи вигляд застосунку для користувачів).
@@ -1635,8 +1588,6 @@ function buildFixPrompt(text) {
 }
 
 async function fixText() {
-  const _fixBtnGuard = document.getElementById('fixBtn');
-  if (_fixBtnGuard && _fixBtnGuard.disabled) return; // вже виконується — ігноруємо повторний Enter
   const text = textInput.value.trim();
   if (!text) {
     textInput.animate([{borderColor:'rgba(251,113,133,0.5)'},{borderColor:''}],{duration:400});
@@ -1859,34 +1810,15 @@ function showBlocked(reason) {
   box.style.display = 'block';
 }
 
-// Вбудовує підсвічені зміни прямо в текст результату:
-// закреслене старе слово + нове слово, замість лише окремого списку.
-function buildDiffHtml(correctedText, changes) {
-  let html = escHtml(correctedText);
-  if (!changes || !changes.length) return html;
-  changes.forEach((c, idx) => {
-    const afterEsc = escHtml(c.after || '').trim();
-    const beforeEsc = escHtml(c.before || '').trim();
-    if (!afterEsc) return;
-    const pos = html.indexOf(afterEsc);
-    if (pos === -1) return; // фразу не знайдено дослівно в результаті — пропускаємо підсвітку
-    const oldPart = beforeEsc && beforeEsc !== afterEsc ? `<del class="diff-old">${beforeEsc}</del>` : '';
-    const replacement = `<span class="diff-change" data-idx="${idx}">${oldPart}<ins class="diff-new">${afterEsc}</ins></span>`;
-    html = html.slice(0, pos) + replacement + html.slice(pos + afterEsc.length);
-  });
-  return html;
-}
-
 function showResult(data) {
   const card = document.getElementById('result-card');
   const resultText = document.getElementById('result-text');
   const changesList = document.getElementById('changes-list');
   const badge = document.getElementById('changes-badge');
-  const hasChanges = !data.noChanges && data.changes && data.changes.length > 0;
-  resultText.innerHTML = hasChanges ? buildDiffHtml(data.corrected, data.changes) : escHtml(data.corrected);
+  resultText.textContent = data.corrected;
   _lastFixedText = data.corrected || '';
   changesList.innerHTML = '';
-  if (!hasChanges) {
+  if (data.noChanges || data.changes.length === 0) {
     badge.textContent = '0';
     changesList.innerHTML = `<div class="no-changes"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Текст вже правильний! Помилок не знайдено.</div>`;
   } else {
@@ -1900,29 +1832,12 @@ function showResult(data) {
           <span class="change-arrow">→</span>
           <span class="change-after">${escHtml(c.after)}</span>
         </div>
-        <div class="change-reason">${escHtml(c.reason)}</div>
-        <div class="change-feedback">
-          <span class="feedback-label">Правка правильна?</span>
-          <button class="feedback-btn feedback-btn--up" type="button" title="Так, правильно" aria-label="Правка правильна"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg></button>
-          <button class="feedback-btn feedback-btn--down" type="button" title="Ні, неправильно" aria-label="Правка неправильна"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h3a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-3"/></svg></button>
-        </div>`;
-      const upBtn = item.querySelector('.feedback-btn--up');
-      const downBtn = item.querySelector('.feedback-btn--down');
-      const vote = (good, clickedBtn, otherBtn) => {
-        upBtn.disabled = true; downBtn.disabled = true;
-        clickedBtn.classList.add('selected');
-        item.querySelector('.feedback-label').textContent = 'Дякуємо за оцінку!';
-        saveChangeFeedback(good);
-      };
-      upBtn.addEventListener('click', () => vote(true, upBtn, downBtn));
-      downBtn.addEventListener('click', () => vote(false, downBtn, upBtn));
+        <div class="change-reason">${escHtml(c.reason)}</div>`;
       changesList.appendChild(item);
     });
   }
   card.style.display = 'block';
   card.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  pushHistory(textInput.value, data.corrected || '');
-  clearDraft();
 }
 
 function escHtml(s) {
@@ -2169,12 +2084,12 @@ document.getElementById('listenClearBtn')?.addEventListener('click', () => {
 
 initSpeechRecognition();
 
-document.getElementById('shareBtn').onclick = () => shareText(_lastFixedText);
+document.getElementById('shareBtn').onclick = () => shareText(document.getElementById('result-text').textContent);
 
-document.getElementById('copyBtn').onclick = () => copyText(_lastFixedText, document.getElementById('copyBtn'));
+document.getElementById('copyBtn').onclick = () => copyText(document.getElementById('result-text').textContent, document.getElementById('copyBtn'));
 
 document.getElementById('useBtn').onclick = () => {
-  const text = _lastFixedText;
+  const text = document.getElementById('result-text').textContent;
   if (!text) return;
   textInput.value = text;
   textInput.dispatchEvent(new Event('input'));
@@ -2190,158 +2105,6 @@ document.getElementById('clearBtn').onclick = () => {
   document.getElementById('errorBox').style.display = 'none';
   textInput.focus();
 };
-
-// ══════════════════════════════════════════════
-// РОЗМІР ШРИФТУ — для людей зі слабким зором чи похилого віку.
-// Впливає на поле вводу, результат, шаблони й фрази через CSS-змінну --text-scale.
-// ══════════════════════════════════════════════
-const FONT_SCALE_KEY = 'ct_font_scale';
-const FONT_SCALE_MIN = 0.9;
-const FONT_SCALE_MAX = 1.6;
-const FONT_SCALE_STEP = 0.1;
-
-function getFontScale() {
-  const v = parseFloat(localStorage.getItem(FONT_SCALE_KEY));
-  return (!isNaN(v) && v >= FONT_SCALE_MIN && v <= FONT_SCALE_MAX) ? v : 1;
-}
-function applyFontScale(scale) {
-  document.documentElement.style.setProperty('--text-scale', scale.toFixed(2));
-  const downBtn = document.getElementById('fontScaleDown');
-  const upBtn = document.getElementById('fontScaleUp');
-  if (downBtn) downBtn.disabled = scale <= FONT_SCALE_MIN + 0.001;
-  if (upBtn) upBtn.disabled = scale >= FONT_SCALE_MAX - 0.001;
-}
-function setFontScale(scale) {
-  scale = Math.min(FONT_SCALE_MAX, Math.max(FONT_SCALE_MIN, Math.round(scale * 10) / 10));
-  try { localStorage.setItem(FONT_SCALE_KEY, scale); } catch(e) {}
-  applyFontScale(scale);
-}
-applyFontScale(getFontScale());
-document.getElementById('fontScaleDown')?.addEventListener('click', () => setFontScale(getFontScale() - FONT_SCALE_STEP));
-document.getElementById('fontScaleUp')?.addEventListener('click', () => setFontScale(getFontScale() + FONT_SCALE_STEP));
-
-// ══════════════════════════════════════════════
-// МОЇ ФРАЗИ — особисті шаблони користувача, зберігаються лише на цьому
-// пристрої (localStorage), окремо від шаблонів адміна.
-// ══════════════════════════════════════════════
-const MY_PHRASES_KEY = 'ct_my_phrases';
-const MY_PHRASES_MAX = 30;
-
-function getMyPhrases() { return lsGet(MY_PHRASES_KEY, []) || []; }
-function saveMyPhrases(list) { lsSet(MY_PHRASES_KEY, list); }
-
-function renderMyPhrases() {
-  const list = document.getElementById('my-phrases-list');
-  const empty = document.getElementById('myPhrasesEmpty');
-  if (!list) return;
-  const phrases = getMyPhrases();
-  list.innerHTML = '';
-  if (!phrases.length) {
-    empty?.classList.add('show');
-    return;
-  }
-  empty?.classList.remove('show');
-  phrases.forEach((phrase, idx) => {
-    const item = document.createElement('div');
-    item.className = 'my-phrase-item';
-    item.innerHTML = `
-      <div class="my-phrase-text">${escHtml(phrase)}</div>
-      <button class="my-phrase-del-btn" type="button" title="Видалити" aria-label="Видалити фразу"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>`;
-    item.querySelector('.my-phrase-text').addEventListener('click', () => useTextInFixer(phrase));
-    item.querySelector('.my-phrase-del-btn').addEventListener('click', (e) => {
-      e.stopPropagation();
-      const updated = getMyPhrases();
-      updated.splice(idx, 1);
-      saveMyPhrases(updated);
-      renderMyPhrases();
-    });
-    list.appendChild(item);
-  });
-}
-
-document.getElementById('myPhraseAddBtn')?.addEventListener('click', addMyPhrase);
-document.getElementById('myPhraseInput')?.addEventListener('keydown', e => {
-  if (e.key === 'Enter') { e.preventDefault(); addMyPhrase(); }
-});
-function addMyPhrase() {
-  const input = document.getElementById('myPhraseInput');
-  const text = (input.value || '').trim();
-  if (!text) return;
-  const phrases = getMyPhrases();
-  phrases.unshift(text);
-  if (phrases.length > MY_PHRASES_MAX) phrases.length = MY_PHRASES_MAX;
-  saveMyPhrases(phrases);
-  input.value = '';
-  renderMyPhrases();
-}
-renderMyPhrases();
-
-// ══════════════════════════════════════════════
-// ІСТОРІЯ ВИПРАВЛЕНЬ — останні 8, локально на пристрої (без Firestore).
-// ══════════════════════════════════════════════
-const HISTORY_KEY = 'ct_history';
-const HISTORY_MAX = 8;
-
-function getHistory() { return lsGet(HISTORY_KEY, []) || []; }
-function pushHistory(original, corrected) {
-  if (!corrected) return;
-  const history = getHistory();
-  history.unshift({ original, corrected, ts: Date.now() });
-  if (history.length > HISTORY_MAX) history.length = HISTORY_MAX;
-  lsSet(HISTORY_KEY, history);
-  renderHistory();
-}
-function formatHistoryTime(ts) {
-  const d = new Date(ts);
-  const pad = n => String(n).padStart(2, '0');
-  return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
-function renderHistory() {
-  const card = document.getElementById('historyCard');
-  const list = document.getElementById('history-list');
-  if (!card || !list) return;
-  const history = getHistory();
-  if (!history.length) { card.style.display = 'none'; return; }
-  card.style.display = 'block';
-  list.innerHTML = '';
-  history.forEach(entry => {
-    const item = document.createElement('div');
-    item.className = 'history-item';
-    item.innerHTML = `
-      <div class="history-item-text">${escHtml(entry.corrected)}</div>
-      <div class="history-item-meta">
-        <span class="history-item-time">${formatHistoryTime(entry.ts)}</span>
-        <span class="history-item-copy">Копіювати</span>
-      </div>`;
-    item.querySelector('.history-item-copy').addEventListener('click', (e) => {
-      e.stopPropagation();
-      copyText(entry.corrected, e.currentTarget);
-    });
-    item.addEventListener('click', () => useTextInFixer(entry.corrected));
-    list.appendChild(item);
-  });
-}
-renderHistory();
-
-document.getElementById('historyClearBtn')?.addEventListener('click', () => {
-  lsSet(HISTORY_KEY, []);
-  renderHistory();
-});
-
-// ══════════════════════════════════════════════
-// 👍/👎 ФІДБЕК ПІД КОЖНИМ ВИПРАВЛЕННЯМ — анонімна оцінка якості конкретної
-// правки. Зберігає лише лічильники (без тексту) у статистику Firestore.
-// ══════════════════════════════════════════════
-async function saveChangeFeedback(good) {
-  try {
-    const today = new Date().toISOString().slice(0, 10);
-    const statsRef = doc(db, 'stats', today);
-    const snap = await getDoc(statsRef);
-    const prev = snap.exists() ? snap.data() : {};
-    const field = good ? 'feedbackGood' : 'feedbackBad';
-    await setDoc(statsRef, { [field]: (prev[field] || 0) + 1, lastUpdated: new Date().toISOString() }, { merge: true });
-  } catch(e) { /* телеметрія не критична */ }
-}
 
 // ══════════════════════════════════════════════
 // SMART ADMIN LINK
@@ -2383,8 +2146,6 @@ document.getElementById('loadStatsBtn').addEventListener('click', async () => {
       document.getElementById('statChanges').textContent = totalChanges;
       document.getElementById('statNoChange').textContent = noChanges;
       document.getElementById('statBlocked').textContent = d.blockedCount || 0;
-      document.getElementById('statFeedbackGood').textContent = d.feedbackGood || 0;
-      document.getElementById('statFeedbackBad').textContent = d.feedbackBad || 0;
       document.getElementById('statLatency').textContent = (d.latencyCount > 0)
         ? Math.round(d.latencyTotalMs / d.latencyCount) + ' мс'
         : '—';
@@ -2414,8 +2175,6 @@ document.getElementById('loadStatsBtn').addEventListener('click', async () => {
       document.getElementById('statCostUsd').textContent = '$0.000000';
       document.getElementById('statCostUah').textContent = '0.0000 ₴';
       document.getElementById('statBlocked').textContent = '0';
-      document.getElementById('statFeedbackGood').textContent = '0';
-      document.getElementById('statFeedbackBad').textContent = '0';
       document.getElementById('statLatency').textContent = '—';
     }
   } catch(e) {
