@@ -1962,8 +1962,6 @@ function renderSpeakTab() {
 
 document.getElementById('speakGotoFixBtn')?.addEventListener('click', () => switchTab('tab-fix'));
 document.getElementById('speakReadBtn')?.addEventListener('click', (e) => speakText(document.getElementById('speakText')?.value.trim() || '', e.currentTarget));
-document.getElementById('speakCopyBtn')?.addEventListener('click', (e) => copyText(document.getElementById('speakText')?.value.trim() || '', e.currentTarget));
-document.getElementById('speakShareBtn')?.addEventListener('click', () => shareText(document.getElementById('speakText')?.value.trim() || ''));
 
 // ══════════════════════════════════════════════
 // РОЗПІЗНАВАННЯ МОВИ СПІВРОЗМОВНИКА (Web Speech API, browser-native STT)
