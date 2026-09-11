@@ -1412,6 +1412,8 @@ function switchTab(tabId) {
   window.scrollTo({ top: 0, behavior: 'instant' });
   const activeBtn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
   moveTabIndicator(activeBtn);
+  if (tabId === 'tab-speak') renderSpeakTab();
+  else stopSpeaking();
 }
 
 document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -1814,6 +1816,7 @@ function showResult(data) {
   const changesList = document.getElementById('changes-list');
   const badge = document.getElementById('changes-badge');
   resultText.textContent = data.corrected;
+  _lastFixedText = data.corrected || '';
   changesList.innerHTML = '';
   if (data.noChanges || data.changes.length === 0) {
     badge.textContent = '0';
@@ -1841,17 +1844,34 @@ function escHtml(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
-document.getElementById('shareBtn').onclick = async () => {
-  const text = document.getElementById('result-text').textContent;
+// ══════════════════════════════════════════════
+// СПІЛЬНІ ФУНКЦІЇ: копіювати / поділитися / прочитати вголос
+// Використовуються і в картці результату, і на вкладці «Спілкування».
+// ══════════════════════════════════════════════
+let _lastFixedText = '';
+
+async function copyText(text, btn) {
+  if (!text) return;
+  try { await navigator.clipboard.writeText(text); }
+  catch(e) {
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove();
+  }
+  if (!btn) return;
+  const origHtml = btn.innerHTML;
+  const checkSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
+  btn.innerHTML = btn.querySelector('span') ? `${checkSvg}<span>Скопійовано!</span>` : checkSvg;
+  btn.classList.add('success');
+  setTimeout(() => { btn.innerHTML = origHtml; btn.classList.remove('success'); }, 2000);
+}
+
+async function shareText(text) {
   if (!text) return;
   // Використовуємо нативний Web Share API якщо доступний (iOS/Android)
   if (navigator.share) {
-    try {
-      await navigator.share({ text });
-    } catch(e) {
-      // Користувач закрив меню — нічого не робимо
-    }
-    return; // завжди виходимо якщо є navigator.share
+    try { await navigator.share({ text }); } catch(e) { /* користувач закрив меню */ }
+    return;
   }
   // Fallback — показуємо кастомне меню (тільки на ПК)
   const menu = document.createElement('div');
@@ -1878,22 +1898,75 @@ document.getElementById('shareBtn').onclick = async () => {
       <button onclick="this.closest('div[style*=fixed]').remove()" style="width:100%;padding:14px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.1);border-radius:14px;color:rgba(255,255,255,0.6);font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;cursor:pointer;-webkit-appearance:none">Скасувати</button>
     </div>`;
   document.body.appendChild(menu);
-  menu.onclick = e => { if(e.target === menu) menu.remove(); };
-};
+  menu.onclick = e => { if (e.target === menu) menu.remove(); };
+}
 
-document.getElementById('copyBtn').onclick = async () => {
-  const text = document.getElementById('result-text').textContent;
+// ── Text-to-Speech (Web Speech API) ──────────────────
+let _speechUtterance = null;
+function pickUkrainianVoice() {
+  const voices = window.speechSynthesis ? window.speechSynthesis.getVoices() : [];
+  return voices.find(v => v.lang?.toLowerCase().startsWith('uk')) || null;
+}
+function stopSpeaking() {
+  if (window.speechSynthesis) window.speechSynthesis.cancel();
+  document.querySelectorAll('.speak-action-btn--primary.speaking').forEach(btn => {
+    btn.classList.remove('speaking');
+    const label = btn.querySelector('span');
+    if (label) label.textContent = 'Прочитати вголос';
+  });
+}
+function speakText(text, btn) {
   if (!text) return;
-  try { await navigator.clipboard.writeText(text); }
-  catch(e) {
-    const ta = document.createElement('textarea');
-    ta.value = text; ta.style.position='fixed'; ta.style.opacity='0';
-    document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove();
+  if (!('speechSynthesis' in window)) {
+    alert('На жаль, цей браузер не підтримує озвучення тексту.');
+    return;
   }
-  const btn = document.getElementById('copyBtn');
-  btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`; btn.classList.add('success');
-  setTimeout(() => { btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>'; btn.classList.remove('success'); }, 2000);
-};
+  // Повторне натискання під час озвучення — зупиняє
+  if (window.speechSynthesis.speaking) {
+    stopSpeaking();
+    return;
+  }
+  _speechUtterance = new SpeechSynthesisUtterance(text);
+  _speechUtterance.lang = 'uk-UA';
+  _speechUtterance.rate = 0.95;
+  const voice = pickUkrainianVoice();
+  if (voice) _speechUtterance.voice = voice;
+  const label = btn?.querySelector('span');
+  if (btn) btn.classList.add('speaking');
+  if (label) label.textContent = 'Зупинити';
+  _speechUtterance.onend = () => stopSpeaking();
+  _speechUtterance.onerror = () => stopSpeaking();
+  window.speechSynthesis.speak(_speechUtterance);
+}
+// Голоси у Chrome вантажаться асинхронно — прогріваємо список заздалегідь
+if ('speechSynthesis' in window) {
+  window.speechSynthesis.onvoiceschanged = () => pickUkrainianVoice();
+}
+
+// ── Вкладка «Спілкування» ──────────────────
+function renderSpeakTab() {
+  const empty = document.getElementById('speakEmptyState');
+  const content = document.getElementById('speakContent');
+  const textEl = document.getElementById('speakText');
+  if (!empty || !content || !textEl) return;
+  if (_lastFixedText) {
+    textEl.textContent = _lastFixedText;
+    empty.style.display = 'none';
+    content.style.display = 'block';
+  } else {
+    empty.style.display = 'flex';
+    content.style.display = 'none';
+  }
+}
+
+document.getElementById('speakGotoFixBtn')?.addEventListener('click', () => switchTab('tab-fix'));
+document.getElementById('speakReadBtn')?.addEventListener('click', (e) => speakText(_lastFixedText, e.currentTarget));
+document.getElementById('speakCopyBtn')?.addEventListener('click', (e) => copyText(_lastFixedText, e.currentTarget));
+document.getElementById('speakShareBtn')?.addEventListener('click', () => shareText(_lastFixedText));
+
+document.getElementById('shareBtn').onclick = () => shareText(document.getElementById('result-text').textContent);
+
+document.getElementById('copyBtn').onclick = () => copyText(document.getElementById('result-text').textContent, document.getElementById('copyBtn'));
 
 document.getElementById('useBtn').onclick = () => {
   const text = document.getElementById('result-text').textContent;
