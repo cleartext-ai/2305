@@ -205,6 +205,26 @@
       </div>
     </div>
 
+    <!-- Communication tab visibility section -->
+    <div class="admin-section">
+      <div class="admin-section-header">
+        <div class="admin-section-title"><span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg></span> Вкладка «Спілкування»
+          <span class="status-dot off" id="speakTabStatusDot" style="display:none"></span>
+        </div>
+      </div>
+      <div class="admin-section-body">
+        <div class="info-box">Коли увімкнено — вкладка «Спілкування» (озвучення тексту та розпізнавання співрозмовника) прихована з нижньої навігації для користувачів. За замовчуванням вимкнено — вкладка видима.</div>
+        <div class="admin-row" style="align-items:center;justify-content:space-between">
+          <div id="speakTabStatusLabel" style="font-weight:800;font-size:14px">Вимкнено — вкладка видима</div>
+          <label class="model-toggle">
+            <input type="checkbox" id="speakTabHideToggle">
+            <span class="model-toggle-slider"></span>
+          </label>
+        </div>
+        <div class="admin-success-msg" id="speakTabSavedMsg"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Стан оновлено!</div>
+      </div>
+    </div>
+
     <!-- API Key section -->
     <div class="admin-section">
       <div class="admin-section-header">
@@ -633,7 +653,7 @@
       <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
       <span>Шаблони</span>
     </button>
-    <button class="tab-btn" data-tab="tab-speak" type="button" title="Спілкування" aria-label="Спілкування">
+    <button class="tab-btn" data-tab="tab-speak" id="speakTabBtn" type="button" title="Спілкування" aria-label="Спілкування">
       <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
       <span>Спілкування</span>
     </button>

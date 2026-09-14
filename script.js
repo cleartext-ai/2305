@@ -152,7 +152,7 @@ let _cachedSettings = null;
 async function getSettings() {
   if (_cachedSettings) return _cachedSettings;
   const data = await fsGet('settings');
-  _cachedSettings = data || { apiKey: '', models: DEFAULT_MODELS, maintenanceMode: false, dailyLimitEnabled: false, dailyLimit: 0 };
+  _cachedSettings = data || { apiKey: '', models: DEFAULT_MODELS, maintenanceMode: false, dailyLimitEnabled: false, dailyLimit: 0, hideSpeakTab: false };
   return _cachedSettings;
 }
 
@@ -237,6 +237,7 @@ function showApp(settings) {
   renderAppModels(settings.models || DEFAULT_MODELS);
   renderTemplates(settings.templates);
   renderBanner(settings);
+  applySpeakTabVisibility(settings);
   document.getElementById('text-input').focus();
   requestAnimationFrame(() => {
     const activeBtn = document.querySelector('.tab-btn.active');
@@ -419,6 +420,13 @@ async function renderAdmin() {
   if (bannerTextInput) bannerTextInput.value = settings.bannerText || '';
   const bannerTypeSelect = document.getElementById('bannerTypeSelect');
   if (bannerTypeSelect) bannerTypeSelect.value = settings.bannerType || 'info';
+
+  // Communication tab visibility
+  const speakTabHideToggle = document.getElementById('speakTabHideToggle');
+  if (speakTabHideToggle) {
+    speakTabHideToggle.checked = !!settings.hideSpeakTab;
+    updateSpeakTabUI(!!settings.hideSpeakTab);
+  }
 
   // Daily request limit
   const limitToggle = document.getElementById('limitToggle');
@@ -713,6 +721,58 @@ document.getElementById('saveBannerBtn')?.addEventListener('click', async () => 
     pushAudit('Текст банера оновлено: "' + text.slice(0, 60) + '"');
   }
 });
+
+// ══════════════════════════════════════════════
+// ADMIN — ВИДИМІСТЬ ВКЛАДКИ «СПІЛКУВАННЯ»
+// Вимкнено за замовчуванням (вкладка видима для всіх користувачів).
+// ══════════════════════════════════════════════
+function updateSpeakTabUI(isOn) {
+  const label = document.getElementById('speakTabStatusLabel');
+  const dot = document.getElementById('speakTabStatusDot');
+  if (label) {
+    label.textContent = isOn ? 'Увімкнено — вкладка прихована від користувачів' : 'Вимкнено — вкладка видима';
+    label.style.color = isOn ? 'var(--rose)' : 'var(--text)';
+  }
+  if (dot) {
+    dot.style.display = 'inline-block';
+    dot.className = 'status-dot' + (isOn ? '' : ' off');
+  }
+}
+
+document.getElementById('speakTabHideToggle')?.addEventListener('change', async (e) => {
+  const checked = e.target.checked;
+  const toggle = e.target;
+  toggle.disabled = true;
+  const ok = await fsSet('settings', { hideSpeakTab: checked });
+  invalidateCache();
+  toggle.disabled = false;
+  if (ok) {
+    updateSpeakTabUI(checked);
+    showTmpMsg('speakTabSavedMsg');
+    logEvent('Вкладка «Спілкування»: ' + (checked ? 'ПРИХОВАНО' : 'видима'), checked ? 'info' : 'ok');
+    pushAudit('Вкладка «Спілкування»: ' + (checked ? 'приховано для користувачів' : 'знову видима'));
+  } else {
+    toggle.checked = !checked;
+  }
+});
+
+// Застосування видимості вкладки в застосунку користувача (викликається з showApp())
+function applySpeakTabVisibility(settings) {
+  const btn = document.getElementById('speakTabBtn');
+  const panel = document.getElementById('tab-speak');
+  const hide = !!settings.hideSpeakTab;
+  if (btn) btn.style.display = hide ? 'none' : '';
+  if (panel) panel.style.display = hide ? 'none' : '';
+  // Якщо вкладку приховали, а користувач саме на ній стояв — переводимо на «Виправлення»
+  if (hide && panel?.classList.contains('active')) {
+    switchTab('tab-fix');
+  }
+  // Індикатор під активною кнопкою міг зміститись через зміну ширини бару
+  requestAnimationFrame(() => {
+    const activeBtn = document.querySelector('.tab-btn.active');
+    if (activeBtn) moveTabIndicator(activeBtn);
+  });
+}
 
 // Показ банера в застосунку користувача (викликається з showApp())
 function renderBanner(settings) {
@@ -1922,21 +1982,49 @@ function speakText(text, btn) {
     return;
   }
   // Повторне натискання під час озвучення — зупиняє
-  if (window.speechSynthesis.speaking) {
+  if (window.speechSynthesis.speaking || window.speechSynthesis.pending) {
     stopSpeaking();
     return;
   }
+  // На деяких пристроях (переважно Android) черга синтезу може лишитись
+  // "завислою" від попереднього виклику — скидаємо її перед новим запуском.
+  window.speechSynthesis.cancel();
+
   _speechUtterance = new SpeechSynthesisUtterance(text);
-  _speechUtterance.lang = 'uk-UA';
   _speechUtterance.rate = 0.95;
   const voice = pickUkrainianVoice();
-  if (voice) _speechUtterance.voice = voice;
+  // Встановлюємо lang='uk-UA' лише якщо на пристрої справді є український
+  // голос. Примусове встановлення lang без відповідного голосу змушує деякі
+  // браузери (Chrome/Android, Safari) мовчки нічого не промовляти замість
+  // помилки — тому без голосу краще лишити мову типовою (порожньою).
+  if (voice) {
+    _speechUtterance.voice = voice;
+    _speechUtterance.lang = 'uk-UA';
+  }
   const label = btn?.querySelector('span');
   if (btn) btn.classList.add('speaking');
   if (label) label.textContent = 'Зупинити';
+
+  let didStart = false;
+  _speechUtterance.onstart = () => { didStart = true; };
   _speechUtterance.onend = () => stopSpeaking();
-  _speechUtterance.onerror = () => stopSpeaking();
+  _speechUtterance.onerror = (ev) => {
+    stopSpeaking();
+    if (ev?.error && ev.error !== 'canceled' && ev.error !== 'interrupted') {
+      alert('Не вдалося озвучити текст. Спробуйте ще раз або перевірте, чи встановлено голос для читання тексту в налаштуваннях пристрою.');
+    }
+  };
   window.speechSynthesis.speak(_speechUtterance);
+
+  // Деякі мобільні браузери інколи "проковтують" виклик speak() без будь-якої
+  // події (ні onstart, ні onerror) — якщо через секунду озвучення так і не
+  // почалось, повідомляємо користувача замість мовчазної відмови.
+  setTimeout(() => {
+    if (!didStart && !window.speechSynthesis.speaking && btn?.classList.contains('speaking')) {
+      stopSpeaking();
+      alert('Не вдалося озвучити текст. Перевірте, чи в налаштуваннях пристрою встановлено голос для озвучення (текст у мовлення), і спробуйте ще раз.');
+    }
+  }, 1000);
 }
 // Голоси у Chrome вантажаться асинхронно — прогріваємо список заздалегідь
 if ('speechSynthesis' in window) {
