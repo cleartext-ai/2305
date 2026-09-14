@@ -123,8 +123,6 @@ async function saveBlockedStat() {
 // LOCAL STORAGE HELPERS — тільки для сесії адміна
 // ══════════════════════════════════════════════
 const KEYS = {
-  ADMIN_USER: 'ct_admin_user',
-  ADMIN_PASS: 'ct_admin_pass',
   ADMIN_SES:  'ct_admin_session',
   ADMIN_LOCKOUT: 'ct_admin_lockout',
 };
@@ -158,8 +156,23 @@ async function getSettings() {
 
 function invalidateCache() { _cachedSettings = null; }
 
-function getAdminUser(){ return lsGet(KEYS.ADMIN_USER, DEFAULT_ADMIN.user); }
-function getAdminPass(){ return lsGet(KEYS.ADMIN_PASS, DEFAULT_ADMIN.pass); }
+// ══════════════════════════════════════════════
+// ADMIN CREDS — зберігаються у Firestore (app/adminCreds),
+// а не в localStorage, тому логін/пароль однакові на всіх пристроях
+// і не губляться при очищенні даних сайту.
+// ══════════════════════════════════════════════
+let _cachedAdminCreds = null;
+
+async function getAdminCreds() {
+  if (_cachedAdminCreds) return _cachedAdminCreds;
+  const data = await fsGet('adminCreds');
+  _cachedAdminCreds = data && data.user && data.pass ? data : { user: DEFAULT_ADMIN.user, pass: DEFAULT_ADMIN.pass };
+  return _cachedAdminCreds;
+}
+function invalidateAdminCredsCache() { _cachedAdminCreds = null; }
+
+async function getAdminUser(){ return (await getAdminCreds()).user; }
+async function getAdminPass(){ return (await getAdminCreds()).pass; }
 
 function isAdminSession() { return sessionStorage.getItem(KEYS.ADMIN_SES) === 'ok'; }
 function setAdminSession(v) {
@@ -344,13 +357,18 @@ function applyLockoutUI() {
   _lockoutInterval = setInterval(tick, 1000);
 }
 
-function doAdminLogin() {
+async function doAdminLogin() {
   if (isLockedOut()) { applyLockoutUI(); return; }
   const user = document.getElementById('adminLoginInput').value.trim();
   const pass = document.getElementById('adminPassInput').value;
   const errBox = document.getElementById('adminLoginError');
 
-  if (user === getAdminUser() && pass === getAdminPass()) {
+  const btn = document.getElementById('adminLoginBtn');
+  if (btn) btn.disabled = true;
+  const [validUser, validPass] = await Promise.all([getAdminUser(), getAdminPass()]);
+  if (btn) btn.disabled = false;
+
+  if (user === validUser && pass === validPass) {
     errBox.style.display = 'none';
     clearLockoutState();
     setAdminSession(true);
@@ -906,8 +924,8 @@ document.getElementById('addModelBtn').onclick = async () => {
 };
 document.getElementById('newModelInput').addEventListener('keydown', e => { if(e.key==='Enter') document.getElementById('addModelBtn').click(); });
 
-// Save admin credentials → localStorage (тільки на пристрої адміна)
-document.getElementById('saveCredsBtn').onclick = () => {
+// Save admin credentials → Firestore (app/adminCreds), спільно для всіх пристроїв
+document.getElementById('saveCredsBtn').onclick = async () => {
   const login = document.getElementById('newAdminLogin').value.trim();
   const pass  = document.getElementById('newAdminPass').value;
   const pass2 = document.getElementById('newAdminPassConfirm').value;
@@ -918,14 +936,24 @@ document.getElementById('saveCredsBtn').onclick = () => {
   if (pass.length < 6) { errBox.textContent = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Пароль мінімум 6 символів'; errBox.style.display = 'block'; return; }
   if (pass !== pass2) { errBox.textContent = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Паролі не збігаються'; errBox.style.display = 'block'; return; }
 
-  lsSet(KEYS.ADMIN_USER, login);
-  lsSet(KEYS.ADMIN_PASS, pass);
+  const btn = document.getElementById('saveCredsBtn');
+  if (btn) btn.disabled = true;
+  const ok = await fsSet('adminCreds', { user: login, pass: pass });
+  invalidateAdminCredsCache();
+  if (btn) btn.disabled = false;
+
+  if (!ok) {
+    errBox.textContent = 'Не вдалося зберегти — перевірте з\'єднання з інтернетом';
+    errBox.style.display = 'block';
+    return;
+  }
+
   document.getElementById('newAdminLogin').value = '';
   document.getElementById('newAdminPass').value = '';
   document.getElementById('newAdminPassConfirm').value = '';
   showTmpMsg('credsSavedMsg');
   logEvent('Дані входу адміна оновлено (логін: ' + login + ')', 'ok');
-  pushAudit('Дані входу адміна оновлено (логін: ' + login + ')');
+  await pushAudit('Дані входу адміна оновлено (логін: ' + login + ')');
 };
 
 function showTmpMsg(id) {
@@ -947,7 +975,7 @@ async function pushAudit(action) {
   try {
     const settings = await getSettings();
     const log = Array.isArray(settings.auditLog) ? settings.auditLog.slice(-99) : [];
-    log.push({ time: new Date().toISOString(), user: getAdminUser(), action });
+    log.push({ time: new Date().toISOString(), user: await getAdminUser(), action });
     await fsSet('settings', { auditLog: log });
     invalidateCache();
     renderAuditLog(log);
@@ -1426,12 +1454,13 @@ document.getElementById('resetTemplatesBtn')?.addEventListener('click', async ()
   pushAudit('Шаблони відновлено до значень за замовчуванням');
 });
 
-document.getElementById('resetCredsBtn')?.addEventListener('click', () => {
-  if (!confirm('Скинути логін і пароль адміна до значень за замовчуванням на цьому пристрої?')) return;
-  lsSet(KEYS.ADMIN_USER, DEFAULT_ADMIN.user);
-  lsSet(KEYS.ADMIN_PASS, DEFAULT_ADMIN.pass);
+document.getElementById('resetCredsBtn')?.addEventListener('click', async () => {
+  if (!confirm('Скинути логін і пароль адміна до значень за замовчуванням? Це вплине на вхід з усіх пристроїв.')) return;
+  const ok = await fsSet('adminCreds', { user: DEFAULT_ADMIN.user, pass: DEFAULT_ADMIN.pass });
+  invalidateAdminCredsCache();
+  if (!ok) { alert('Не вдалося скинути — перевірте з\'єднання з інтернетом'); return; }
   logEvent('Дані входу адміна скинуто до значень за замовчуванням', 'ok');
-  pushAudit('Дані входу адміна скинуто до значень за замовчуванням (цей пристрій)');
+  await pushAudit('Дані входу адміна скинуто до значень за замовчуванням (усі пристрої)');
   alert('Дані входу скинуто до admin / admin123.');
 });
 
