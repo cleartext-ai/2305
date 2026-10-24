@@ -1518,6 +1518,7 @@ const textInput = document.getElementById('text-input');
 textInput.addEventListener('input', () => {
   const len = textInput.value.length;
   document.getElementById('charCount').textContent = `${len} / 800`;
+  document.getElementById('charCount').style.setProperty('--p', Math.min(len, 800) / 800);
   if (len > 800) textInput.value = textInput.value.slice(0, 800);
 });
 
@@ -2241,3 +2242,13 @@ document.addEventListener('keydown', (e) => {
 // ══════════════════════════════════════════════
 route();
 
+
+
+// ── Liquid Glass: відблиск, що слідує за дотиком/курсором ──
+document.addEventListener('pointermove', e => {
+  const t = e.target.closest && e.target.closest('.card, .template-group');
+  if (!t) return;
+  const r = t.getBoundingClientRect();
+  t.style.setProperty('--mx', (e.clientX - r.left) + 'px');
+  t.style.setProperty('--my', (e.clientY - r.top) + 'px');
+}, { passive: true });
