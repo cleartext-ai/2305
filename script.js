@@ -228,6 +228,23 @@ async function showAdmin() {
   await renderAdmin();
 }
 
+function applySpeakVisibility(hidden) {
+  const btn = document.querySelector('.tab-btn[data-tab="tab-speak"]');
+  const panel = document.getElementById('tab-speak');
+  if (btn) btn.style.display = hidden ? 'none' : '';
+  if (panel && hidden) { panel.classList.remove('active'); panel.style.display = 'none'; }
+  else if (panel) panel.style.display = '';
+  if (hidden && btn && btn.classList.contains('active')) switchTab('tab-fix');
+}
+
+function applyTabHidden(tabId, hidden) {
+  const btn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
+  const panel = document.getElementById(tabId);
+  if (btn) btn.style.display = hidden ? 'none' : '';
+  if (panel) { if (hidden) panel.classList.remove('active'); panel.style.display = hidden ? 'none' : ''; }
+  if (hidden && btn && btn.classList.contains('active')) switchTab('tab-fix');
+}
+
 function showApp(settings) {
   hide('no-api-screen');
   hide('admin-login-screen');
@@ -237,6 +254,8 @@ function showApp(settings) {
   renderAppModels(settings.models || DEFAULT_MODELS);
   renderTemplates(settings.templates);
   renderBanner(settings);
+  applySpeakVisibility(!!settings.speakHidden);
+  applyTabHidden('tab-learn', !!settings.learnHidden);
   document.getElementById('text-input').focus();
   requestAnimationFrame(() => {
     const activeBtn = document.querySelector('.tab-btn.active');
@@ -393,6 +412,20 @@ async function renderAdmin() {
   if (maintToggle) {
     maintToggle.checked = !!settings.maintenanceMode;
     updateMaintenanceUI(!!settings.maintenanceMode);
+  }
+
+  // Вкладка «Спілкування»
+  const speakToggle = document.getElementById('speakHideToggle');
+  if (speakToggle) {
+    speakToggle.checked = !!settings.speakHidden;
+    updateSpeakHideUI(!!settings.speakHidden);
+  }
+
+  // Вкладка «Навчання»
+  const learnToggle = document.getElementById('learnHideToggle');
+  if (learnToggle) {
+    learnToggle.checked = !!settings.learnHidden;
+    updateLearnHideUI(!!settings.learnHidden);
   }
 
   // API key
@@ -623,6 +656,56 @@ document.getElementById('maintenanceToggle').addEventListener('change', async (e
     pushAudit('Режим технічних робіт: ' + (checked ? 'увімкнено' : 'вимкнено'));
   } else {
     // Відкат чекбокса якщо збереження не вдалось
+    toggle.checked = !checked;
+  }
+});
+
+function updateSpeakHideUI(isHidden) {
+  const label = document.getElementById('speakHideStatusLabel');
+  if (label) {
+    label.textContent = isHidden ? 'Приховано — користувачі не бачать вкладку' : 'Вкладка показується всім';
+    label.style.color = isHidden ? 'var(--rose)' : 'var(--text)';
+  }
+}
+
+document.getElementById('speakHideToggle').addEventListener('change', async (e) => {
+  const checked = e.target.checked;
+  const toggle = e.target;
+  toggle.disabled = true;
+  const ok = await fsSet('settings', { speakHidden: checked });
+  invalidateCache();
+  toggle.disabled = false;
+  if (ok) {
+    updateSpeakHideUI(checked);
+    showTmpMsg('speakHideSavedMsg');
+    logEvent('Вкладка «Спілкування»: ' + (checked ? 'ПРИХОВАНО' : 'показано'), checked ? 'fail' : 'ok');
+    pushAudit('Вкладка «Спілкування»: ' + (checked ? 'приховано для користувачів' : 'показано користувачам'));
+  } else {
+    toggle.checked = !checked;
+  }
+});
+
+function updateLearnHideUI(isHidden) {
+  const label = document.getElementById('learnHideStatusLabel');
+  if (label) {
+    label.textContent = isHidden ? 'Приховано — користувачі не бачать вкладку' : 'Вкладка показується всім';
+    label.style.color = isHidden ? 'var(--rose)' : 'var(--text)';
+  }
+}
+
+document.getElementById('learnHideToggle').addEventListener('change', async (e) => {
+  const checked = e.target.checked;
+  const toggle = e.target;
+  toggle.disabled = true;
+  const ok = await fsSet('settings', { learnHidden: checked });
+  invalidateCache();
+  toggle.disabled = false;
+  if (ok) {
+    updateLearnHideUI(checked);
+    showTmpMsg('learnHideSavedMsg');
+    logEvent('Вкладка «Навчання»: ' + (checked ? 'ПРИХОВАНО' : 'показано'), checked ? 'fail' : 'ok');
+    pushAudit('Вкладка «Навчання»: ' + (checked ? 'приховано для користувачів' : 'показано користувачам'));
+  } else {
     toggle.checked = !checked;
   }
 });
@@ -1412,6 +1495,7 @@ function switchTab(tabId) {
   window.scrollTo({ top: 0, behavior: 'instant' });
   const activeBtn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
   moveTabIndicator(activeBtn);
+  if (tabId === 'tab-learn') renderLearnTab();
   if (tabId === 'tab-speak') renderSpeakTab();
   else { stopSpeaking(); stopListening(); }
 }
@@ -1424,6 +1508,119 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 window.addEventListener('resize', () => {
   const activeBtn = document.querySelector('.tab-btn.active');
   if (activeBtn) moveTabIndicator(activeBtn);
+});
+
+// ══════════════════════════════════════════════
+// ВКЛАДКА «НАВЧАННЯ» — помилки користувача + міні-вправи (без запитів до API)
+// Помилки беруться з поля "changes" відповіді моделі і зберігаються лише на пристрої.
+// ══════════════════════════════════════════════
+const MISTAKES_KEY = 'ct_mistakes';
+const LEARN_BANK = [
+  { b: 'приймати участь', a: 'брати участь', r: 'Калька з російської. В українській кажуть «брати участь».' },
+  { b: 'на протязі дня', a: 'протягом дня', r: 'Калька. Правильно: «протягом» + родовий відмінок.' },
+  { b: 'незнаю', a: 'не знаю', r: '«Не» з дієсловами пишемо окремо.' },
+  { b: 'в слідуючий раз', a: 'наступного разу', r: '«Слідуючий» — калька, українською «наступний».' },
+  { b: 'співпадає', a: 'збігається', r: 'Калька з російської. Літературне слово — «збігатися».' },
+  { b: 'сімя', a: 'сім\u2019я', r: 'Після губного приголосного перед «я» пишемо апостроф.' },
+  { b: 'по українськи', a: 'по-українськи', r: 'Прислівники з «по-» пишемо через дефіс.' },
+  { b: 'будь-ласка', a: 'будь ласка', r: 'Це словосполучення пишемо окремо.' },
+  { b: 'Я хочу вчиться', a: 'Я хочу вчитися', r: 'На питання «що робити?» — «-тися»; «що робить?» — «-ться».' },
+  { b: 'по перше', a: 'по-перше', r: 'Вставні слова з «по-» пишемо через дефіс.' }
+];
+
+function getMistakes() {
+  const v = lsGet(MISTAKES_KEY, []);
+  return Array.isArray(v) ? v : [];
+}
+
+function recordMistakes(changes) {
+  if (!Array.isArray(changes)) return;
+  // Не вчимо на політичних замінах (правила щодо рф/путіна) — лише на мовних помилках
+  const skip = /путін|путин|putin|рф|росі|москв|кремл/i;
+  const list = getMistakes();
+  changes.forEach(c => {
+    const b = String(c?.before || '').trim();
+    const a = String(c?.after || '').trim();
+    const r = String(c?.reason || '').trim();
+    if (!b || !a || b === a || b.length > 40 || a.length > 40 || skip.test(b + ' ' + a)) return;
+    const key = b.toLowerCase() + '|' + a.toLowerCase();
+    const ex = list.find(m => (m.b.toLowerCase() + '|' + m.a.toLowerCase()) === key);
+    if (ex) { ex.n = (ex.n || 1) + 1; ex.t = Date.now(); if (r) ex.r = r; }
+    else list.push({ b, a, r, n: 1, t: Date.now() });
+  });
+  list.sort((x, y) => y.t - x.t);
+  lsSet(MISTAKES_KEY, list.slice(0, 60));
+}
+
+let _learnOk = 0, _learnTotal = 0, _learnLast = '', _learnReady = false;
+
+function renderLearnList() {
+  const box = document.getElementById('learnList');
+  const list = getMistakes();
+  if (!list.length) {
+    box.innerHTML = '<div class="learn-empty">Поки порожньо. Виправте текст на першій вкладці — і ваші помилки з поясненнями з\u2019являться тут.</div>';
+    return;
+  }
+  box.innerHTML = list.map(m => `
+    <div class="learn-item">
+      <div class="change-row">
+        <span class="change-before">${escHtml(m.b)}</span>
+        <span class="change-arrow">→</span>
+        <span class="change-after">${escHtml(m.a)}</span>
+        ${m.n > 1 ? `<span class="learn-count">×${m.n}</span>` : ''}
+      </div>
+      ${m.r ? `<div class="change-reason">${escHtml(m.r)}</div>` : ''}
+    </div>`).join('');
+}
+
+function nextExercise() {
+  const mine = getMistakes();
+  const pool = (mine.length && Math.random() < 0.6) ? mine : LEARN_BANK;
+  let item = pool[0];
+  for (let i = 0; i < 6; i++) {
+    item = pool[Math.floor(Math.random() * pool.length)];
+    if (item.b + item.a !== _learnLast) break;
+  }
+  _learnLast = item.b + item.a;
+  const opts = Math.random() < 0.5 ? [item.a, item.b] : [item.b, item.a];
+  const box = document.getElementById('learnOpts');
+  const expl = document.getElementById('learnExpl');
+  const next = document.getElementById('learnNext');
+  box.innerHTML = '';
+  expl.textContent = '';
+  next.style.display = 'none';
+  opts.forEach(text => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'learn-opt';
+    btn.textContent = text;
+    btn.onclick = () => {
+      const ok = text === item.a;
+      _learnTotal++; if (ok) _learnOk++;
+      document.getElementById('learnScore').textContent = _learnOk + ' / ' + _learnTotal;
+      box.querySelectorAll('.learn-opt').forEach(b => {
+        b.disabled = true;
+        if (b.textContent === item.a) b.classList.add('ok');
+      });
+      if (!ok) btn.classList.add('bad');
+      expl.textContent = (ok ? 'Вірно! ' : 'Не зовсім. Правильно: «' + item.a + '». ') + (item.r || '');
+      next.style.display = 'block';
+    };
+    box.appendChild(btn);
+  });
+}
+
+function renderLearnTab() {
+  renderLearnList();
+  if (!_learnReady) { _learnReady = true; nextExercise(); }
+}
+
+document.getElementById('learnNext').addEventListener('click', nextExercise);
+document.getElementById('learnClear').addEventListener('click', () => {
+  if (!getMistakes().length) return;
+  if (!confirm('Очистити список ваших помилок на цьому пристрої?')) return;
+  lsSet(MISTAKES_KEY, []);
+  renderLearnList();
 });
 
 // Бере текст (з шаблону чи новини), переносить у поле виправлення і перемикає вкладку
@@ -1840,6 +2037,7 @@ function showResult(data) {
       changesList.appendChild(item);
     });
   }
+  try { recordMistakes(data.changes); } catch(e) {}
   card.style.display = 'block';
   card.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }

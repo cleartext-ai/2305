@@ -1061,3 +1061,21 @@ body.admin-light-theme .model-add-input option.opt-disabled-model {
 @media (prefers-color-scheme: light) {
   .card::after, .template-group::after { background: radial-gradient(220px circle at var(--mx, 50%) var(--my, 0%), rgba(255,255,255,0.85), transparent 62%); }
 }
+
+/* ── Вкладка «Навчання» ── */
+.learn-card { padding: 18px 20px; }
+.learn-head { display: flex; justify-content: space-between; align-items: center; font-size: 14px; font-weight: 600; color: var(--ct-text2); margin-bottom: 12px; }
+.learn-q { font-size: 18px; font-weight: 700; color: var(--ct-text); margin-bottom: 12px; }
+.learn-opts { display: flex; flex-direction: column; gap: 10px; }
+.learn-opt { padding: 14px 16px; border-radius: 16px; border: 1px solid var(--ct-hair); background: var(--ct-fill2); color: var(--ct-text); font: inherit; font-size: 17px; font-weight: 600; text-align: left; cursor: pointer; }
+.learn-opt:active { transform: scale(0.98); }
+.learn-opt:disabled { cursor: default; }
+.learn-opt.ok { border-color: var(--ct-ok); color: var(--ct-ok); }
+.learn-opt.bad { border-color: var(--ct-bad); color: var(--ct-bad); }
+.learn-expl { margin-top: 12px; font-size: 15px; font-weight: 500; line-height: 1.5; color: var(--ct-text2); }
+.learn-btn { margin-top: 14px; width: 100%; padding: 13px; border-radius: 16px; border: none; background: linear-gradient(135deg, rgba(139,108,255,0.46), rgba(255,95,162,0.36)), var(--ct-fill2); color: var(--ct-text); font: inherit; font-size: 16px; font-weight: 700; cursor: pointer; }
+.learn-link { background: none; border: none; color: var(--ct-text2); font: inherit; font-size: 13px; text-decoration: underline; cursor: pointer; }
+.learn-item { padding: 10px 0; border-top: 1px solid var(--ct-hair); }
+.learn-item:first-child { border-top: none; }
+.learn-count { font-size: 13px; font-weight: 700; color: var(--ct-text2); margin-left: auto; }
+.learn-empty { font-size: 15px; font-weight: 500; line-height: 1.5; color: var(--ct-text2); }

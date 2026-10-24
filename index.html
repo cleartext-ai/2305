@@ -144,6 +144,46 @@
       </div>
     </div>
 
+    <!-- Speak tab visibility section -->
+    <div class="admin-section">
+      <div class="admin-section-header">
+        <div class="admin-section-title">
+          <span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg></span> Вкладка «Спілкування»
+        </div>
+      </div>
+      <div class="admin-section-body">
+        <div class="info-box">Коли ввімкнено — вкладка «Спілкування» зникає в застосунку для всіх користувачів. Вимкніть, щоб показати її знову.</div>
+        <div class="admin-row" style="align-items:center;justify-content:space-between">
+          <div id="speakHideStatusLabel" style="font-weight:800;font-size:14px">Вкладка показується всім</div>
+          <label class="model-toggle">
+            <input type="checkbox" id="speakHideToggle">
+            <span class="model-toggle-slider"></span>
+          </label>
+        </div>
+        <div class="admin-success-msg" id="speakHideSavedMsg"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Збережено!</div>
+      </div>
+    </div>
+
+    <!-- Learn tab visibility section -->
+    <div class="admin-section">
+      <div class="admin-section-header">
+        <div class="admin-section-title">
+          <span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10L12 5 2 10l10 5 10-5z"/><path d="M6 12v5c3 2 9 2 12 0v-5"/></svg></span> Вкладка «Навчання»
+        </div>
+      </div>
+      <div class="admin-section-body">
+        <div class="info-box">Коли ввімкнено — вкладка «Навчання» зникає в застосунку для всіх користувачів.</div>
+        <div class="admin-row" style="align-items:center;justify-content:space-between">
+          <div id="learnHideStatusLabel" style="font-weight:800;font-size:14px">Вкладка показується всім</div>
+          <label class="model-toggle">
+            <input type="checkbox" id="learnHideToggle">
+            <span class="model-toggle-slider"></span>
+          </label>
+        </div>
+        <div class="admin-success-msg" id="learnHideSavedMsg"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Збережено!</div>
+      </div>
+    </div>
+
     <!-- Daily limit section -->
     <div class="admin-section">
       <div class="admin-section-header">
@@ -616,6 +656,24 @@
       </div>
     </div>
 
+    <!-- ═══ TAB: НАВЧАННЯ ═══ -->
+    <div class="tab-panel" id="tab-learn">
+      <div class="tab-intro">
+        <div class="tab-intro-title">Навчання</div>
+        <div class="tab-intro-sub">Ваші типові помилки та міні-вправи, щоб писати грамотно самому</div>
+      </div>
+      <div class="card learn-card">
+        <div class="learn-head"><span>Вправа</span><span id="learnScore">0 / 0</span></div>
+        <div class="learn-q">Як написати правильно?</div>
+        <div class="learn-opts" id="learnOpts"></div>
+        <div class="learn-expl" id="learnExpl"></div>
+        <button class="learn-btn" id="learnNext" type="button" style="display:none">Далі</button>
+      </div>
+      <div class="card learn-card">
+        <div class="learn-head"><span>Мої помилки</span><button class="learn-link" id="learnClear" type="button">Очистити</button></div>
+        <div id="learnList"></div>
+      </div>
+    </div>
   </div>
 
   <!-- ═══ TAB BAR ═══ -->
@@ -633,10 +691,14 @@
       <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
       <span>Спілкування</span>
     </button>
+    <button class="tab-btn" data-tab="tab-learn" type="button" title="Навчання" aria-label="Навчання">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10L12 5 2 10l10 5 10-5z"/><path d="M6 12v5c3 2 9 2 12 0v-5"/></svg>
+      <span>Навчання</span>
+    </button>
   </nav>
 </div>
 
-<script type="module" src="script.js?v=20261024b"></script>
+<script type="module" src="script.js?v=20261024d"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
