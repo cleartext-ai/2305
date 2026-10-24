@@ -6,231 +6,144 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="theme-color" content="#080c18">
+<meta name="theme-color" content="#0c0818" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f6f1fc" media="(prefers-color-scheme: light)">
 <title>ClearText AI — Офлайн</title>
-<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root { --safe-top: env(safe-area-inset-top, 0px); --safe-bottom: env(safe-area-inset-bottom, 0px); }
+/* ══════════════════════════════════════════════════════════════
+   ClearText AI — редизайн «Liquid Glass» (iOS 27)
+   Нейтральне статичне тло, скляні поверхні з кромкою-відблиском,
+   фіолетово-рожево-бурштиновий акцент. Рух — лише у відповідь на дії.
+   ══════════════════════════════════════════════════════════════ */
 
 :root {
-  --safe-top: env(safe-area-inset-top, 0px);
-  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --ct-bg: #0c0818;
+  --ct-text: #ffffff;
+  --ct-text2: rgba(255,255,255,0.68);
+  --ct-text3: rgba(255,255,255,0.42);
+  --ct-fill: rgba(255,255,255,0.075);
+  --ct-fill2: rgba(255,255,255,0.13);
+  --ct-fill3: rgba(255,255,255,0.06);
+  --ct-hair: rgba(255,255,255,0.10);
+  --ct-rim-hi: rgba(255,255,255,0.55);
+  --ct-rim-lo: rgba(255,255,255,0.05);
+  --ct-rim-end: rgba(255,255,255,0.28);
+  --ct-shadow: 0 22px 54px rgba(4,1,18,0.48), 0 3px 12px rgba(4,1,18,0.30);
+  --ct-sheen: linear-gradient(165deg, rgba(255,255,255,0.13), rgba(255,255,255,0.03) 46%, rgba(255,255,255,0.065));
+  --ct-inner: inset 0 1px 0 rgba(255,255,255,0.24), inset 0 -16px 30px -20px rgba(255,255,255,0.14);
+  --ct-a1: #8b6cff;
+  --ct-a2: #ff5fa2;
+  --ct-a3: #ffab4d;
+  --ct-accent: linear-gradient(118deg, #7a5cff 0%, #cf4fd6 46%, #ff6584 100%);
+  --ct-accent-glow: rgba(205,80,215,0.45);
+  --ct-ok: #5ee6a8;
+  --ct-bad: #ff7d88;
+  --ct-warn: #ffc45e;
+  --ct-link: #cdbdff;
+  --ct-sheet: #181029;
+  --ct-blur: blur(30px) saturate(190%);
+  --ct-mesh:
+    radial-gradient(120% 58% at 0% 0%, rgba(124,82,255,0.72), transparent 62%),
+    radial-gradient(90% 52% at 100% 30%, rgba(255,72,160,0.42), transparent 66%),
+    radial-gradient(100% 56% at 0% 78%, rgba(255,142,72,0.30), transparent 66%),
+    radial-gradient(90% 56% at 100% 100%, rgba(70,92,255,0.46), transparent 66%),
+    linear-gradient(180deg, #1b1040, #0e0920 55%, #0c0818);
 }
 
-html, body {
-  height: 100%;
-  height: 100dvh;
+@media (prefers-color-scheme: light) {
+  :root {
+    --ct-bg: #f6f1fc;
+    --ct-text: #1b1131;
+    --ct-text2: rgba(27,17,49,0.64);
+    --ct-text3: rgba(27,17,49,0.40);
+    --ct-fill: rgba(255,255,255,0.56);
+    --ct-fill2: rgba(255,255,255,0.80);
+    --ct-fill3: rgba(110,78,190,0.07);
+    --ct-hair: rgba(60,30,120,0.10);
+    --ct-rim-hi: rgba(255,255,255,0.98);
+    --ct-rim-lo: rgba(255,255,255,0.30);
+    --ct-rim-end: rgba(150,110,230,0.30);
+    --ct-shadow: 0 18px 44px rgba(96,56,180,0.17), 0 2px 8px rgba(96,56,180,0.09);
+    --ct-sheen: linear-gradient(165deg, rgba(255,255,255,0.70), rgba(255,255,255,0.12) 48%, rgba(255,255,255,0.30));
+    --ct-inner: inset 0 1px 0 rgba(255,255,255,0.95), inset 0 -14px 26px -20px rgba(130,90,220,0.22);
+    --ct-accent-glow: rgba(200,80,210,0.32);
+    --ct-ok: #14935f;
+    --ct-bad: #d5324f;
+    --ct-warn: #b66a00;
+    --ct-link: #6a45e0;
+    --ct-sheet: #f6f1fc;
+    --ct-mesh:
+      radial-gradient(95% 52% at 6% -4%, rgba(170,140,255,0.55), transparent 62%),
+      radial-gradient(72% 48% at 104% 24%, rgba(255,150,196,0.46), transparent 66%),
+      radial-gradient(86% 54% at -6% 102%, rgba(255,196,128,0.44), transparent 66%),
+      radial-gradient(72% 50% at 104% 100%, rgba(134,172,255,0.40), transparent 66%),
+      linear-gradient(180deg, #efe6fb, #f6f1fc 60%);
+  }
 }
 
+
+html, body { height: 100%; height: 100dvh; }
 body {
-  font-family: 'Nunito', sans-serif;
-  background: #080c18;
-  color: #fff;
-  min-height: 100dvh;
-  overflow: hidden;
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-
-/* Animated background orbs */
-.bg-mesh { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
-.bg-orb { position: absolute; border-radius: 50%; filter: blur(90px); }
-.bg-orb:nth-child(1) {
-  width: 70vw; height: 70vw;
-  background: radial-gradient(circle, #065f46, transparent 70%);
-  top: -20%; left: -20%; opacity: 0.85;
-  animation: o1 22s ease-in-out infinite alternate;
-}
-.bg-orb:nth-child(2) {
-  width: 60vw; height: 60vw;
-  background: radial-gradient(circle, #1e3a8a, transparent 70%);
-  bottom: -15%; right: -15%; opacity: 0.75;
-  animation: o2 18s ease-in-out infinite alternate;
-}
-.bg-orb:nth-child(3) {
-  width: 50vw; height: 50vw;
-  background: radial-gradient(circle, #581c87, transparent 70%);
-  top: 35%; left: 30%; opacity: 0.6;
-  animation: o1 14s ease-in-out infinite alternate-reverse;
-}
-@keyframes o1 { 0%{transform:translate(0,0) scale(1)} 100%{transform:translate(5vw,-4vh) scale(1.08)} }
-@keyframes o2 { 0%{transform:translate(0,0) scale(1)} 100%{transform:translate(-4vw,5vh) scale(0.92)} }
-
-/* Main content */
-.content {
-  position: relative;
-  z-index: 10;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  flex: 1;
-  padding: calc(var(--safe-top) + 24px) 32px calc(var(--safe-bottom) + 24px);
-  text-align: center;
-  animation: fadeIn 0.8s ease forwards;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(16px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-/* Logo */
-.logo-wrap {
-  width: 100px; height: 100px;
-  margin: 0 auto 28px;
-  animation: pulse 3s ease-in-out infinite;
-}
-@keyframes pulse {
-  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 20px rgba(52,211,153,0.4)); }
-  50%       { transform: scale(1.04); filter: drop-shadow(0 0 36px rgba(52,211,153,0.7)); }
-}
-
-.app-name {
-  font-size: 32px;
-  font-weight: 900;
-  letter-spacing: -0.03em;
-  background: linear-gradient(135deg, #fff 30%, #34d399 70%, #60a5fa);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  margin-bottom: 48px;
-}
-
-/* Offline icon */
-.offline-icon {
-  width: 56px; height: 56px;
-  background: rgba(251,113,133,0.12);
-  border: 1px solid rgba(251,113,133,0.3);
-  border-radius: 18px;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', system-ui, 'Segoe UI', Roboto, sans-serif;
+  background: var(--ct-mesh); color: var(--ct-text); min-height: 100dvh;
   display: flex; align-items: center; justify-content: center;
-  margin: 0 auto 18px;
-  box-shadow: 0 8px 32px rgba(251,113,133,0.15);
+  padding: calc(var(--safe-top) + 24px) 20px calc(var(--safe-bottom) + 24px);
+  -webkit-font-smoothing: antialiased;
 }
-
-.offline-title {
-  font-size: 20px;
-  font-weight: 900;
-  color: #fff;
-  margin-bottom: 10px;
+.card {
+  position: relative; width: 100%; max-width: 380px; padding: 38px 28px 34px; border-radius: 40px; text-align: center;
+  background: var(--ct-sheen), var(--ct-fill);
+  backdrop-filter: var(--ct-blur); -webkit-backdrop-filter: var(--ct-blur);
+  box-shadow: var(--ct-shadow), var(--ct-inner);
 }
-
-.offline-text {
-  font-size: 14px;
-  font-weight: 600;
-  color: rgba(255,255,255,0.55);
-  line-height: 1.7;
-  max-width: 280px;
-  margin: 0 auto 32px;
+.card::before {
+  content: ''; position: absolute; inset: 0; border-radius: inherit; padding: 1px; pointer-events: none;
+  background: linear-gradient(150deg, var(--ct-rim-hi), var(--ct-rim-lo) 30%, var(--ct-rim-lo) 68%, var(--ct-rim-end));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
 }
-
-/* Retry button */
-.btn-retry {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 13px 28px;
-  background: linear-gradient(135deg, rgba(52,211,153,0.25), rgba(96,165,250,0.2));
-  border: 1px solid rgba(52,211,153,0.35);
-  border-top: 1px solid rgba(255,255,255,0.25);
-  border-radius: 14px;
-  color: #fff;
-  font-family: 'Nunito', sans-serif;
-  font-size: 14px;
-  font-weight: 800;
-  cursor: pointer;
-  letter-spacing: 0.03em;
-  backdrop-filter: blur(20px);
-  box-shadow: 0 4px 24px rgba(52,211,153,0.15), inset 0 1px 0 rgba(255,255,255,0.15);
-  transition: all 0.2s;
-  text-decoration: none;
+.ct-logo { width: 84px; height: 84px; margin: 0 auto 18px; filter: drop-shadow(0 10px 26px var(--ct-accent-glow)); }
+.ct-logo svg { display: block; width: 84px; height: 84px; }
+h1 { font-size: 26px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 18px; }
+.tile {
+  width: 60px; height: 60px; margin: 0 auto 16px; border-radius: 20px; color: var(--ct-bad);
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(255,90,110,0.14); box-shadow: inset 0 1px 0 rgba(255,255,255,0.28);
 }
-.btn-retry:hover { transform: translateY(-1px); box-shadow: 0 8px 32px rgba(52,211,153,0.25); }
-.btn-retry:active { transform: scale(0.97); }
-
-/* Footer */
-.footer {
-  position: relative;
-  z-index: 10;
-  padding-bottom: calc(var(--safe-bottom) + 20px);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: rgba(255,255,255,0.2);
+h2 { font-size: 19px; font-weight: 700; margin-bottom: 6px; }
+p { font-size: 16px; font-weight: 500; line-height: 1.55; color: var(--ct-text2); }
+.btn {
+  margin-top: 26px; display: inline-flex; align-items: center; gap: 8px; padding: 15px 28px; border-radius: 999px;
+  color: var(--ct-text); font-size: 16px; font-weight: 600; text-decoration: none;
+  background: var(--ct-sheen), var(--ct-fill2); box-shadow: var(--ct-inner), 0 8px 22px rgba(4,1,18,0.25);
 }
+.btn:active { transform: scale(0.96); }
+.btn:focus-visible { outline: 2px solid var(--ct-a1); outline-offset: 3px; }
 </style>
 </head>
 <body>
-
-<div class="bg-mesh">
-  <div class="bg-orb"></div>
-  <div class="bg-orb"></div>
-  <div class="bg-orb"></div>
-</div>
-
-<div class="content">
-
-  <!-- Logo -->
-  <div class="logo-wrap">
-    <svg width="100" height="100" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <linearGradient id="lg" x1="0" y1="0" x2="80" y2="80" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stop-color="#34d399"/>
-          <stop offset="100%" stop-color="#60a5fa"/>
-        </linearGradient>
-      </defs>
-      <rect width="80" height="80" rx="22" fill="#0b1120"/>
-      <circle cx="40" cy="40" r="6"   fill="url(#lg)"/>
-      <circle cx="40" cy="16"  r="4.5" fill="url(#lg)" opacity=".75"/>
-      <circle cx="62" cy="28"  r="4.5" fill="url(#lg)" opacity=".75"/>
-      <circle cx="62" cy="52"  r="4.5" fill="url(#lg)" opacity=".75"/>
-      <circle cx="40" cy="64"  r="4.5" fill="url(#lg)" opacity=".75"/>
-      <circle cx="18" cy="52"  r="4.5" fill="url(#lg)" opacity=".75"/>
-      <circle cx="18" cy="28"  r="4.5" fill="url(#lg)" opacity=".75"/>
-      <line x1="40" y1="40" x2="40"  y2="16"  stroke="url(#lg)" stroke-width="1.4" stroke-opacity=".45"/>
-      <line x1="40" y1="40" x2="62"  y2="28"  stroke="url(#lg)" stroke-width="1.4" stroke-opacity=".45"/>
-      <line x1="40" y1="40" x2="62"  y2="52"  stroke="url(#lg)" stroke-width="1.4" stroke-opacity=".45"/>
-      <line x1="40" y1="40" x2="40"  y2="64"  stroke="url(#lg)" stroke-width="1.4" stroke-opacity=".45"/>
-      <line x1="40" y1="40" x2="18"  y2="52"  stroke="url(#lg)" stroke-width="1.4" stroke-opacity=".45"/>
-      <line x1="40" y1="40" x2="18"  y2="28"  stroke="url(#lg)" stroke-width="1.4" stroke-opacity=".45"/>
-    </svg>
-  </div>
-
-  <div class="app-name">ClearText AI</div>
-
-  <!-- Offline message -->
-  <div class="offline-icon">
-    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fb7185" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <line x1="1" y1="1" x2="23" y2="23"/>
-      <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/>
-      <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/>
-      <path d="M10.71 5.05A16 16 0 0 1 22.56 9"/>
-      <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"/>
-      <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
-      <line x1="12" y1="20" x2="12.01" y2="20"/>
-    </svg>
-  </div>
-
-  <div class="offline-title">Немає підключення</div>
-  <div class="offline-text">
-    Увімкніть мобільні дані або Wi-Fi,<br>щоб скористатися ClearText AI.
-  </div>
-
-  <a class="btn-retry" href="/">
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-      <polyline points="23 4 23 10 17 10"/>
-      <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
-    </svg>
-    Спробувати знову
-  </a>
-
-</div>
-
-<div class="footer">ClearText AI</div>
-
+  <main class="card">
+    <div class="ct-logo ct-logo--splash" style="margin-bottom:24px">
+      <svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs><linearGradient id="ol" x1="0" y1="0" x2="80" y2="80" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#8b6cff"/><stop offset="100%" stop-color="#ff6aa0"/></linearGradient></defs>
+        <rect width="80" height="80" rx="19.2" fill="#0d0919"/>
+        <path d="M17.6 27.2 Q17.6 20.8 24 20.8 L56 20.8 Q62.4 20.8 62.4 27.2 L62.4 44.8 Q62.4 51.2 56 51.2 L40 51.2 L28.8 60.8 L30.4 51.2 L24 51.2 Q17.6 51.2 17.6 44.8 Z" fill="none" stroke="url(#ol)" stroke-width="4" stroke-linejoin="round"/>
+        <path d="M32 36.8 L37.6 42.4 L48 29.6" fill="none" stroke="url(#ol)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M64 8 Q65.6 13.6 71.2 15.2 Q65.6 16.8 64 22.4 Q62.4 16.8 56.8 15.2 Q62.4 13.6 64 8 Z" fill="url(#ol)"/>
+      </svg>
+    </div>
+    <h1>ClearText AI</h1>
+    <div class="tile">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="1" y1="1" x2="23" y2="23"/><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/><path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/><path d="M10.71 5.05A16 16 0 0 1 22.56 9"/><path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
+    </div>
+    <h2>Немає підключення</h2>
+    <p>Увімкніть мобільні дані або Wi-Fi,<br>щоб скористатися ClearText AI.</p>
+    <a class="btn" href="/">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+      Спробувати знову
+    </a>
+  </main>
 </body>
 </html>

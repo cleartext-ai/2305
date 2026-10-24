@@ -123,6 +123,8 @@ async function saveBlockedStat() {
 // LOCAL STORAGE HELPERS — тільки для сесії адміна
 // ══════════════════════════════════════════════
 const KEYS = {
+  ADMIN_USER: 'ct_admin_user',
+  ADMIN_PASS: 'ct_admin_pass',
   ADMIN_SES:  'ct_admin_session',
   ADMIN_LOCKOUT: 'ct_admin_lockout',
 };
@@ -150,29 +152,14 @@ let _cachedSettings = null;
 async function getSettings() {
   if (_cachedSettings) return _cachedSettings;
   const data = await fsGet('settings');
-  _cachedSettings = data || { apiKey: '', models: DEFAULT_MODELS, maintenanceMode: false, dailyLimitEnabled: false, dailyLimit: 0, hideSpeakTab: false };
+  _cachedSettings = data || { apiKey: '', models: DEFAULT_MODELS, maintenanceMode: false, dailyLimitEnabled: false, dailyLimit: 0 };
   return _cachedSettings;
 }
 
 function invalidateCache() { _cachedSettings = null; }
 
-// ══════════════════════════════════════════════
-// ADMIN CREDS — зберігаються у Firestore (app/adminCreds),
-// а не в localStorage, тому логін/пароль однакові на всіх пристроях
-// і не губляться при очищенні даних сайту.
-// ══════════════════════════════════════════════
-let _cachedAdminCreds = null;
-
-async function getAdminCreds() {
-  if (_cachedAdminCreds) return _cachedAdminCreds;
-  const data = await fsGet('adminCreds');
-  _cachedAdminCreds = data && data.user && data.pass ? data : { user: DEFAULT_ADMIN.user, pass: DEFAULT_ADMIN.pass };
-  return _cachedAdminCreds;
-}
-function invalidateAdminCredsCache() { _cachedAdminCreds = null; }
-
-async function getAdminUser(){ return (await getAdminCreds()).user; }
-async function getAdminPass(){ return (await getAdminCreds()).pass; }
+function getAdminUser(){ return lsGet(KEYS.ADMIN_USER, DEFAULT_ADMIN.user); }
+function getAdminPass(){ return lsGet(KEYS.ADMIN_PASS, DEFAULT_ADMIN.pass); }
 
 function isAdminSession() { return sessionStorage.getItem(KEYS.ADMIN_SES) === 'ok'; }
 function setAdminSession(v) {
@@ -250,7 +237,6 @@ function showApp(settings) {
   renderAppModels(settings.models || DEFAULT_MODELS);
   renderTemplates(settings.templates);
   renderBanner(settings);
-  applySpeakTabVisibility(settings);
   document.getElementById('text-input').focus();
   requestAnimationFrame(() => {
     const activeBtn = document.querySelector('.tab-btn.active');
@@ -357,18 +343,13 @@ function applyLockoutUI() {
   _lockoutInterval = setInterval(tick, 1000);
 }
 
-async function doAdminLogin() {
+function doAdminLogin() {
   if (isLockedOut()) { applyLockoutUI(); return; }
   const user = document.getElementById('adminLoginInput').value.trim();
   const pass = document.getElementById('adminPassInput').value;
   const errBox = document.getElementById('adminLoginError');
 
-  const btn = document.getElementById('adminLoginBtn');
-  if (btn) btn.disabled = true;
-  const [validUser, validPass] = await Promise.all([getAdminUser(), getAdminPass()]);
-  if (btn) btn.disabled = false;
-
-  if (user === validUser && pass === validPass) {
+  if (user === getAdminUser() && pass === getAdminPass()) {
     errBox.style.display = 'none';
     clearLockoutState();
     setAdminSession(true);
@@ -438,13 +419,6 @@ async function renderAdmin() {
   if (bannerTextInput) bannerTextInput.value = settings.bannerText || '';
   const bannerTypeSelect = document.getElementById('bannerTypeSelect');
   if (bannerTypeSelect) bannerTypeSelect.value = settings.bannerType || 'info';
-
-  // Communication tab visibility
-  const speakTabHideToggle = document.getElementById('speakTabHideToggle');
-  if (speakTabHideToggle) {
-    speakTabHideToggle.checked = !!settings.hideSpeakTab;
-    updateSpeakTabUI(!!settings.hideSpeakTab);
-  }
 
   // Daily request limit
   const limitToggle = document.getElementById('limitToggle');
@@ -740,58 +714,6 @@ document.getElementById('saveBannerBtn')?.addEventListener('click', async () => 
   }
 });
 
-// ══════════════════════════════════════════════
-// ADMIN — ВИДИМІСТЬ ВКЛАДКИ «СПІЛКУВАННЯ»
-// Вимкнено за замовчуванням (вкладка видима для всіх користувачів).
-// ══════════════════════════════════════════════
-function updateSpeakTabUI(isOn) {
-  const label = document.getElementById('speakTabStatusLabel');
-  const dot = document.getElementById('speakTabStatusDot');
-  if (label) {
-    label.textContent = isOn ? 'Увімкнено — вкладка прихована від користувачів' : 'Вимкнено — вкладка видима';
-    label.style.color = isOn ? 'var(--rose)' : 'var(--text)';
-  }
-  if (dot) {
-    dot.style.display = 'inline-block';
-    dot.className = 'status-dot' + (isOn ? '' : ' off');
-  }
-}
-
-document.getElementById('speakTabHideToggle')?.addEventListener('change', async (e) => {
-  const checked = e.target.checked;
-  const toggle = e.target;
-  toggle.disabled = true;
-  const ok = await fsSet('settings', { hideSpeakTab: checked });
-  invalidateCache();
-  toggle.disabled = false;
-  if (ok) {
-    updateSpeakTabUI(checked);
-    showTmpMsg('speakTabSavedMsg');
-    logEvent('Вкладка «Спілкування»: ' + (checked ? 'ПРИХОВАНО' : 'видима'), checked ? 'info' : 'ok');
-    pushAudit('Вкладка «Спілкування»: ' + (checked ? 'приховано для користувачів' : 'знову видима'));
-  } else {
-    toggle.checked = !checked;
-  }
-});
-
-// Застосування видимості вкладки в застосунку користувача (викликається з showApp())
-function applySpeakTabVisibility(settings) {
-  const btn = document.getElementById('speakTabBtn');
-  const panel = document.getElementById('tab-speak');
-  const hide = !!settings.hideSpeakTab;
-  if (btn) btn.style.display = hide ? 'none' : '';
-  if (panel) panel.style.display = hide ? 'none' : '';
-  // Якщо вкладку приховали, а користувач саме на ній стояв — переводимо на «Виправлення»
-  if (hide && panel?.classList.contains('active')) {
-    switchTab('tab-fix');
-  }
-  // Індикатор під активною кнопкою міг зміститись через зміну ширини бару
-  requestAnimationFrame(() => {
-    const activeBtn = document.querySelector('.tab-btn.active');
-    if (activeBtn) moveTabIndicator(activeBtn);
-  });
-}
-
 // Показ банера в застосунку користувача (викликається з showApp())
 function renderBanner(settings) {
   const el = document.getElementById('appBanner');
@@ -924,8 +846,8 @@ document.getElementById('addModelBtn').onclick = async () => {
 };
 document.getElementById('newModelInput').addEventListener('keydown', e => { if(e.key==='Enter') document.getElementById('addModelBtn').click(); });
 
-// Save admin credentials → Firestore (app/adminCreds), спільно для всіх пристроїв
-document.getElementById('saveCredsBtn').onclick = async () => {
+// Save admin credentials → localStorage (тільки на пристрої адміна)
+document.getElementById('saveCredsBtn').onclick = () => {
   const login = document.getElementById('newAdminLogin').value.trim();
   const pass  = document.getElementById('newAdminPass').value;
   const pass2 = document.getElementById('newAdminPassConfirm').value;
@@ -936,24 +858,14 @@ document.getElementById('saveCredsBtn').onclick = async () => {
   if (pass.length < 6) { errBox.textContent = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Пароль мінімум 6 символів'; errBox.style.display = 'block'; return; }
   if (pass !== pass2) { errBox.textContent = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Паролі не збігаються'; errBox.style.display = 'block'; return; }
 
-  const btn = document.getElementById('saveCredsBtn');
-  if (btn) btn.disabled = true;
-  const ok = await fsSet('adminCreds', { user: login, pass: pass });
-  invalidateAdminCredsCache();
-  if (btn) btn.disabled = false;
-
-  if (!ok) {
-    errBox.textContent = 'Не вдалося зберегти — перевірте з\'єднання з інтернетом';
-    errBox.style.display = 'block';
-    return;
-  }
-
+  lsSet(KEYS.ADMIN_USER, login);
+  lsSet(KEYS.ADMIN_PASS, pass);
   document.getElementById('newAdminLogin').value = '';
   document.getElementById('newAdminPass').value = '';
   document.getElementById('newAdminPassConfirm').value = '';
   showTmpMsg('credsSavedMsg');
   logEvent('Дані входу адміна оновлено (логін: ' + login + ')', 'ok');
-  await pushAudit('Дані входу адміна оновлено (логін: ' + login + ')');
+  pushAudit('Дані входу адміна оновлено (логін: ' + login + ')');
 };
 
 function showTmpMsg(id) {
@@ -975,7 +887,7 @@ async function pushAudit(action) {
   try {
     const settings = await getSettings();
     const log = Array.isArray(settings.auditLog) ? settings.auditLog.slice(-99) : [];
-    log.push({ time: new Date().toISOString(), user: await getAdminUser(), action });
+    log.push({ time: new Date().toISOString(), user: getAdminUser(), action });
     await fsSet('settings', { auditLog: log });
     invalidateCache();
     renderAuditLog(log);
@@ -1454,13 +1366,12 @@ document.getElementById('resetTemplatesBtn')?.addEventListener('click', async ()
   pushAudit('Шаблони відновлено до значень за замовчуванням');
 });
 
-document.getElementById('resetCredsBtn')?.addEventListener('click', async () => {
-  if (!confirm('Скинути логін і пароль адміна до значень за замовчуванням? Це вплине на вхід з усіх пристроїв.')) return;
-  const ok = await fsSet('adminCreds', { user: DEFAULT_ADMIN.user, pass: DEFAULT_ADMIN.pass });
-  invalidateAdminCredsCache();
-  if (!ok) { alert('Не вдалося скинути — перевірте з\'єднання з інтернетом'); return; }
+document.getElementById('resetCredsBtn')?.addEventListener('click', () => {
+  if (!confirm('Скинути логін і пароль адміна до значень за замовчуванням на цьому пристрої?')) return;
+  lsSet(KEYS.ADMIN_USER, DEFAULT_ADMIN.user);
+  lsSet(KEYS.ADMIN_PASS, DEFAULT_ADMIN.pass);
   logEvent('Дані входу адміна скинуто до значень за замовчуванням', 'ok');
-  await pushAudit('Дані входу адміна скинуто до значень за замовчуванням (усі пристрої)');
+  pushAudit('Дані входу адміна скинуто до значень за замовчуванням (цей пристрій)');
   alert('Дані входу скинуто до admin / admin123.');
 });
 
@@ -1576,6 +1487,9 @@ function renderTemplates(categories) {
     catTitle.className = 'template-cat-title';
     catTitle.textContent = cat.title;
     block.appendChild(catTitle);
+    const group = document.createElement('div');
+    group.className = 'template-group';
+    block.appendChild(group);
     (cat.items || []).forEach(phrase => {
       const item = document.createElement('div');
       item.className = 'template-item';
@@ -1584,7 +1498,7 @@ function renderTemplates(categories) {
         <div class="template-text">${escHtml(phrase)}</div>
         <div class="template-arrow"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></div>`;
       item.addEventListener('click', () => useTextInFixer(phrase));
-      block.appendChild(item);
+      group.appendChild(item);
     });
     list.appendChild(block);
   });
@@ -1964,27 +1878,27 @@ async function shareText(text) {
   }
   // Fallback — показуємо кастомне меню (тільки на ПК)
   const menu = document.createElement('div');
-  menu.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,0.5);backdrop-filter:blur(8px);animation:fadeIn 0.2s ease';
+  menu.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:flex-end;justify-content:center;background:rgba(8,4,20,0.45);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);animation:fadeIn 0.2s ease';
   const enc = encodeURIComponent(text);
   menu.innerHTML = `
-    <div style="width:100%;max-width:480px;background:var(--bg);backdrop-filter:blur(40px);-webkit-backdrop-filter:blur(40px);border:1px solid var(--border);border-top:1px solid var(--border-top);border-radius:24px 24px 0 0;padding:16px 16px calc(env(safe-area-inset-bottom,0px) + 16px);margin:0">
-      <div style="width:36px;height:4px;background:rgba(255,255,255,0.2);border-radius:2px;margin:0 auto 20px"></div>
-      <div style="font-size:13px;font-weight:700;color:rgba(255,255,255,0.4);text-align:center;margin-bottom:14px;letter-spacing:0.08em;text-transform:uppercase">Поділитись через</div>
+    <div style="width:100%;max-width:480px;background:var(--ct-sheet);box-shadow:inset 0 1px 0 var(--ct-rim-hi);border-radius:34px 34px 0 0;padding:16px 16px calc(env(safe-area-inset-bottom,0px) + 16px);margin:0">
+      <div style="width:36px;height:4px;background:var(--ct-hair);border-radius:2px;margin:0 auto 20px"></div>
+      <div style="font-size:14px;font-weight:600;color:var(--ct-text2);text-align:center;margin-bottom:14px">Поділитись через</div>
       <div style="display:flex;gap:12px;justify-content:center;margin-bottom:16px">
-        <a href="https://t.me/share/url?url=&text=${enc}" target="_blank" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;padding:16px 8px;background:var(--glass2);backdrop-filter:blur(20px);border:1px solid var(--border);border-top:1px solid var(--border-top);border-radius:16px;text-decoration:none;color:var(--text);font-size:12px;font-weight:700">
+        <a href="https://t.me/share/url?url=&text=${enc}" target="_blank" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;padding:16px 8px;background:var(--ct-fill2);border-radius:22px;text-decoration:none;color:var(--ct-text);font-size:13px;font-weight:600">
           <svg width="28" height="28" viewBox="0 0 24 24" fill="#29B6F6"><path d="M9.78 18.65l.28-4.23 7.68-6.92c.34-.31-.07-.46-.52-.19L7.74 13.3 3.64 12c-.88-.25-.89-.86.2-1.3l15.97-6.16c.73-.33 1.43.18 1.15 1.3l-2.72 12.81c-.19.91-.74 1.13-1.5.71L12.6 16.3l-1.99 1.93c-.23.23-.42.42-.83.42z"/></svg>
           Telegram
         </a>
-        <a href="https://wa.me/?text=${enc}" target="_blank" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;padding:16px 8px;background:var(--glass2);backdrop-filter:blur(20px);border:1px solid var(--border);border-top:1px solid var(--border-top);border-radius:16px;text-decoration:none;color:var(--text);font-size:12px;font-weight:700">
+        <a href="https://wa.me/?text=${enc}" target="_blank" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;padding:16px 8px;background:var(--ct-fill2);border-radius:22px;text-decoration:none;color:var(--ct-text);font-size:13px;font-weight:600">
           <svg width="28" height="28" viewBox="0 0 24 24" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
           WhatsApp
         </a>
-        <a href="viber://forward?text=${enc}" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;padding:16px 8px;background:var(--glass2);backdrop-filter:blur(20px);border:1px solid var(--border);border-top:1px solid var(--border-top);border-radius:16px;text-decoration:none;color:var(--text);font-size:12px;font-weight:700">
+        <a href="viber://forward?text=${enc}" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;padding:16px 8px;background:var(--ct-fill2);border-radius:22px;text-decoration:none;color:var(--ct-text);font-size:13px;font-weight:600">
           <svg width="28" height="28" viewBox="0 0 24 24" fill="#7360F2"><path d="M11.4 0C8.96-.03 3.96.46 1.65 2.46-.15 4.16-.77 6.66-.8 9.73c-.03 3.07-.06 8.83 5.4 10.36v2.38s-.04.93.58.93c.77 0 1.22-.79 1.96-1.63.4-.44.96-1.09 1.38-1.59 3.8.32 6.72-.41 7.05-.52.77-.25 5.12-1.6 5.83-6.55.74-5.1-.36-8.32-2.35-9.77C17.44-.13 15.4.03 14.4.03L11.4 0zm.1 2.5c.87 0 2.64-.1 4.27 1.07 1.5 1.08 2.36 3.72 1.73 7.96-.59 4.02-4.02 4.82-4.62 5.01-.28.09-2.89.74-6.2.5l-.6-.04-.43.5s-.56.65-.95 1.1c0-.52-.05-1.05-.05-1.05l-.38-.11C1.35 16.1 1.72 11.13 1.74 8.83c.02-2.47.5-4.46 1.96-5.82C5.5 1.34 9.74 2.5 11.5 2.5z"/></svg>
           Viber
         </a>
       </div>
-      <button onclick="this.closest('div[style*=fixed]').remove()" style="width:100%;padding:14px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.1);border-radius:14px;color:rgba(255,255,255,0.6);font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;cursor:pointer;-webkit-appearance:none">Скасувати</button>
+      <button onclick="this.closest('div[style*=fixed]').remove()" style="width:100%;padding:16px;background:var(--ct-fill2);border:none;border-radius:999px;color:var(--ct-text);font-family:inherit;font-size:16px;font-weight:600;cursor:pointer;-webkit-appearance:none">Скасувати</button>
     </div>`;
   document.body.appendChild(menu);
   menu.onclick = e => { if (e.target === menu) menu.remove(); };
@@ -2011,49 +1925,21 @@ function speakText(text, btn) {
     return;
   }
   // Повторне натискання під час озвучення — зупиняє
-  if (window.speechSynthesis.speaking || window.speechSynthesis.pending) {
+  if (window.speechSynthesis.speaking) {
     stopSpeaking();
     return;
   }
-  // На деяких пристроях (переважно Android) черга синтезу може лишитись
-  // "завислою" від попереднього виклику — скидаємо її перед новим запуском.
-  window.speechSynthesis.cancel();
-
   _speechUtterance = new SpeechSynthesisUtterance(text);
+  _speechUtterance.lang = 'uk-UA';
   _speechUtterance.rate = 0.95;
   const voice = pickUkrainianVoice();
-  // Встановлюємо lang='uk-UA' лише якщо на пристрої справді є український
-  // голос. Примусове встановлення lang без відповідного голосу змушує деякі
-  // браузери (Chrome/Android, Safari) мовчки нічого не промовляти замість
-  // помилки — тому без голосу краще лишити мову типовою (порожньою).
-  if (voice) {
-    _speechUtterance.voice = voice;
-    _speechUtterance.lang = 'uk-UA';
-  }
+  if (voice) _speechUtterance.voice = voice;
   const label = btn?.querySelector('span');
   if (btn) btn.classList.add('speaking');
   if (label) label.textContent = 'Зупинити';
-
-  let didStart = false;
-  _speechUtterance.onstart = () => { didStart = true; };
   _speechUtterance.onend = () => stopSpeaking();
-  _speechUtterance.onerror = (ev) => {
-    stopSpeaking();
-    if (ev?.error && ev.error !== 'canceled' && ev.error !== 'interrupted') {
-      alert('Не вдалося озвучити текст. Спробуйте ще раз або перевірте, чи встановлено голос для читання тексту в налаштуваннях пристрою.');
-    }
-  };
+  _speechUtterance.onerror = () => stopSpeaking();
   window.speechSynthesis.speak(_speechUtterance);
-
-  // Деякі мобільні браузери інколи "проковтують" виклик speak() без будь-якої
-  // події (ні onstart, ні onerror) — якщо через секунду озвучення так і не
-  // почалось, повідомляємо користувача замість мовчазної відмови.
-  setTimeout(() => {
-    if (!didStart && !window.speechSynthesis.speaking && btn?.classList.contains('speaking')) {
-      stopSpeaking();
-      alert('Не вдалося озвучити текст. Перевірте, чи в налаштуваннях пристрою встановлено голос для озвучення (текст у мовлення), і спробуйте ще раз.');
-    }
-  }, 1000);
 }
 // Голоси у Chrome вантажаться асинхронно — прогріваємо список заздалегідь
 if ('speechSynthesis' in window) {
