@@ -1417,11 +1417,13 @@ function createLens() {
     const navW = nav.offsetWidth || 0;
     let left = S.x - extra / 2;
     // лінза ніколи не виходить за межі панелі (а отже — і за межі екрана)
-    if (navW) left = Math.max(3 + pad, Math.min(navW - 3 - pad - bw, left));
+    if (navW) left = Math.max(6 + pad, Math.min(navW - 6 - pad - bw, left));
     ind.style.width = Math.max(0, bw) + 'px';
     ind.style.translate = left + 'px 0';
     ind.style.scale = `${S.sx} ${S.sy * squash}`;
     ind.style.setProperty('--dew', D.toFixed(3));
+    // крапля «хилиться» за напрямком руху, як вода, що тягнеться
+    ind.style.transform = `skewX(${Math.max(-5, Math.min(5, -V.x / 160)).toFixed(2)}deg)`;
   };
   const settled = Td =>
     Td === 0 && D < 0.01 &&
