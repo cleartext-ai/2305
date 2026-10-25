@@ -1399,10 +1399,9 @@ function moveTabIndicator(btn) {
   const nav = document.getElementById('tabBar');
   const indicator = document.getElementById('tabIndicator');
   if (!nav || !indicator || !btn) return;
-  const navRect = nav.getBoundingClientRect();
-  const btnRect = btn.getBoundingClientRect();
-  indicator.style.width = btnRect.width + 'px';
-  indicator.style.transform = `translateX(${btnRect.left - navRect.left}px)`;
+  // offsetLeft/offsetWidth — це розміри в макеті, тому збільшення панелі (scale) не збиває позицію
+  indicator.style.width = btn.offsetWidth + 'px';
+  indicator.style.translate = `${btn.offsetLeft}px 0`;
 }
 
 function switchTab(tabId) {
@@ -2253,25 +2252,28 @@ route();
   const btns = () => [...nav.querySelectorAll('.tab-btn')];
   let dragging = false, moved = false, startX = 0, target = null, pid = null;
 
+  // Координата пальця в «макетних» пікселях панелі (з поправкою на її збільшення під час жесту)
+  const local = x => {
+    const nr = nav.getBoundingClientRect();
+    const k = nr.width / nav.offsetWidth || 1;
+    return (x - nr.left) / k;
+  };
   const nearest = x => {
+    const lx = local(x);
     let best = null, bd = Infinity;
     btns().forEach(b => {
-      const r = b.getBoundingClientRect();
-      const d = Math.abs(x - (r.left + r.width / 2));
+      const d = Math.abs(lx - (b.offsetLeft + b.offsetWidth / 2));
       if (d < bd) { bd = d; best = b; }
     });
     return best;
   };
   const follow = x => {
     const list = btns();
-    const nr = nav.getBoundingClientRect();
-    const first = list[0].getBoundingClientRect();
-    const last = list[list.length - 1].getBoundingClientRect();
-    const w = first.width;
-    const min = first.left - nr.left, max = last.left - nr.left;
-    const left = Math.max(min - 10, Math.min(max + 10, x - nr.left - w / 2));
+    const w = list[0].offsetWidth;
+    const min = list[0].offsetLeft, max = list[list.length - 1].offsetLeft;
+    const left = Math.max(min - 10, Math.min(max + 10, local(x) - w / 2));
     ind.style.width = w + 'px';
-    ind.style.transform = `translateX(${left}px)`;
+    ind.style.translate = `${left}px 0`;
   };
   const setTarget = b => {
     if (!b || b === target) return;
@@ -2285,7 +2287,7 @@ route();
     dragging = true; moved = false; startX = e.clientX; pid = e.pointerId;
     try { nav.setPointerCapture(pid); } catch (_) {}
     nav.classList.add('dragging');
-    ind.style.transition = `transform 0.25s ${SPRING}, width 0.25s, scale 0.4s ${SPRING}`;
+    ind.style.transition = `translate 0.25s ${SPRING}, width 0.25s, scale 0.4s ${SPRING}`;
     follow(e.clientX);
     setTarget(nearest(e.clientX));
   });
