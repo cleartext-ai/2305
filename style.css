@@ -1256,3 +1256,52 @@ body.admin-light-theme .model-add-input option.opt-disabled-model {
   .tab-bar.dragging .tab-indicator { background: linear-gradient(180deg, rgba(112,156,255,0.50), rgba(52,88,240,0.56)); }
   .tab-btn.active, .tab-btn.is-target { color: #fff; text-shadow: 0 1px 6px rgba(20,40,170,0.45); }
 }
+
+/* ══ v7 ══ */
+/* 1. Панель по центру без зсуву: позиція не через transform, щоб збільшення (scale) її не зміщувало */
+.tab-bar { left: 0; right: 0; margin: 0 auto; transform: none; }
+
+/* 2. Лінза знову прозора; вибрана вкладка (значок і підпис) — синя */
+:root { --ct-tint: #6f9cff; }
+@media (prefers-color-scheme: light) { :root { --ct-tint: #2f5fff; } }
+.tab-indicator,
+.tab-bar.dragging .tab-indicator {
+  background:
+    radial-gradient(120% 140% at 18% 0%, rgba(196,170,255,0.12), transparent 58%),
+    linear-gradient(180deg, rgba(255,255,255,0.16), rgba(255,255,255,0.03) 46%, rgba(255,255,255,0.08));
+  backdrop-filter: blur(1px) saturate(1.2) brightness(1.08); -webkit-backdrop-filter: blur(1px) saturate(1.2) brightness(1.08);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.30), inset 0 0 14px rgba(255,255,255,0.07), 0 8px 22px rgba(4,1,18,0.26);
+}
+.tab-bar.dragging .tab-indicator {
+  background:
+    radial-gradient(120% 140% at 18% 0%, rgba(210,190,255,0.10), transparent 58%),
+    linear-gradient(180deg, rgba(255,255,255,0.12), rgba(255,255,255,0.01) 46%, rgba(255,255,255,0.05));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.32), 0 14px 30px rgba(4,1,18,0.32);
+}
+.tab-indicator::before { background: linear-gradient(160deg, rgba(255,255,255,0.34), rgba(255,255,255,0.03) 40%, rgba(255,255,255,0.03) 62%, rgba(255,255,255,0.18)); }
+.tab-indicator::after { background: linear-gradient(180deg, rgba(255,255,255,0.18), rgba(255,255,255,0)); }
+.tab-btn.active, .tab-btn.is-target { color: var(--ct-tint); text-shadow: none; }
+@media (prefers-color-scheme: light) {
+  .tab-indicator, .tab-bar.dragging .tab-indicator {
+    background: linear-gradient(180deg, rgba(255,255,255,0.55), rgba(255,255,255,0.12) 50%, rgba(255,255,255,0.32));
+    box-shadow: inset 0 1px 0 #fff, inset 0 -1px 1px rgba(120,80,200,0.16), 0 8px 20px rgba(96,56,180,0.18);
+  }
+  .tab-bar.dragging .tab-indicator { background: linear-gradient(180deg, rgba(255,255,255,0.40), rgba(255,255,255,0.06) 50%, rgba(255,255,255,0.20)); }
+  .tab-btn.active, .tab-btn.is-target { color: var(--ct-tint); text-shadow: none; }
+}
+
+/* 3. Логотип і назва — разом із заголовком на головному екрані */
+.fix-brand { display: flex; align-items: center; gap: 14px; margin-bottom: 26px; }
+.ct-logo--hero { width: 56px; height: 56px; filter: drop-shadow(0 8px 20px var(--ct-accent-glow)); }
+.ct-logo--hero svg { width: 56px; height: 56px; }
+.fix-brand .app-header-title { font-size: 22px; }
+.fix-brand .app-header-sub { font-size: 14px; }
+#app-screen:has(#tab-fix.active):not(:has(#result-card[style*="block"])) .app-header { visibility: hidden; }
+
+/* 4. Результат — лише виправлений текст; шапка без розмиття (воно давало світлу смугу з різким краєм) */
+#result-card .changes-header, #changes-list { display: none !important; }
+#result-card .result-actions { padding-bottom: 16px; }
+.app-header::before {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--ct-bg) 88%, transparent) 20%, transparent);
+  backdrop-filter: none; -webkit-backdrop-filter: none; -webkit-mask-image: none; mask-image: none;
+}
