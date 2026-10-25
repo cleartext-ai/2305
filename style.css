@@ -1597,3 +1597,10 @@ body.admin-light-theme .model-add-input option.opt-disabled-model {
 .fix-brand .app-header-title { font-size: 30px; font-weight: 800; letter-spacing: -0.02em; }
 .fix-brand .app-header-sub { font-size: 16px; font-weight: 600; color: rgba(255,255,255,0.88); }
 @media (prefers-color-scheme: light) { .fix-brand .app-header-sub { color: var(--ct-text2); } }
+
+/* ══ v16: фон навігації — дуже трошки темніший (темна тема) ══ */
+@media (prefers-color-scheme: dark) {
+  .tab-bar::after {
+    background: linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0) 46%, rgba(255,255,255,0.025)), rgba(0,0,0,0.24);
+  }
+}
