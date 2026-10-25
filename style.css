@@ -1112,3 +1112,83 @@ body.admin-light-theme .model-add-input option.opt-disabled-model {
 .tab-bar.dragging .tab-btn.active:not(.is-target) { color: var(--ct-text2); }
 .tab-btn.is-target { color: var(--ct-text); }
 @media (prefers-reduced-motion: reduce) { .tab-bar, .tab-indicator { transition: none; } }
+
+/* ══ v4: прозора «водяна» лінза, поле над навігацією, навігація нижче ══ */
+:root { --ct-nav-h: 68px; --ct-nav-bottom: calc(6px + var(--safe-bottom, 0px) * 0.5); }
+
+.app-body, .app-body { padding-bottom: calc(var(--ct-nav-bottom) + var(--ct-nav-h) + 14px); }
+@media (min-width: 640px) { .app-body { padding-bottom: calc(var(--ct-nav-bottom) + var(--ct-nav-h) + 14px); } }
+
+/* Скло панелі винесено в окремий шар, щоб лінза всередині бачила тло за собою */
+.tab-bar {
+  bottom: var(--ct-nav-bottom); isolation: auto;
+  background: none; box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none;
+}
+.tab-bar::after {
+  content: ''; position: absolute; inset: 0; border-radius: inherit; z-index: 0; pointer-events: none;
+  background: var(--ct-sheen), var(--ct-fill);
+  backdrop-filter: blur(34px) saturate(210%); -webkit-backdrop-filter: blur(34px) saturate(210%);
+  box-shadow: 0 24px 56px rgba(4,1,18,0.46), 0 6px 18px rgba(4,1,18,0.26), var(--ct-inner);
+}
+.tab-btn { padding: 8px 4px 7px; }
+.tab-btn svg { transition: scale 0.35s cubic-bezier(0.32,1.4,0.5,1); }
+.tab-btn.is-target svg { scale: 1.22; }
+
+.tab-indicator {
+  background:
+    radial-gradient(120% 140% at 18% 0%, rgba(196,170,255,0.24), transparent 58%),
+    linear-gradient(180deg, rgba(255,255,255,0.20), rgba(255,255,255,0.04) 46%, rgba(255,255,255,0.10));
+  backdrop-filter: blur(1px) saturate(1.5) brightness(1.14);
+  -webkit-backdrop-filter: blur(1px) saturate(1.5) brightness(1.14);
+  box-shadow:
+    inset 0 1.5px 1px rgba(255,255,255,0.75), inset 0 -1px 1px rgba(255,255,255,0.28),
+    inset 1px 0 1px rgba(255,255,255,0.20), inset -1px 0 1px rgba(255,255,255,0.20),
+    inset 0 0 18px rgba(255,255,255,0.12), 0 10px 26px rgba(4,1,18,0.30);
+}
+.tab-indicator::before {
+  content: ''; position: absolute; inset: 0; border-radius: inherit; padding: 1px; pointer-events: none;
+  background: linear-gradient(160deg, rgba(255,255,255,0.85), rgba(255,255,255,0.08) 38%, rgba(255,255,255,0.08) 64%, rgba(255,255,255,0.5));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+}
+.tab-indicator::after {
+  content: ''; position: absolute; left: 12%; right: 38%; top: 5px; height: 38%; border-radius: 999px; pointer-events: none;
+  background: linear-gradient(180deg, rgba(255,255,255,0.26), rgba(255,255,255,0));
+  filter: blur(2px);
+}
+.tab-bar.dragging .tab-indicator {
+  scale: 1.2 1.38;
+  background:
+    radial-gradient(120% 140% at 18% 0%, rgba(210,190,255,0.20), transparent 58%),
+    linear-gradient(180deg, rgba(255,255,255,0.15), rgba(255,255,255,0.02) 46%, rgba(255,255,255,0.07));
+  backdrop-filter: blur(0.5px) saturate(1.7) brightness(1.18);
+  -webkit-backdrop-filter: blur(0.5px) saturate(1.7) brightness(1.18);
+  box-shadow:
+    inset 0 2px 1px rgba(255,255,255,0.85), inset 0 -1.5px 1px rgba(255,255,255,0.35),
+    inset 0 0 26px rgba(255,255,255,0.16), 0 18px 38px rgba(4,1,18,0.38);
+}
+@media (prefers-color-scheme: light) {
+  .tab-bar::after { box-shadow: 0 20px 46px rgba(96,56,180,0.20), 0 5px 14px rgba(96,56,180,0.10), var(--ct-inner); }
+  .tab-indicator {
+    background: linear-gradient(180deg, rgba(255,255,255,0.80), rgba(255,255,255,0.28) 50%, rgba(255,255,255,0.50));
+    backdrop-filter: blur(1px) saturate(1.8) brightness(1.04); -webkit-backdrop-filter: blur(1px) saturate(1.8) brightness(1.04);
+    box-shadow: inset 0 1.5px 1px #fff, inset 0 -1px 1px rgba(120,80,200,0.22), 0 8px 20px rgba(96,56,180,0.22);
+  }
+  .tab-bar.dragging .tab-indicator { background: linear-gradient(180deg, rgba(255,255,255,0.65), rgba(255,255,255,0.16) 50%, rgba(255,255,255,0.35)); box-shadow: inset 0 2px 1px #fff, inset 0 -1.5px 1px rgba(120,80,200,0.25), 0 16px 34px rgba(96,56,180,0.30); }
+}
+
+/* «Виправлення»: результат зверху під шапкою, поле — прикріплене над навігацією */
+#tab-fix.active { justify-content: flex-start; }
+.fix-hero { margin: auto 0; padding: 20px 8px; }
+#result-card { scroll-margin-top: calc(var(--safe-top, 0px) + 74px); }
+#tab-fix > .card:not(#result-card) {
+  position: sticky; bottom: calc(var(--ct-nav-bottom) + var(--ct-nav-h) + 12px); z-index: 20; margin-top: auto;
+}
+#tab-fix #text-input { min-height: 84px; padding-bottom: 8px; }
+.card-footer { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 0 12px 12px 22px; }
+#tab-fix .btn-fix { width: auto; align-self: auto; min-height: 48px; padding: 0 22px; margin: 0; z-index: auto; font-size: 16px; order: 0; }
+
+/* Поле над навігацією — щільніше, щоб контент під ним не просвічував */
+#tab-fix > .card:not(#result-card) {
+  background: var(--ct-sheen), color-mix(in srgb, var(--ct-bg) 74%, transparent);
+}

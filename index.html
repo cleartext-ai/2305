@@ -12,7 +12,7 @@
 <link rel="manifest" href="manifest.json">
 <title>ClearText AI</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20261024c">
+<link rel="stylesheet" href="style.css?v=20261024d">
 </head>
 <body>
 
@@ -516,16 +516,16 @@
       <div class="card">
         <div class="card-header">
           <div class="card-title"><span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg></span> Ваш текст</div>
-          <div class="char-count" id="charCount">0 / 800</div>
         </div>
         <textarea id="text-input" placeholder="Напишіть речення яке хочете виправити…&#10;Наприклад: «я вчора ходив магазін купляв хліб і молоко»"></textarea>
-
+        <div class="card-footer">
+          <div class="char-count" id="charCount">0 / 800</div>
+          <button class="btn-fix" id="fixBtn" type="button">
+            <span class="btn-label">✦ Виправити текст</span>
+            <div class="spinner"></div>
+          </button>
+        </div>
       </div>
-
-      <button class="btn-fix" id="fixBtn" type="button">
-        <span class="btn-label">✦ Виправити текст</span>
-        <div class="spinner"></div>
-      </button>
 
       <div class="error-box" id="errorBox"></div>
 
@@ -640,7 +640,7 @@
   </nav>
 </div>
 
-<script type="module" src="script.js?v=20261024c"></script>
+<script type="module" src="script.js?v=20261024d"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
