@@ -242,9 +242,7 @@ function showApp(settings) {
     const activeBtn = document.querySelector('.tab-btn.active');
     const indicator = document.getElementById('tabIndicator');
     if (activeBtn && indicator) {
-      indicator.style.transition = 'none';
-      moveTabIndicator(activeBtn);
-      requestAnimationFrame(() => { indicator.style.transition = ''; });
+      moveTabIndicator(activeBtn, true);
     }
   });
 }
@@ -1395,13 +1393,75 @@ function renderAppModels(models) {
 // ══════════════════════════════════════════════
 // TAB BAR — Виправлення / Шаблони (плаваючий острівець)
 // ══════════════════════════════════════════════
-function moveTabIndicator(btn) {
+// ── Рідка лінза таб-бару: пружинна фізика, розтягування і «хвиля» при русі ──
+function createLens() {
+  const ind = document.getElementById('tabIndicator');
+  const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const S = { x: 0, w: 0, sx: 1, sy: 1 };   // поточні значення
+  const V = { x: 0, w: 0, sx: 0, sy: 0 };   // швидкості
+  const T = { x: 0, w: 0, sx: 1, sy: 1 };   // цілі
+  let k = 190, c = 15, raf = 0, last = 0, ready = false;
+
+  const step = (key, kk, cc, h) => {
+    const a = -kk * (S[key] - T[key]) - cc * V[key];
+    V[key] += a * h;
+    S[key] += V[key] * h;
+  };
+  const paint = () => {
+    const sp = Math.abs(V.x);
+    const extra = Math.min(sp * 0.05, 52);                 // лінза розтягується у русі
+    const squash = 1 - Math.min(sp / 9000, 0.1);           // і трохи сплющується
+    ind.style.width = Math.max(0, S.w + extra) + 'px';
+    ind.style.translate = (S.x - extra / 2) + 'px 0';
+    ind.style.scale = `${S.sx} ${S.sy * squash}`;
+  };
+  const settled = () =>
+    Math.abs(S.x - T.x) < 0.05 && Math.abs(V.x) < 0.5 &&
+    Math.abs(S.w - T.w) < 0.05 && Math.abs(V.w) < 0.5 &&
+    Math.abs(S.sx - T.sx) < 0.001 && Math.abs(V.sx) < 0.01 &&
+    Math.abs(S.sy - T.sy) < 0.001 && Math.abs(V.sy) < 0.01;
+  const frame = now => {
+    const dt = Math.min((now - last) / 1000 || 0.016, 0.032);
+    last = now;
+    const h = dt / 2;
+    for (let i = 0; i < 2; i++) {
+      step('x', k, c, h); step('w', 200, 16, h);
+      step('sx', 240, 17, h); step('sy', 240, 17, h);
+    }
+    if (settled()) {
+      S.x = T.x; S.w = T.w; S.sx = T.sx; S.sy = T.sy;
+      V.x = V.w = V.sx = V.sy = 0;
+      paint(); raf = 0; return;
+    }
+    paint();
+    raf = requestAnimationFrame(frame);
+  };
+  const run = () => { if (!raf) { last = performance.now(); raf = requestAnimationFrame(frame); } };
+  const snapTo = (x, w) => {
+    S.x = T.x = x; S.w = T.w = w; V.x = V.w = 0; ready = true;
+    if (raf) { cancelAnimationFrame(raf); raf = 0; }
+    paint();
+  };
+  return {
+    to(x, w, snap) {
+      if (snap || reduce || !ready) { snapTo(x, w); return; }
+      T.x = x; T.w = w; k = 190; c = 15; run();
+    },
+    follow(x, w) {
+      if (reduce || !ready) { snapTo(x, w); return; }
+      T.x = x; T.w = w; k = 480; c = 36; run();
+    },
+    lens(on) { T.sx = on ? 1.2 : 1; T.sy = on ? 1.38 : 1; if (reduce) { S.sx = T.sx; S.sy = T.sy; paint(); } else run(); }
+  };
+}
+function getLens() { return window.__ctLens || (window.__ctLens = createLens()); }
+
+function moveTabIndicator(btn, snap) {
   const nav = document.getElementById('tabBar');
   const indicator = document.getElementById('tabIndicator');
-  if (!nav || !indicator || !btn) return;
-  // offsetLeft/offsetWidth — це розміри в макеті, тому збільшення панелі (scale) не збиває позицію
-  indicator.style.width = btn.offsetWidth + 'px';
-  indicator.style.translate = `${btn.offsetLeft}px 0`;
+  if (!nav || !indicator || !btn || !btn.offsetWidth) return;
+  // offsetLeft/offsetWidth — розміри в макеті, збільшення панелі (scale) їх не збиває
+  getLens().to(btn.offsetLeft, btn.offsetWidth, snap);
 }
 
 function switchTab(tabId) {
@@ -1422,7 +1482,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 // Тримаємо індикатор під активною вкладкою і при зміні розміру вікна
 window.addEventListener('resize', () => {
   const activeBtn = document.querySelector('.tab-btn.active');
-  if (activeBtn) moveTabIndicator(activeBtn);
+  if (activeBtn) moveTabIndicator(activeBtn, true);
 });
 
 // Бере текст (з шаблону чи новини), переносить у поле виправлення і перемикає вкладку
@@ -2248,7 +2308,6 @@ route();
   const nav = document.getElementById('tabBar');
   const ind = document.getElementById('tabIndicator');
   if (!nav || !ind) return;
-  const SPRING = 'cubic-bezier(0.32,1.4,0.5,1)';
   const btns = () => [...nav.querySelectorAll('.tab-btn')];
   let dragging = false, moved = false, startX = 0, target = null, pid = null;
 
@@ -2267,13 +2326,11 @@ route();
     });
     return best;
   };
-  const follow = x => {
+  const followFinger = x => {
     const list = btns();
     const w = list[0].offsetWidth;
     const min = list[0].offsetLeft, max = list[list.length - 1].offsetLeft;
-    const left = Math.max(min - 10, Math.min(max + 10, local(x) - w / 2));
-    ind.style.width = w + 'px';
-    ind.style.translate = `${left}px 0`;
+    getLens().follow(Math.max(min - 10, Math.min(max + 10, local(x) - w / 2)), w);
   };
   const setTarget = b => {
     if (!b || b === target) return;
@@ -2287,17 +2344,15 @@ route();
     dragging = true; moved = false; startX = e.clientX; pid = e.pointerId;
     try { nav.setPointerCapture(pid); } catch (_) {}
     nav.classList.add('dragging');
-    ind.style.transition = `translate 0.25s ${SPRING}, width 0.25s, scale 0.4s ${SPRING}`;
-    follow(e.clientX);
-    setTarget(nearest(e.clientX));
+    const b = nearest(e.clientX);
+    getLens().lens(true);
+    getLens().to(b.offsetLeft, b.offsetWidth);       // лінза «перетікає» до вкладки під пальцем
+    setTarget(b);
   });
   nav.addEventListener('pointermove', e => {
     if (!dragging) return;
-    if (!moved && Math.abs(e.clientX - startX) > 4) {
-      moved = true;
-      ind.style.transition = `width 0.2s, scale 0.4s ${SPRING}`;
-    }
-    if (moved) follow(e.clientX);
+    if (!moved && Math.abs(e.clientX - startX) > 4) moved = true;
+    if (moved) followFinger(e.clientX);
     setTarget(nearest(e.clientX));
   });
   const end = e => {
@@ -2306,8 +2361,8 @@ route();
     try { nav.releasePointerCapture(pid); } catch (_) {}
     nav.classList.remove('dragging');
     btns().forEach(x => x.classList.remove('is-target'));
+    getLens().lens(false);
     const b = e.type === 'pointercancel' ? document.querySelector('.tab-btn.active') : (target || nearest(e.clientX));
-    ind.style.transition = '';
     target = null;
     if (!b) return;
     if (b.classList.contains('active')) moveTabIndicator(b); else switchTab(b.dataset.tab);
