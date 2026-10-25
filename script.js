@@ -1411,8 +1411,8 @@ function createLens() {
   };
   const paint = () => {
     const sp = Math.abs(V.x);
-    const extra = Math.min(sp * 0.05, 40);                 // лінза розтягується у русі
-    const squash = 1 - Math.min(sp / 9000, 0.1);           // і трохи сплющується
+    const extra = Math.min(sp * 0.02, 14);                 // лінза розтягується у русі
+    const squash = 1 - Math.min(sp / 20000, 0.03);           // і трохи сплющується
     const bw = S.w + extra, pad = (bw * S.sx - bw) / 2;     // pad — наскільки збільшення виступає з боків
     const navW = nav.offsetWidth || 0;
     let left = S.x - extra / 2;
@@ -1465,7 +1465,7 @@ function createLens() {
       if (reduce || !ready) { snapTo(x, w); return; }
       T.x = x; T.w = w; k = 480; c = 36; run();
     },
-    lens(on) { drag = on; T.sx = on ? 1.08 : 1; T.sy = on ? 1.3 : 1; if (reduce) { S.sx = T.sx; S.sy = T.sy; D = on ? 1 : 0; paint(); } else run(); }
+    lens(on) { drag = on; T.sx = 1; T.sy = 1; if (reduce) { S.sx = T.sx; S.sy = T.sy; D = on ? 1 : 0; paint(); } else run(); }
   };
 }
 function getLens() { return window.__ctLens || (window.__ctLens = createLens()); }

@@ -1574,3 +1574,7 @@ body.admin-light-theme .model-add-input option.opt-disabled-model {
 }
 .tab-btn svg .tint { fill: currentColor; fill-opacity: 0; transition: fill-opacity 0.35s ease; }
 .tab-btn.active svg .tint, .tab-btn.is-target svg .tint { fill-opacity: 0.30; }
+
+/* ══ v14: розмір вкладки під пальцем не змінюється ══ */
+.tab-bar.dragging { scale: 1; }
+.tab-btn.is-target svg { scale: 1; }
