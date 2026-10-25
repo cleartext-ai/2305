@@ -1514,3 +1514,40 @@ body.admin-light-theme .model-add-input option.opt-disabled-model {
     backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);
   }
 }
+
+/* ══ v12: менш матова панель; природна крапля — блік повторює форму краплі ══ */
+.tab-bar::after {
+  background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0) 46%, rgba(255,255,255,0.03)), rgba(0,0,0,0.08);
+  backdrop-filter: blur(2px) brightness(1.02); -webkit-backdrop-filter: blur(2px) brightness(1.02);
+}
+.tab-indicator::before {
+  background: radial-gradient(ellipse 78% 52% at 50% 112%, rgba(255,255,255,0.16), rgba(255,255,255,0) 68%);
+  box-shadow:
+    inset 2.5px 3px 2px -2px rgba(255,255,255,0.78),    /* тонкий півмісяць світла на освітленому краї */
+    inset -2px -3px 3px -2px rgba(255,255,255,0.42),    /* каустика на протилежному краї */
+    inset 0 10px 14px -8px rgba(0,0,0,0.24),            /* м'яка тінь усередині згори */
+    inset 0 -10px 12px -9px rgba(255,255,255,0.26),     /* світло, що збирається знизу */
+    0 12px 24px rgba(0,0,0,0.26),
+    0 2px 5px rgba(0,0,0,0.16);
+}
+.tab-indicator::after {
+  background:
+    radial-gradient(circle 3px at 22% 25%, rgba(255,255,255,0.95), rgba(255,255,255,0.55) 45%, rgba(255,255,255,0) 100%),
+    radial-gradient(ellipse 9px 2.5px at 35% 15%, rgba(255,255,255,0.50), rgba(255,255,255,0) 100%);
+}
+@media (prefers-color-scheme: light) {
+  .tab-bar::after {
+    background: linear-gradient(180deg, rgba(255,255,255,0.40), rgba(255,255,255,0.06) 50%, rgba(255,255,255,0.18)), rgba(255,255,255,0.06);
+    backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px);
+  }
+  .tab-indicator::before {
+    background: radial-gradient(ellipse 78% 52% at 50% 112%, rgba(255,255,255,0.30), rgba(255,255,255,0) 68%);
+    box-shadow:
+      inset 2.5px 3px 2px -2px rgba(255,255,255,1),
+      inset -2px -3px 3px -2px rgba(60,40,110,0.20),
+      inset 0 10px 14px -8px rgba(60,40,110,0.20),
+      inset 0 -10px 12px -9px rgba(255,255,255,0.60),
+      0 12px 22px rgba(60,40,110,0.16),
+      0 2px 5px rgba(60,40,110,0.12);
+  }
+}
