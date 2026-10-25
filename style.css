@@ -1578,3 +1578,22 @@ body.admin-light-theme .model-add-input option.opt-disabled-model {
 /* ══ v14: розмір вкладки під пальцем не змінюється ══ */
 .tab-bar.dragging { scale: 1; }
 .tab-btn.is-target svg { scale: 1; }
+
+/* ══ v15: виразна навігація; більший яскравий бренд ══ */
+:root { --ct-tint: #4a90ff; }
+@media (prefers-color-scheme: light) { :root { --ct-tint: #0a5cff; } }
+.tab-btn { color: #fff; font-weight: 700; text-shadow: 0 1px 5px rgba(0,0,0,0.65); }
+.tab-btn svg { stroke-width: 2.1; filter: drop-shadow(0 1px 3px rgba(0,0,0,0.55)); }
+.tab-btn.active, .tab-btn.is-target { color: var(--ct-tint); }
+@media (prefers-color-scheme: light) {
+  .tab-btn { color: #1b1131; text-shadow: none; }
+  .tab-btn svg { filter: none; }
+  .tab-btn.active, .tab-btn.is-target { color: var(--ct-tint); }
+}
+
+.fix-brand { gap: 16px; }
+.ct-logo--hero { width: 76px; height: 76px; filter: drop-shadow(0 10px 28px var(--ct-accent-glow)); }
+.ct-logo--hero svg { width: 76px; height: 76px; }
+.fix-brand .app-header-title { font-size: 30px; font-weight: 800; letter-spacing: -0.02em; }
+.fix-brand .app-header-sub { font-size: 16px; font-weight: 600; color: rgba(255,255,255,0.88); }
+@media (prefers-color-scheme: light) { .fix-brand .app-header-sub { color: var(--ct-text2); } }
