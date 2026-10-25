@@ -2244,11 +2244,72 @@ route();
 
 
 
-// ── Liquid Glass: відблиск, що слідує за дотиком/курсором ──
-document.addEventListener('pointermove', e => {
-  const t = e.target.closest && e.target.closest('.card, .template-group');
-  if (!t) return;
-  const r = t.getBoundingClientRect();
-  t.style.setProperty('--mx', (e.clientX - r.left) + 'px');
-  t.style.setProperty('--my', (e.clientY - r.top) + 'px');
-}, { passive: true });
+// ── Таб-бар: один рух — затисни і проведи пальцем, як в iOS ──
+(function initTabDrag() {
+  const nav = document.getElementById('tabBar');
+  const ind = document.getElementById('tabIndicator');
+  if (!nav || !ind) return;
+  const SPRING = 'cubic-bezier(0.32,1.4,0.5,1)';
+  const btns = () => [...nav.querySelectorAll('.tab-btn')];
+  let dragging = false, moved = false, startX = 0, target = null, pid = null;
+
+  const nearest = x => {
+    let best = null, bd = Infinity;
+    btns().forEach(b => {
+      const r = b.getBoundingClientRect();
+      const d = Math.abs(x - (r.left + r.width / 2));
+      if (d < bd) { bd = d; best = b; }
+    });
+    return best;
+  };
+  const follow = x => {
+    const list = btns();
+    const nr = nav.getBoundingClientRect();
+    const first = list[0].getBoundingClientRect();
+    const last = list[list.length - 1].getBoundingClientRect();
+    const w = first.width;
+    const min = first.left - nr.left, max = last.left - nr.left;
+    const left = Math.max(min - 10, Math.min(max + 10, x - nr.left - w / 2));
+    ind.style.width = w + 'px';
+    ind.style.transform = `translateX(${left}px)`;
+  };
+  const setTarget = b => {
+    if (!b || b === target) return;
+    target = b;
+    btns().forEach(x => x.classList.toggle('is-target', x === b));
+    if (navigator.vibrate) navigator.vibrate(6);
+  };
+
+  nav.addEventListener('pointerdown', e => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    dragging = true; moved = false; startX = e.clientX; pid = e.pointerId;
+    try { nav.setPointerCapture(pid); } catch (_) {}
+    nav.classList.add('dragging');
+    ind.style.transition = `transform 0.25s ${SPRING}, width 0.25s, scale 0.4s ${SPRING}`;
+    follow(e.clientX);
+    setTarget(nearest(e.clientX));
+  });
+  nav.addEventListener('pointermove', e => {
+    if (!dragging) return;
+    if (!moved && Math.abs(e.clientX - startX) > 4) {
+      moved = true;
+      ind.style.transition = `width 0.2s, scale 0.4s ${SPRING}`;
+    }
+    if (moved) follow(e.clientX);
+    setTarget(nearest(e.clientX));
+  });
+  const end = e => {
+    if (!dragging) return;
+    dragging = false;
+    try { nav.releasePointerCapture(pid); } catch (_) {}
+    nav.classList.remove('dragging');
+    btns().forEach(x => x.classList.remove('is-target'));
+    const b = e.type === 'pointercancel' ? document.querySelector('.tab-btn.active') : (target || nearest(e.clientX));
+    ind.style.transition = '';
+    target = null;
+    if (!b) return;
+    if (b.classList.contains('active')) moveTabIndicator(b); else switchTab(b.dataset.tab);
+  };
+  nav.addEventListener('pointerup', end);
+  nav.addEventListener('pointercancel', end);
+})();
