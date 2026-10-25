@@ -1502,3 +1502,15 @@ body.admin-light-theme .model-add-input option.opt-disabled-model {
 @media (prefers-color-scheme: light) {
   .tab-indicator, .tab-bar.dragging .tab-indicator { backdrop-filter: none; -webkit-backdrop-filter: none; }
 }
+
+/* ══ v11: трошки матовості панелі + справжнє заломлення краплі (Chromium) ══ */
+.tab-bar::after {
+  background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0) 46%, rgba(255,255,255,0.03)), rgba(0,0,0,0.12);
+  backdrop-filter: blur(5px) brightness(1.02); -webkit-backdrop-filter: blur(5px) brightness(1.02);
+}
+@media (prefers-color-scheme: light) {
+  .tab-bar::after {
+    background: linear-gradient(180deg, rgba(255,255,255,0.40), rgba(255,255,255,0.06) 50%, rgba(255,255,255,0.18)), rgba(255,255,255,0.10);
+    backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);
+  }
+}
