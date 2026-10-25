@@ -1232,3 +1232,27 @@ body.admin-light-theme .model-add-input option.opt-disabled-model {
   .tab-indicator { background: linear-gradient(180deg, rgba(255,255,255,0.42), rgba(255,255,255,0.06) 50%, rgba(255,255,255,0.22)); }
   .tab-bar.dragging .tab-indicator { background: linear-gradient(180deg, rgba(255,255,255,0.30), rgba(255,255,255,0.03) 50%, rgba(255,255,255,0.14)); }
 }
+
+/* ══ v6: синя лінза без білої рамки ══ */
+:root { --ct-lens-a: rgba(104,148,255,0.60); --ct-lens-b: rgba(48,82,238,0.66); }
+.tab-indicator,
+.tab-bar.dragging .tab-indicator {
+  background: linear-gradient(180deg, var(--ct-lens-a), var(--ct-lens-b));
+  backdrop-filter: blur(1px) saturate(1.1); -webkit-backdrop-filter: blur(1px) saturate(1.1);
+  box-shadow: inset 0 1px 0 rgba(190,212,255,0.40), inset 0 -2px 6px rgba(20,40,170,0.30), 0 8px 22px rgba(46,84,255,0.38);
+}
+.tab-bar.dragging .tab-indicator {
+  background: linear-gradient(180deg, rgba(112,156,255,0.50), rgba(52,88,240,0.56));
+  box-shadow: inset 0 1px 0 rgba(190,212,255,0.40), 0 12px 28px rgba(46,84,255,0.42);
+}
+.tab-indicator::before {
+  background: linear-gradient(160deg, rgba(170,200,255,0.50), rgba(170,200,255,0.04) 40%, rgba(170,200,255,0.04) 62%, rgba(150,185,255,0.30));
+}
+.tab-indicator::after { background: linear-gradient(180deg, rgba(200,220,255,0.20), rgba(200,220,255,0)); }
+.tab-btn.active, .tab-btn.is-target { color: #fff; }
+@media (prefers-color-scheme: light) {
+  .tab-indicator,
+  .tab-bar.dragging .tab-indicator { background: linear-gradient(180deg, var(--ct-lens-a), var(--ct-lens-b)); box-shadow: inset 0 1px 0 rgba(190,212,255,0.55), inset 0 -2px 6px rgba(20,40,170,0.25), 0 8px 20px rgba(46,84,255,0.30); }
+  .tab-bar.dragging .tab-indicator { background: linear-gradient(180deg, rgba(112,156,255,0.50), rgba(52,88,240,0.56)); }
+  .tab-btn.active, .tab-btn.is-target { color: #fff; text-shadow: 0 1px 6px rgba(20,40,170,0.45); }
+}

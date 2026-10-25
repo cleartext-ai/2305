@@ -1396,6 +1396,7 @@ function renderAppModels(models) {
 // ── Рідка лінза таб-бару: пружинна фізика, розтягування і «хвиля» при русі ──
 function createLens() {
   const ind = document.getElementById('tabIndicator');
+  const nav = document.getElementById('tabBar');
   const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const S = { x: 0, w: 0, sx: 1, sy: 1 };   // поточні значення
   const V = { x: 0, w: 0, sx: 0, sy: 0 };   // швидкості
@@ -1409,10 +1410,15 @@ function createLens() {
   };
   const paint = () => {
     const sp = Math.abs(V.x);
-    const extra = Math.min(sp * 0.05, 52);                 // лінза розтягується у русі
+    const extra = Math.min(sp * 0.05, 40);                 // лінза розтягується у русі
     const squash = 1 - Math.min(sp / 9000, 0.1);           // і трохи сплющується
-    ind.style.width = Math.max(0, S.w + extra) + 'px';
-    ind.style.translate = (S.x - extra / 2) + 'px 0';
+    const bw = S.w + extra, pad = (bw * S.sx - bw) / 2;     // pad — наскільки збільшення виступає з боків
+    const navW = nav.offsetWidth || 0;
+    let left = S.x - extra / 2;
+    // лінза ніколи не виходить за межі панелі (а отже — і за межі екрана)
+    if (navW) left = Math.max(3 + pad, Math.min(navW - 3 - pad - bw, left));
+    ind.style.width = Math.max(0, bw) + 'px';
+    ind.style.translate = left + 'px 0';
     ind.style.scale = `${S.sx} ${S.sy * squash}`;
   };
   const settled = () =>
@@ -1451,7 +1457,7 @@ function createLens() {
       if (reduce || !ready) { snapTo(x, w); return; }
       T.x = x; T.w = w; k = 480; c = 36; run();
     },
-    lens(on) { T.sx = on ? 1.2 : 1; T.sy = on ? 1.38 : 1; if (reduce) { S.sx = T.sx; S.sy = T.sy; paint(); } else run(); }
+    lens(on) { T.sx = on ? 1.08 : 1; T.sy = on ? 1.3 : 1; if (reduce) { S.sx = T.sx; S.sy = T.sy; paint(); } else run(); }
   };
 }
 function getLens() { return window.__ctLens || (window.__ctLens = createLens()); }
@@ -2330,7 +2336,7 @@ route();
     const list = btns();
     const w = list[0].offsetWidth;
     const min = list[0].offsetLeft, max = list[list.length - 1].offsetLeft;
-    getLens().follow(Math.max(min - 10, Math.min(max + 10, local(x) - w / 2)), w);
+    getLens().follow(Math.max(min, Math.min(max, local(x) - w / 2)), w);
   };
   const setTarget = b => {
     if (!b || b === target) return;
