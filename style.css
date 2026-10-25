@@ -1195,3 +1195,7 @@ body.admin-light-theme .model-add-input option.opt-disabled-model {
 
 /* Під час жесту кнопки не «просідають» — рухається лише лінза */
 .tab-bar.dragging .tab-btn, .tab-bar.dragging .tab-btn:active { transform: none; }
+
+/* Кнопка виправлення — лише зірочка */
+#tab-fix .btn-fix { width: 52px; height: 52px; min-height: 52px; padding: 0; border-radius: 50%; flex-shrink: 0; }
+#tab-fix .btn-fix .btn-label { font-size: 26px; line-height: 1; }

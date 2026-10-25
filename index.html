@@ -12,7 +12,7 @@
 <link rel="manifest" href="manifest.json">
 <title>ClearText AI</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20261024e">
+<link rel="stylesheet" href="style.css?v=20261024f">
 </head>
 <body>
 
@@ -520,8 +520,8 @@
         <textarea id="text-input" placeholder="Напишіть речення яке хочете виправити…&#10;Наприклад: «я вчора ходив магазін купляв хліб і молоко»"></textarea>
         <div class="card-footer">
           <div class="char-count" id="charCount">0 / 800</div>
-          <button class="btn-fix" id="fixBtn" type="button">
-            <span class="btn-label">✦ Виправити текст</span>
+          <button class="btn-fix" id="fixBtn" type="button" aria-label="Виправити текст" title="Виправити текст">
+            <span class="btn-label" aria-hidden="true">✦</span>
             <div class="spinner"></div>
           </button>
         </div>
