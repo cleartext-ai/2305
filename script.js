@@ -1402,6 +1402,7 @@ function createLens() {
   const V = { x: 0, w: 0, sx: 0, sy: 0 };   // швидкості
   const T = { x: 0, w: 0, sx: 1, sy: 1 };   // цілі
   let k = 190, c = 15, raf = 0, last = 0, ready = false;
+  let D = 0, drag = false;                                  // D — «вологість»: відблиск-роса видно лише в русі
 
   const step = (key, kk, cc, h) => {
     const a = -kk * (S[key] - T[key]) - cc * V[key];
@@ -1420,8 +1421,10 @@ function createLens() {
     ind.style.width = Math.max(0, bw) + 'px';
     ind.style.translate = left + 'px 0';
     ind.style.scale = `${S.sx} ${S.sy * squash}`;
+    ind.style.setProperty('--dew', D.toFixed(3));
   };
-  const settled = () =>
+  const settled = Td =>
+    Td === 0 && D < 0.01 &&
     Math.abs(S.x - T.x) < 0.05 && Math.abs(V.x) < 0.5 &&
     Math.abs(S.w - T.w) < 0.05 && Math.abs(V.w) < 0.5 &&
     Math.abs(S.sx - T.sx) < 0.001 && Math.abs(V.sx) < 0.01 &&
@@ -1430,11 +1433,14 @@ function createLens() {
     const dt = Math.min((now - last) / 1000 || 0.016, 0.032);
     last = now;
     const h = dt / 2;
+    const Td = (drag || Math.abs(V.x) > 40) ? 1 : 0;
+    D += (Td - D) * Math.min(1, dt * (Td > D ? 14 : 5));
     for (let i = 0; i < 2; i++) {
       step('x', k, c, h); step('w', 200, 16, h);
       step('sx', 240, 17, h); step('sy', 240, 17, h);
     }
-    if (settled()) {
+    if (settled(Td)) {
+      D = 0;
       S.x = T.x; S.w = T.w; S.sx = T.sx; S.sy = T.sy;
       V.x = V.w = V.sx = V.sy = 0;
       paint(); raf = 0; return;
@@ -1444,7 +1450,7 @@ function createLens() {
   };
   const run = () => { if (!raf) { last = performance.now(); raf = requestAnimationFrame(frame); } };
   const snapTo = (x, w) => {
-    S.x = T.x = x; S.w = T.w = w; V.x = V.w = 0; ready = true;
+    S.x = T.x = x; S.w = T.w = w; V.x = V.w = 0; ready = true; D = drag ? 1 : 0;
     if (raf) { cancelAnimationFrame(raf); raf = 0; }
     paint();
   };
@@ -1457,7 +1463,7 @@ function createLens() {
       if (reduce || !ready) { snapTo(x, w); return; }
       T.x = x; T.w = w; k = 480; c = 36; run();
     },
-    lens(on) { T.sx = on ? 1.08 : 1; T.sy = on ? 1.3 : 1; if (reduce) { S.sx = T.sx; S.sy = T.sy; paint(); } else run(); }
+    lens(on) { drag = on; T.sx = on ? 1.08 : 1; T.sy = on ? 1.3 : 1; if (reduce) { S.sx = T.sx; S.sy = T.sy; D = on ? 1 : 0; paint(); } else run(); }
   };
 }
 function getLens() { return window.__ctLens || (window.__ctLens = createLens()); }
