@@ -2,7 +2,7 @@
 // FIREBASE INIT
 // ══════════════════════════════════════════════
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
-import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js";
+import { getFirestore, doc, getDoc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAdhdpQno2Pe0lBoS1DlZySJeRzso_WlZE",
@@ -38,6 +38,43 @@ async function fsSet(docId, data) {
     console.warn('fsSet error:', e);
     return false;
   }
+}
+
+// Те саме, що fsGet, але відрізняє «документа немає» від «немає зв'язку з базою»
+async function fsGetStrict(docId) {
+  try {
+    const snap = await getDoc(doc(db, 'app', docId));
+    return { ok: true, data: snap.exists() ? snap.data() : null };
+  } catch(e) {
+    console.warn('fsGetStrict error:', e);
+    return { ok: false, data: null };
+  }
+}
+
+// ══════════════════════════════════════════════
+// ОБЛІКОВІ ДАНІ АДМІНА — у Firestore (app/adminAuth), пароль лише у вигляді
+// солоного хеша PBKDF2-SHA256. Відкритий пароль ніде не зберігається.
+// ══════════════════════════════════════════════
+const AUTH_DOC = 'adminAuth';
+const AUTH_ITER = 150000;
+const _b64 = buf => btoa(String.fromCharCode(...new Uint8Array(buf)));
+const _unb64 = str => Uint8Array.from(atob(str), c => c.charCodeAt(0));
+const hasCrypto = () => !!(window.crypto && window.crypto.subtle);
+
+async function hashPassword(pass, saltBytes, iter = AUTH_ITER) {
+  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(pass), 'PBKDF2', false, ['deriveBits']);
+  const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt: saltBytes, iterations: iter }, key, 256);
+  return _b64(bits);
+}
+async function makeAuthRecord(user, pass) {
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  return { user, salt: _b64(salt), hash: await hashPassword(pass, salt), iter: AUTH_ITER, algo: 'PBKDF2-SHA256', updatedAt: new Date().toISOString() };
+}
+function safeEqual(a, b) {
+  if (a.length !== b.length) return false;
+  let r = 0;
+  for (let i = 0; i < a.length; i++) r |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return r === 0;
 }
 
 
@@ -158,8 +195,38 @@ async function getSettings() {
 
 function invalidateCache() { _cachedSettings = null; }
 
-function getAdminUser(){ return lsGet(KEYS.ADMIN_USER, DEFAULT_ADMIN.user); }
-function getAdminPass(){ return lsGet(KEYS.ADMIN_PASS, DEFAULT_ADMIN.pass); }
+// Ім'я поточного адміна (лише для підпису в журналі); пароль більше ніде не читається
+let _adminUserName = DEFAULT_ADMIN.user;
+function getAdminUser(){ return _adminUserName; }
+
+// Перевірка входу: хеш із БД. Якщо запису в БД ще немає — перший вхід (старі локальні дані
+// або admin/admin123), і одразу переносимо їх у БД, а локальну копію видаляємо.
+async function verifyAdminLogin(user, pass) {
+  if (!hasCrypto()) return { ok: false, insecure: true };
+  const r = await fsGetStrict(AUTH_DOC);
+  if (!r.ok) return { ok: false, network: true };
+  const rec = r.data;
+  if (rec && rec.hash && rec.salt) {
+    const h = await hashPassword(pass, _unb64(rec.salt), rec.iter || AUTH_ITER);
+    return { ok: user === rec.user && safeEqual(h, rec.hash) };
+  }
+  const legacyUser = lsGet(KEYS.ADMIN_USER, null);
+  const legacyPass = lsGet(KEYS.ADMIN_PASS, null);
+  const u = legacyUser !== null ? legacyUser : DEFAULT_ADMIN.user;
+  const p = legacyPass !== null ? legacyPass : DEFAULT_ADMIN.pass;
+  if (user === u && pass === p) {
+    if (legacyUser !== null || legacyPass !== null) {
+      try {
+        if (await fsSet(AUTH_DOC, await makeAuthRecord(user, pass))) {
+          localStorage.removeItem(KEYS.ADMIN_USER);
+          localStorage.removeItem(KEYS.ADMIN_PASS);
+        }
+      } catch (_) { /* залишаємо локальну копію, перенесемо при наступному вході */ }
+    }
+    return { ok: true };
+  }
+  return { ok: false };
+}
 
 function isAdminSession() { return sessionStorage.getItem(KEYS.ADMIN_SES) === 'ok'; }
 function setAdminSession(v) {
@@ -341,21 +408,42 @@ function applyLockoutUI() {
   _lockoutInterval = setInterval(tick, 1000);
 }
 
-function doAdminLogin() {
+const _loginErrBox = document.getElementById('adminLoginError');
+const _loginErrOrig = _loginErrBox ? _loginErrBox.innerHTML : '';
+let _loginBusy = false;
+
+async function doAdminLogin() {
+  if (_loginBusy) return;
   if (isLockedOut()) { applyLockoutUI(); return; }
   const user = document.getElementById('adminLoginInput').value.trim();
   const pass = document.getElementById('adminPassInput').value;
   const errBox = document.getElementById('adminLoginError');
+  const btn = document.getElementById('adminLoginBtn');
 
-  if (user === getAdminUser() && pass === getAdminPass()) {
+  _loginBusy = true;
+  if (btn) btn.disabled = true;
+  let res;
+  try { res = await verifyAdminLogin(user, pass); }
+  catch (e) { console.warn('login error', e); res = { ok: false, network: true }; }
+  _loginBusy = false;
+  if (btn && !isLockedOut()) btn.disabled = false;
+
+  if (res.ok) {
     errBox.style.display = 'none';
+    _adminUserName = user;
     clearLockoutState();
     setAdminSession(true);
     _adminSessionStart = Date.now();
     logEvent('Успішний вхід в адмінку (логін: ' + user + ')', 'ok');
     pushAudit('Успішний вхід в адмінку (логін: ' + user + ')');
     showAdmin();
+  } else if (res.network || res.insecure) {
+    errBox.textContent = res.insecure
+      ? 'Для входу потрібне захищене з\'єднання (HTTPS).'
+      : 'Не вдалося перевірити пароль: немає зв\'язку з базою даних. Спробуйте ще раз.';
+    errBox.style.display = 'block';
   } else {
+    errBox.innerHTML = _loginErrOrig;
     logEvent('Невдала спроба входу (логін: ' + (user || '—') + ')', 'fail');
     const state = registerFailedLogin();
     if (state.lockedUntil && Date.now() < state.lockedUntil) {
@@ -844,8 +932,8 @@ document.getElementById('addModelBtn').onclick = async () => {
 };
 document.getElementById('newModelInput').addEventListener('keydown', e => { if(e.key==='Enter') document.getElementById('addModelBtn').click(); });
 
-// Save admin credentials → localStorage (тільки на пристрої адміна)
-document.getElementById('saveCredsBtn').onclick = () => {
+// Save admin credentials → Firestore (app/adminAuth), пароль зберігається лише як хеш
+document.getElementById('saveCredsBtn').onclick = async () => {
   const login = document.getElementById('newAdminLogin').value.trim();
   const pass  = document.getElementById('newAdminPass').value;
   const pass2 = document.getElementById('newAdminPassConfirm').value;
@@ -856,8 +944,16 @@ document.getElementById('saveCredsBtn').onclick = () => {
   if (pass.length < 6) { errBox.textContent = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Пароль мінімум 6 символів'; errBox.style.display = 'block'; return; }
   if (pass !== pass2) { errBox.textContent = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Паролі не збігаються'; errBox.style.display = 'block'; return; }
 
-  lsSet(KEYS.ADMIN_USER, login);
-  lsSet(KEYS.ADMIN_PASS, pass);
+  if (!hasCrypto()) { errBox.textContent = 'Для збереження потрібне захищене з\'єднання (HTTPS).'; errBox.style.display = 'block'; return; }
+  const saveBtn = document.getElementById('saveCredsBtn');
+  saveBtn.disabled = true;
+  let saved = false;
+  try { saved = await fsSet(AUTH_DOC, await makeAuthRecord(login, pass)); } catch (e) { console.warn(e); }
+  saveBtn.disabled = false;
+  if (!saved) { errBox.textContent = 'Не вдалося зберегти в базу даних. Перевірте з\'єднання та правила Firestore (документ app/adminAuth).'; errBox.style.display = 'block'; return; }
+  localStorage.removeItem(KEYS.ADMIN_USER);
+  localStorage.removeItem(KEYS.ADMIN_PASS);
+  _adminUserName = login;
   document.getElementById('newAdminLogin').value = '';
   document.getElementById('newAdminPass').value = '';
   document.getElementById('newAdminPassConfirm').value = '';
@@ -1364,12 +1460,20 @@ document.getElementById('resetTemplatesBtn')?.addEventListener('click', async ()
   pushAudit('Шаблони відновлено до значень за замовчуванням');
 });
 
-document.getElementById('resetCredsBtn')?.addEventListener('click', () => {
-  if (!confirm('Скинути логін і пароль адміна до значень за замовчуванням на цьому пристрої?')) return;
-  lsSet(KEYS.ADMIN_USER, DEFAULT_ADMIN.user);
-  lsSet(KEYS.ADMIN_PASS, DEFAULT_ADMIN.pass);
+document.getElementById('resetCredsBtn')?.addEventListener('click', async () => {
+  if (!confirm('Скинути логін і пароль адміна до значень за замовчуванням (у базі даних, для всіх пристроїв)?')) return;
+  try {
+    await deleteDoc(doc(db, 'app', AUTH_DOC));
+  } catch (e) {
+    console.warn('reset creds error', e);
+    alert('Не вдалося скинути в базі даних. Перевірте з\'єднання та правила Firestore.');
+    return;
+  }
+  localStorage.removeItem(KEYS.ADMIN_USER);
+  localStorage.removeItem(KEYS.ADMIN_PASS);
+  _adminUserName = DEFAULT_ADMIN.user;
   logEvent('Дані входу адміна скинуто до значень за замовчуванням', 'ok');
-  pushAudit('Дані входу адміна скинуто до значень за замовчуванням (цей пристрій)');
+  pushAudit('Дані входу адміна скинуто до значень за замовчуванням (база даних)');
   alert('Дані входу скинуто до admin / admin123.');
 });
 
