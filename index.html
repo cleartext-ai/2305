@@ -369,12 +369,36 @@
     </div>
 
     <!-- Admin test corrector -->
-    <div class="admin-section">
+    <!-- Prompt editor section -->
+<div class="admin-section">
+<div class="admin-section-header">
+<div class="admin-section-title"><span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h10M4 18h6"/><path d="M17.5 14.5l3 3-5 5H12.5v-3z"/></svg></span> Промпт ШІ</div>
+</div>
+<div class="admin-section-body">
+<div class="info-box">Інструкція, за якою ШІ виправляє текст. Зберігається в базі даних і діє для всіх одразу, без нового деплою. <b>{{TEXT}}</b> — місце, куди підставляється текст користувача. Відповідь ШІ має лишатися в JSON-форматі з полями corrected / changes / noChanges, інакше застосунок не зможе її прочитати.</div>
+<div class="admin-row" style="justify-content:space-between;align-items:center;gap:8px">
+<span id="promptStatus" style="font-size:11px;font-weight:700;color:var(--adm-accent2)"></span>
+<span id="promptCount" style="font-size:11px;color:var(--adm-dim)"></span>
+</div>
+<textarea class="json-view" id="promptEditor" spellcheck="false" style="min-height:340px;max-height:560px;color:var(--adm-text)"></textarea>
+<div id="promptHint" style="display:none;font-size:11.5px;font-weight:600;line-height:1.5"></div>
+<div id="promptUpdated" style="font-size:11px;color:var(--adm-dim)"></div>
+<div class="admin-row" style="gap:8px">
+<button class="btn-save" id="savePromptBtn" type="button">Зберегти промпт</button>
+<button class="btn-save btn-term" id="insertPromptTokenBtn" type="button">Вставити {{TEXT}}</button>
+<button class="btn-save btn-term" id="restorePromptBtn" type="button" style="display:none">Попередня версія</button>
+<button class="btn-save btn-term" id="resetPromptBtn" type="button">Стандартний промпт</button>
+</div>
+<div class="admin-success-msg" id="promptSavedMsg"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Промпт збережено!</div>
+</div>
+</div>
+
+<div class="admin-section">
       <div class="admin-section-header">
         <div class="admin-section-title"><span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg></span> Тест виправлення тексту</div>
       </div>
       <div class="admin-section-body">
-        <div class="info-box">Прогонить речення крізь ту саму AI-логіку, що й застосунок користувача, але результат ніде не зберігається і не впливає на публічну статистику чи вигляд застосунку.</div>
+        <div class="info-box">Прогонить речення крізь ту саму AI-логіку, що й застосунок користувача, але результат ніде не зберігається і не впливає на публічну статистику чи вигляд застосунку. Тест використовує промпт із редактора вище, навіть якщо він ще не збережений.</div>
         <textarea class="json-view" id="adminTestInput" style="min-height:70px;color:var(--adm-text)" placeholder="я вчора ходив магазін купляв хліб"></textarea>
         <div class="admin-row" style="gap:8px">
           <select class="admin-key-input" id="adminTestModelSelect" style="flex:1;min-width:160px"></select>
@@ -659,7 +683,7 @@
   </nav>
 </div>
 
-<script type="module" src="script.js?v=20261024s"></script>
+<script type="module" src="script.js?v=20261024w"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {

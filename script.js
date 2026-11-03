@@ -2,7 +2,7 @@
 // FIREBASE INIT
 // ══════════════════════════════════════════════
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
-import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js";
+import { getFirestore, doc, getDoc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAdhdpQno2Pe0lBoS1DlZySJeRzso_WlZE",
@@ -38,6 +38,43 @@ async function fsSet(docId, data) {
     console.warn('fsSet error:', e);
     return false;
   }
+}
+
+// Те саме, що fsGet, але відрізняє «документа немає» від «немає зв'язку з базою»
+async function fsGetStrict(docId) {
+  try {
+    const snap = await getDoc(doc(db, 'app', docId));
+    return { ok: true, data: snap.exists() ? snap.data() : null };
+  } catch(e) {
+    console.warn('fsGetStrict error:', e);
+    return { ok: false, data: null };
+  }
+}
+
+// ══════════════════════════════════════════════
+// ОБЛІКОВІ ДАНІ АДМІНА — у Firestore (app/adminAuth), пароль лише у вигляді
+// солоного хеша PBKDF2-SHA256. Відкритий пароль ніде не зберігається.
+// ══════════════════════════════════════════════
+const AUTH_DOC = 'adminAuth';
+const AUTH_ITER = 150000;
+const _b64 = buf => btoa(String.fromCharCode(...new Uint8Array(buf)));
+const _unb64 = str => Uint8Array.from(atob(str), c => c.charCodeAt(0));
+const hasCrypto = () => !!(window.crypto && window.crypto.subtle);
+
+async function hashPassword(pass, saltBytes, iter = AUTH_ITER) {
+  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(pass), 'PBKDF2', false, ['deriveBits']);
+  const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt: saltBytes, iterations: iter }, key, 256);
+  return _b64(bits);
+}
+async function makeAuthRecord(user, pass) {
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  return { user, salt: _b64(salt), hash: await hashPassword(pass, salt), iter: AUTH_ITER, algo: 'PBKDF2-SHA256', updatedAt: new Date().toISOString() };
+}
+function safeEqual(a, b) {
+  if (a.length !== b.length) return false;
+  let r = 0;
+  for (let i = 0; i < a.length; i++) r |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return r === 0;
 }
 
 
@@ -158,8 +195,38 @@ async function getSettings() {
 
 function invalidateCache() { _cachedSettings = null; }
 
-function getAdminUser(){ return lsGet(KEYS.ADMIN_USER, DEFAULT_ADMIN.user); }
-function getAdminPass(){ return lsGet(KEYS.ADMIN_PASS, DEFAULT_ADMIN.pass); }
+// Ім'я поточного адміна (лише для підпису в журналі); пароль більше ніде не читається
+let _adminUserName = DEFAULT_ADMIN.user;
+function getAdminUser(){ return _adminUserName; }
+
+// Перевірка входу: хеш із БД. Якщо запису в БД ще немає — перший вхід (старі локальні дані
+// або admin/admin123), і одразу переносимо їх у БД, а локальну копію видаляємо.
+async function verifyAdminLogin(user, pass) {
+  if (!hasCrypto()) return { ok: false, insecure: true };
+  const r = await fsGetStrict(AUTH_DOC);
+  if (!r.ok) return { ok: false, network: true };
+  const rec = r.data;
+  if (rec && rec.hash && rec.salt) {
+    const h = await hashPassword(pass, _unb64(rec.salt), rec.iter || AUTH_ITER);
+    return { ok: user === rec.user && safeEqual(h, rec.hash) };
+  }
+  const legacyUser = lsGet(KEYS.ADMIN_USER, null);
+  const legacyPass = lsGet(KEYS.ADMIN_PASS, null);
+  const u = legacyUser !== null ? legacyUser : DEFAULT_ADMIN.user;
+  const p = legacyPass !== null ? legacyPass : DEFAULT_ADMIN.pass;
+  if (user === u && pass === p) {
+    if (legacyUser !== null || legacyPass !== null) {
+      try {
+        if (await fsSet(AUTH_DOC, await makeAuthRecord(user, pass))) {
+          localStorage.removeItem(KEYS.ADMIN_USER);
+          localStorage.removeItem(KEYS.ADMIN_PASS);
+        }
+      } catch (_) { /* залишаємо локальну копію, перенесемо при наступному вході */ }
+    }
+    return { ok: true };
+  }
+  return { ok: false };
+}
 
 function isAdminSession() { return sessionStorage.getItem(KEYS.ADMIN_SES) === 'ok'; }
 function setAdminSession(v) {
@@ -341,21 +408,42 @@ function applyLockoutUI() {
   _lockoutInterval = setInterval(tick, 1000);
 }
 
-function doAdminLogin() {
+const _loginErrBox = document.getElementById('adminLoginError');
+const _loginErrOrig = _loginErrBox ? _loginErrBox.innerHTML : '';
+let _loginBusy = false;
+
+async function doAdminLogin() {
+  if (_loginBusy) return;
   if (isLockedOut()) { applyLockoutUI(); return; }
   const user = document.getElementById('adminLoginInput').value.trim();
   const pass = document.getElementById('adminPassInput').value;
   const errBox = document.getElementById('adminLoginError');
+  const btn = document.getElementById('adminLoginBtn');
 
-  if (user === getAdminUser() && pass === getAdminPass()) {
+  _loginBusy = true;
+  if (btn) btn.disabled = true;
+  let res;
+  try { res = await verifyAdminLogin(user, pass); }
+  catch (e) { console.warn('login error', e); res = { ok: false, network: true }; }
+  _loginBusy = false;
+  if (btn && !isLockedOut()) btn.disabled = false;
+
+  if (res.ok) {
     errBox.style.display = 'none';
+    _adminUserName = user;
     clearLockoutState();
     setAdminSession(true);
     _adminSessionStart = Date.now();
     logEvent('Успішний вхід в адмінку (логін: ' + user + ')', 'ok');
     pushAudit('Успішний вхід в адмінку (логін: ' + user + ')');
     showAdmin();
+  } else if (res.network || res.insecure) {
+    errBox.textContent = res.insecure
+      ? 'Для входу потрібне захищене з\'єднання (HTTPS).'
+      : 'Не вдалося перевірити пароль: немає зв\'язку з базою даних. Спробуйте ще раз.';
+    errBox.style.display = 'block';
   } else {
+    errBox.innerHTML = _loginErrOrig;
     logEvent('Невдала спроба входу (логін: ' + (user || '—') + ')', 'fail');
     const state = registerFailedLogin();
     if (state.lockedUntil && Date.now() < state.lockedUntil) {
@@ -402,6 +490,9 @@ async function renderAdmin() {
 
   renderAdminModels(settings.models || DEFAULT_MODELS);
   renderAdminTestModelSelect(settings.models || DEFAULT_MODELS);
+
+  // Редактор промпту ШІ
+  initPromptEditor(settings);
 
   // Templates editor draft
   _templatesDraft = JSON.parse(JSON.stringify((settings.templates && settings.templates.length) ? settings.templates : DEFAULT_TEMPLATES));
@@ -844,8 +935,8 @@ document.getElementById('addModelBtn').onclick = async () => {
 };
 document.getElementById('newModelInput').addEventListener('keydown', e => { if(e.key==='Enter') document.getElementById('addModelBtn').click(); });
 
-// Save admin credentials → localStorage (тільки на пристрої адміна)
-document.getElementById('saveCredsBtn').onclick = () => {
+// Save admin credentials → Firestore (app/adminAuth), пароль зберігається лише як хеш
+document.getElementById('saveCredsBtn').onclick = async () => {
   const login = document.getElementById('newAdminLogin').value.trim();
   const pass  = document.getElementById('newAdminPass').value;
   const pass2 = document.getElementById('newAdminPassConfirm').value;
@@ -856,8 +947,16 @@ document.getElementById('saveCredsBtn').onclick = () => {
   if (pass.length < 6) { errBox.textContent = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Пароль мінімум 6 символів'; errBox.style.display = 'block'; return; }
   if (pass !== pass2) { errBox.textContent = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Паролі не збігаються'; errBox.style.display = 'block'; return; }
 
-  lsSet(KEYS.ADMIN_USER, login);
-  lsSet(KEYS.ADMIN_PASS, pass);
+  if (!hasCrypto()) { errBox.textContent = 'Для збереження потрібне захищене з\'єднання (HTTPS).'; errBox.style.display = 'block'; return; }
+  const saveBtn = document.getElementById('saveCredsBtn');
+  saveBtn.disabled = true;
+  let saved = false;
+  try { saved = await fsSet(AUTH_DOC, await makeAuthRecord(login, pass)); } catch (e) { console.warn(e); }
+  saveBtn.disabled = false;
+  if (!saved) { errBox.textContent = 'Не вдалося зберегти в базу даних. Перевірте з\'єднання та правила Firestore (документ app/adminAuth).'; errBox.style.display = 'block'; return; }
+  localStorage.removeItem(KEYS.ADMIN_USER);
+  localStorage.removeItem(KEYS.ADMIN_PASS);
+  _adminUserName = login;
   document.getElementById('newAdminLogin').value = '';
   document.getElementById('newAdminPass').value = '';
   document.getElementById('newAdminPassConfirm').value = '';
@@ -865,6 +964,120 @@ document.getElementById('saveCredsBtn').onclick = () => {
   logEvent('Дані входу адміна оновлено (логін: ' + login + ')', 'ok');
   pushAudit('Дані входу адміна оновлено (логін: ' + login + ')');
 };
+
+// ══════════════════════════════════════════════
+// АДМІНКА — РЕДАКТОР ПРОМПТУ ШІ
+// ══════════════════════════════════════════════
+let _promptSavedValue = DEFAULT_PROMPT_TEMPLATE;   // що зараз реально діє для користувачів
+
+function getPromptEditorValue() {
+  const el = document.getElementById('promptEditor');
+  return el ? el.value : '';
+}
+
+function updatePromptEditorUI() {
+  const el = document.getElementById('promptEditor');
+  if (!el) return;
+  const v = el.value;
+  const hint = document.getElementById('promptHint');
+  const status = document.getElementById('promptStatus');
+  const count = document.getElementById('promptCount');
+  if (count) count.textContent = v.length.toLocaleString('uk-UA') + ' / ' + PROMPT_MAX_LEN.toLocaleString('uk-UA') + ' симв.';
+
+  const problems = [], warns = [];
+  if (!v.trim()) problems.push('Промпт порожній.');
+  else {
+    if (!v.includes(PROMPT_TEXT_TOKEN)) problems.push('Немає {{TEXT}} — без нього текст користувача не потрапить у запит до ШІ.');
+    if (v.length > PROMPT_MAX_LEN) problems.push('Занадто довгий (максимум ' + PROMPT_MAX_LEN + ' символів).');
+    if (!/corrected/.test(v) || !/changes/.test(v)) warns.push('У промпті не видно полів "corrected" та "changes" — застосунок очікує відповідь ШІ саме в такому JSON-форматі.');
+  }
+  if (hint) {
+    if (problems.length) { hint.style.display = 'block'; hint.style.color = 'var(--adm-rose)'; hint.textContent = problems.join(' '); }
+    else if (warns.length) { hint.style.display = 'block'; hint.style.color = 'var(--adm-amber)'; hint.textContent = warns.join(' '); }
+    else hint.style.display = 'none';
+  }
+  const saveBtn = document.getElementById('savePromptBtn');
+  if (saveBtn) saveBtn.disabled = problems.length > 0;
+
+  if (status) {
+    const isDefault = v === DEFAULT_PROMPT_TEMPLATE;
+    const dirty = v !== _promptSavedValue;
+    status.textContent = (isDefault ? 'стандартний' : 'змінений') + (dirty ? ' · є незбережені правки' : '');
+  }
+}
+
+function initPromptEditor(settings) {
+  const el = document.getElementById('promptEditor');
+  if (!el) return;
+  _promptSavedValue = getPromptTemplate(settings);
+  el.value = _promptSavedValue;
+  const prevBtn = document.getElementById('restorePromptBtn');
+  if (prevBtn) prevBtn.style.display = (settings && typeof settings.promptPrev === 'string' && settings.promptPrev.trim()) ? '' : 'none';
+  const when = document.getElementById('promptUpdated');
+  if (when) {
+    when.textContent = settings && settings.promptUpdatedAt
+      ? 'Востаннє збережено: ' + new Date(settings.promptUpdatedAt).toLocaleString('uk-UA')
+      : 'Зараз діє стандартний промпт із коду.';
+  }
+  updatePromptEditorUI();
+}
+
+document.getElementById('promptEditor')?.addEventListener('input', updatePromptEditorUI);
+
+document.getElementById('insertPromptTokenBtn')?.addEventListener('click', () => {
+  const el = document.getElementById('promptEditor');
+  const a = el.selectionStart, b = el.selectionEnd;
+  el.value = el.value.slice(0, a) + PROMPT_TEXT_TOKEN + el.value.slice(b);
+  el.focus();
+  el.selectionStart = el.selectionEnd = a + PROMPT_TEXT_TOKEN.length;
+  updatePromptEditorUI();
+});
+
+document.getElementById('savePromptBtn')?.addEventListener('click', async () => {
+  const el = document.getElementById('promptEditor');
+  const btn = document.getElementById('savePromptBtn');
+  const value = el.value;
+  if (!value.trim() || !value.includes(PROMPT_TEXT_TOKEN) || value.length > PROMPT_MAX_LEN) { updatePromptEditorUI(); return; }
+  btn.disabled = true;
+  const isDefault = value === DEFAULT_PROMPT_TEMPLATE;
+  const ok = await fsSet('settings', {
+    promptTemplate: isDefault ? '' : value,          // порожньо = стандартний
+    promptPrev: _promptSavedValue,                   // одна попередня версія для відновлення
+    promptUpdatedAt: new Date().toISOString(),
+  });
+  invalidateCache();
+  if (!ok) {
+    btn.disabled = false;
+    alert('Не вдалося зберегти промпт у базі даних. Перевірте з\'єднання та правила Firestore.');
+    return;
+  }
+  const s2 = await getSettings();
+  initPromptEditor(s2);
+  showTmpMsg('promptSavedMsg');
+  logEvent('Промпт ШІ оновлено (' + value.length + ' симв.)', 'ok');
+  pushAudit('Промпт ШІ ' + (isDefault ? 'повернено до стандартного' : 'оновлено (' + value.length + ' симв.)'));
+  if (typeof refreshRawJson === 'function') refreshRawJson();
+});
+
+document.getElementById('resetPromptBtn')?.addEventListener('click', async () => {
+  if (!confirm('Повернути стандартний промпт із коду? Поточний буде збережено як «попередня версія».')) return;
+  const ok = await fsSet('settings', { promptTemplate: '', promptPrev: _promptSavedValue, promptUpdatedAt: new Date().toISOString() });
+  invalidateCache();
+  if (!ok) { alert('Не вдалося зберегти в базі даних. Перевірте з\'єднання та правила Firestore.'); return; }
+  const s2 = await getSettings();
+  initPromptEditor(s2);
+  showTmpMsg('promptSavedMsg');
+  logEvent('Промпт ШІ скинуто до стандартного', 'ok');
+  pushAudit('Промпт ШІ скинуто до стандартного');
+  if (typeof refreshRawJson === 'function') refreshRawJson();
+});
+
+document.getElementById('restorePromptBtn')?.addEventListener('click', async () => {
+  const s = await getSettings();
+  if (!s.promptPrev) return;
+  document.getElementById('promptEditor').value = s.promptPrev;   // лише в редактор; зберігається кнопкою «Зберегти»
+  updatePromptEditorUI();
+});
 
 function showTmpMsg(id) {
   const el = document.getElementById(id);
@@ -1141,7 +1354,7 @@ document.getElementById('adminTestRunBtn')?.addEventListener('click', async () =
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          contents: [{ role: 'user', parts: [{ text: buildFixPrompt(text) }] }],
+          contents: [{ role: 'user', parts: [{ text: buildFixPrompt(text, getPromptEditorValue()) }] }],
           generationConfig: { temperature: 0.3, maxOutputTokens: 1024 },
           safetySettings: [
             { category: 'HARM_CATEGORY_HARASSMENT',        threshold: 'BLOCK_ONLY_HIGH' },
@@ -1364,12 +1577,20 @@ document.getElementById('resetTemplatesBtn')?.addEventListener('click', async ()
   pushAudit('Шаблони відновлено до значень за замовчуванням');
 });
 
-document.getElementById('resetCredsBtn')?.addEventListener('click', () => {
-  if (!confirm('Скинути логін і пароль адміна до значень за замовчуванням на цьому пристрої?')) return;
-  lsSet(KEYS.ADMIN_USER, DEFAULT_ADMIN.user);
-  lsSet(KEYS.ADMIN_PASS, DEFAULT_ADMIN.pass);
+document.getElementById('resetCredsBtn')?.addEventListener('click', async () => {
+  if (!confirm('Скинути логін і пароль адміна до значень за замовчуванням (у базі даних, для всіх пристроїв)?')) return;
+  try {
+    await deleteDoc(doc(db, 'app', AUTH_DOC));
+  } catch (e) {
+    console.warn('reset creds error', e);
+    alert('Не вдалося скинути в базі даних. Перевірте з\'єднання та правила Firestore.');
+    return;
+  }
+  localStorage.removeItem(KEYS.ADMIN_USER);
+  localStorage.removeItem(KEYS.ADMIN_PASS);
+  _adminUserName = DEFAULT_ADMIN.user;
   logEvent('Дані входу адміна скинуто до значень за замовчуванням', 'ok');
-  pushAudit('Дані входу адміна скинуто до значень за замовчуванням (цей пристрій)');
+  pushAudit('Дані входу адміна скинуто до значень за замовчуванням (база даних)');
   alert('Дані входу скинуто до admin / admin123.');
 });
 
@@ -1598,10 +1819,13 @@ textInput.addEventListener('input', () => {
 document.getElementById('fixBtn').onclick = fixText;
 textInput.addEventListener('keydown', e => { if (e.key==='Enter' && e.ctrlKey) fixText(); });
 
-// Промпт винесено в окрему функцію, щоб її міг використати і тестер AI в адмінці
-// (без впливу на логіку чи вигляд застосунку для користувачів).
-function buildFixPrompt(text) {
-  return `Ти — асистент з виправлення тексту для людей з вадами слуху, які пишуть неграмотно.
+// ══════════════════════════════════════════════
+// ПРОМПТ ШІ — редагується в адмінці (Firestore: settings.promptTemplate).
+// Якщо там порожньо — діє стандартний шаблон нижче. {{TEXT}} — місце для тексту користувача.
+// ══════════════════════════════════════════════
+const PROMPT_TEXT_TOKEN = '{{TEXT}}';
+const PROMPT_MAX_LEN = 30000;
+const DEFAULT_PROMPT_TEMPLATE = `Ти — асистент з виправлення тексту для людей з вадами слуху, які пишуть неграмотно.
 
 ПРАВИЛА ВИПРАВЛЕННЯ ПРОБЛЕМНОГО КОНТЕНТУ — НАЙВИЩИЙ ПРІОРИТЕТ:
 Замість блокування — виправляй проблемні місця за такими правилами:
@@ -1645,7 +1869,7 @@ function buildFixPrompt(text) {
 7. ОБОВ'ЯЗКОВО — БЕЗ ВИНЯТКІВ: "путін", "путин", "putin" та імена/прізвища будь-яких російських чиновників, політиків, військових (медведєв, лавров, шойгу, мішустін тощо) — писати ВИКЛЮЧНО з малої літери. Навіть якщо це на початку речення. Це політична позиція, не граматична помилка — не виправляй на велику.
 
 ТЕКСТ ДЛЯ ВИПРАВЛЕННЯ:
-"${text}"
+"{{TEXT}}"
 
 Відповідай ВИКЛЮЧНО у форматі JSON, без будь-яких пояснень поза JSON:
 {
@@ -1660,8 +1884,19 @@ function buildFixPrompt(text) {
   "noChanges": false
 }
 
-Якщо текст вже правильний українською, поверни: {"corrected": "${text}", "changes": [], "noChanges": true}
+Якщо текст вже правильний українською, поверни: {"corrected": "{{TEXT}}", "changes": [], "noChanges": true}
 ВАЖЛИВО: відповідай тільки валідним JSON, без markdown і додаткового тексту.`;
+
+function getPromptTemplate(settings) {
+  const t = settings && typeof settings.promptTemplate === 'string' ? settings.promptTemplate : '';
+  return t.trim() ? t : DEFAULT_PROMPT_TEMPLATE;
+}
+
+// template — необов'язковий (його передає тестер адмінки з редактора); інакше береться збережений
+function buildFixPrompt(text, template) {
+  const tpl = (typeof template === 'string' && template.trim()) ? template : getPromptTemplate(_cachedSettings);
+  // split/join, а не replace — щоб символи на кшталт $& у тексті користувача не мали особливого змісту
+  return tpl.split(PROMPT_TEXT_TOKEN).join(text);
 }
 
 async function fixText() {
@@ -1701,7 +1936,7 @@ async function fixText() {
   document.getElementById('result-card').style.display = 'none';
   document.getElementById('errorBox').style.display = 'none';
 
-  const prompt = buildFixPrompt(text);
+  const prompt = buildFixPrompt(text, getPromptTemplate(settings));
   const _fixStart = performance.now();
 
   // ── AUTO-ROTATING MODEL CALL ──────────────────
