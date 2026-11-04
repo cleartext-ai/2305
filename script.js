@@ -895,6 +895,20 @@ function renderBanner(settings) {
   } else {
     el.style.display = 'none';
   }
+  syncBannerSpace();
+}
+
+// Банер стоїть під полем «Ваш текст», над навігацією; резервуємо під нього місце,
+// щоб поле й контент піднімалися вище, а не перекривались.
+function syncBannerSpace() {
+  const el = document.getElementById('appBanner');
+  const visible = el && el.style.display !== 'none' && el.offsetHeight > 0;
+  document.documentElement.style.setProperty('--ct-banner-space', visible ? (el.offsetHeight + 10) + 'px' : '0px');
+}
+window.addEventListener('resize', syncBannerSpace);
+if (window.ResizeObserver) {
+  const _bn = document.getElementById('appBanner');
+  if (_bn) new ResizeObserver(syncBannerSpace).observe(_bn);
 }
 
 function renderAdminModels(models) {
